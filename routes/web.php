@@ -24,6 +24,10 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Public score monitor per court (no authentication required)
+Route::get('courts/{court}/monitor', [MatchController::class, 'courtMonitor'])
+    ->name('courts.monitor');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -51,6 +55,11 @@ Route::middleware('auth')->group(function () {
         ->name('events.categories.show');
     
     // Participants nested under categories
+    // Custom routes must come BEFORE resource routes to avoid conflicts
+    Route::get('categories/{category}/participants/template', [ParticipantController::class, 'downloadTemplate'])
+        ->name('categories.participants.template');
+    Route::post('categories/{category}/participants/import', [ParticipantController::class, 'import'])
+        ->name('categories.participants.import');
     Route::resource('categories.participants', ParticipantController::class);
     
     // Groups management
@@ -76,6 +85,34 @@ Route::middleware('auth')->group(function () {
         ->name('categories.matches.update');
     Route::delete('categories/{category}/matches/{match}', [MatchController::class, 'destroy'])
         ->name('categories.matches.destroy');
+    
+    // Match control - Referee
+    Route::get('categories/{category}/matches/{match}/referee', [MatchController::class, 'referee'])
+        ->name('categories.matches.referee');
+    
+    // Match preparation (reserve court and mark as upcoming)
+    Route::post('categories/{category}/matches/{match}/start-prep', [MatchController::class, 'startPrep'])
+        ->name('categories.matches.startPrep');
+    
+    // Warm-up control
+    Route::post('categories/{category}/matches/{match}/warmup/start', [MatchController::class, 'warmupStart'])
+        ->name('categories.matches.warmup.start');
+    Route::post('categories/{category}/matches/{match}/warmup/reset', [MatchController::class, 'warmupReset'])
+        ->name('categories.matches.warmup.reset');
+    Route::post('categories/{category}/matches/{match}/warmup/skip', [MatchController::class, 'warmupSkip'])
+        ->name('categories.matches.warmup.skip');
+    Route::post('categories/{category}/matches/{match}/warmup/end', [MatchController::class, 'warmupEnd'])
+        ->name('categories.matches.warmup.end');
+    
+    // Match scoring
+    Route::post('categories/{category}/matches/{match}/start', [MatchController::class, 'startMatch'])
+        ->name('categories.matches.start');
+    Route::post('categories/{category}/matches/{match}/score', [MatchController::class, 'scorePoint'])
+        ->name('categories.matches.score');
+    Route::post('categories/{category}/matches/{match}/undo', [MatchController::class, 'undoPoint'])
+        ->name('categories.matches.undo');
+    Route::post('categories/{category}/matches/{match}/reset', [MatchController::class, 'resetMatch'])
+        ->name('categories.matches.reset');
 });
 
 require __DIR__.'/auth.php';

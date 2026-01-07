@@ -41,10 +41,10 @@ class GroupController extends Controller
         // Delete existing groups
         $category->groups()->delete();
 
-        // Create new groups
+        // Create new groups with letter names (A, B, C, etc.)
         for ($i = 1; $i <= $validated['number_of_groups']; $i++) {
             $category->groups()->create([
-                'name' => 'Group ' . $i,
+                'name' => 'Group ' . chr(64 + $i), // chr(65) = 'A', chr(66) = 'B', etc.
                 'order' => $i,
             ]);
         }

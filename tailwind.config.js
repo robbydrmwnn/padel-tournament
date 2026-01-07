@@ -13,7 +13,9 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Gotham', 'Figtree', ...defaultTheme.fontFamily.sans],
+                raverist: ['Raverist', 'sans-serif'],
+                gotham: ['Gotham', 'sans-serif'],
             },
         },
     },

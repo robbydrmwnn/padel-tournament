@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Raverist Font */
+@font-face {
+    font-family: 'Raverist';
+    src: url('/fonts/Raverist.woff2') format('woff2'),
+         url('/fonts/Raverist.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Gotham Font */
+@font-face {
+    font-family: 'Gotham';
+    src: url('/fonts/Gotham-Book.woff2') format('woff2'),
+         url('/fonts/Gotham-Book.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}

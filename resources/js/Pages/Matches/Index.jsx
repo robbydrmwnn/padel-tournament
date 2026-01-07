@@ -1,19 +1,32 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { formatDate } from '@/Utils/dateFormatter';
+import axios from 'axios';
 
 export default function Index({ category, matches, courts }) {
-    const [editingMatch, setEditingMatch] = useState(null);
-    
-    const { data: editData, setData: setEditData, patch: patchEdit, processing } = useForm({
-        court_id: '',
-        scheduled_time: '',
-        team1_score: '',
-        team2_score: '',
-        status: 'scheduled',
-        notes: '',
-    });
+    const { flash } = usePage().props;
+    const handleCourtChange = (matchId, courtId) => {
+        router.patch(route('categories.matches.update', [category.id, matchId]), {
+            court_id: courtId,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleScheduledTimeChange = (matchId, scheduledTime) => {
+        router.patch(route('categories.matches.update', [category.id, matchId]), {
+            scheduled_time: scheduledTime,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleResetMatch = (matchId) => {
+        if (confirm('Reset this match?\n\n• Clears all scores and progress\n• Returns match to scheduled state\n• Frees up the court for other matches\n\nContinue?')) {
+            router.post(route('categories.matches.reset', [category.id, matchId]));
+        }
+    };
 
     const handleGenerateMatches = () => {
         if (confirm('Generate matches for all groups? This will delete existing group phase matches.')) {
@@ -21,24 +34,38 @@ export default function Index({ category, matches, courts }) {
         }
     };
 
-    const handleEditMatch = (match) => {
-        setEditingMatch(match.id);
-        setEditData({
-            court_id: match.court_id || '',
-            scheduled_time: match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : '',
-            team1_score: match.team1_score ?? '',
-            team2_score: match.team2_score ?? '',
-            status: match.status,
-            notes: match.notes || '',
-        });
-    };
-
-    const handleSaveMatch = (matchId) => {
-        patchEdit(route('categories.matches.update', [category.id, matchId]), {
-            onSuccess: () => {
-                setEditingMatch(null);
-            },
-        });
+    const handleStartMatch = async (matchId) => {
+        const match = matches.find(m => m.id === matchId);
+        
+        // Check if court is assigned first
+        if (!match.court_id) {
+            alert('❌ Please assign a court before starting this match.');
+            return;
+        }
+        
+        try {
+            // Use axios to call the validation endpoint (Inertia includes axios)
+            const response = await axios.post(route('categories.matches.startPrep', [category.id, matchId]));
+            
+            if (response.data.success) {
+                // Success - refresh page and then open referee page
+                router.reload({
+                    only: ['matches'],
+                    onSuccess: () => {
+                        router.visit(route('categories.matches.referee', [category.id, matchId]));
+                    }
+                });
+            }
+            
+        } catch (error) {
+            if (error.response && error.response.data && error.response.data.error) {
+                // Show specific error from server
+                alert('❌ ' + error.response.data.error);
+            } else {
+                alert('❌ An error occurred. Please try again.');
+            }
+            console.error(error);
+        }
     };
 
     const handleDeleteMatch = (matchId) => {
@@ -59,7 +86,8 @@ export default function Index({ category, matches, courts }) {
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: 'bg-blue-100 text-blue-800',
+            scheduled: 'bg-gray-100 text-gray-800',
+            upcoming: 'bg-blue-100 text-blue-800',
             in_progress: 'bg-yellow-100 text-yellow-800',
             completed: 'bg-green-100 text-green-800',
             cancelled: 'bg-red-100 text-red-800',
@@ -100,6 +128,23 @@ export default function Index({ category, matches, courts }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+                    {/* Flash Messages */}
+                    {flash?.success && (
+                        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded relative">
+                            {flash.success}
+                        </div>
+                    )}
+                    {flash?.error && (
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative">
+                            {flash.error}
+                        </div>
+                    )}
+                    {flash?.warning && (
+                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded relative">
+                            {flash.warning}
+                        </div>
+                    )}
+
                     {matches.length === 0 ? (
                         <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                             <div className="p-12 text-center">
@@ -129,158 +174,77 @@ export default function Index({ category, matches, courts }) {
                                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">VS</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team 2</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
                                                 {groupMatches.map((match) => (
-                                                    editingMatch === match.id ? (
-                                                        <tr key={match.id} className="bg-blue-50">
-                                                            <td colSpan="8" className="px-4 py-4">
-                                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Court</label>
-                                                                        <select
-                                                                            value={editData.court_id}
-                                                                            onChange={(e) => setEditData('court_id', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                        >
-                                                                            <option value="">Select Court</option>
-                                                                            {courts.map((court) => (
-                                                                                <option key={court.id} value={court.id}>
-                                                                                    Court {court.name}
-                                                                                </option>
-                                                                            ))}
-                                                                        </select>
-                                                                    </div>
-                                                                    
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Scheduled Time</label>
-                                                                        <input
-                                                                            type="datetime-local"
-                                                                            value={editData.scheduled_time}
-                                                                            onChange={(e) => setEditData('scheduled_time', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                        />
-                                                                    </div>
-                                                                    
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                            {match.team1?.player_1} - {match.team1?.player_2} Score
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={editData.team1_score}
-                                                                            onChange={(e) => setEditData('team1_score', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                            placeholder="Score"
-                                                                        />
-                                                                    </div>
-                                                                    
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                                            {match.team2?.player_1} - {match.team2?.player_2} Score
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={editData.team2_score}
-                                                                            onChange={(e) => setEditData('team2_score', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                            placeholder="Score"
-                                                                        />
-                                                                    </div>
-                                                                    
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-                                                                        <select
-                                                                            value={editData.status}
-                                                                            onChange={(e) => setEditData('status', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                        >
-                                                                            <option value="scheduled">Scheduled</option>
-                                                                            <option value="in_progress">In Progress</option>
-                                                                            <option value="completed">Completed</option>
-                                                                            <option value="cancelled">Cancelled</option>
-                                                                        </select>
-                                                                    </div>
-                                                                    
-                                                                    <div>
-                                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={editData.notes}
-                                                                            onChange={(e) => setEditData('notes', e.target.value)}
-                                                                            className="block w-full text-sm rounded-md border-gray-300"
-                                                                            placeholder="Notes"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        onClick={() => setEditingMatch(null)}
-                                                                        className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleSaveMatch(match.id)}
-                                                                        disabled={processing}
-                                                                        className="px-3 py-1 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
-                                                                    >
-                                                                        Save
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ) : (
-                                                        <tr key={match.id}>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">
-                                                                {match.team1?.player_1} - {match.team1?.player_2}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center text-sm font-medium text-gray-500">
-                                                                VS
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">
-                                                                {match.team2?.player_1} - {match.team2?.player_2}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">
-                                                                {match.court ? `Court ${match.court.name}` : '-'}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">
-                                                                {match.scheduled_time ? formatDate(match.scheduled_time) : '-'}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                                                                {match.team1_score !== null && match.team2_score !== null 
-                                                                    ? `${match.team1_score} - ${match.team2_score}`
-                                                                    : '-'}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(match.status)}`}>
-                                                                    {match.status}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm">
+                                                    <tr key={match.id}>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            {match.team1?.player_1} - {match.team1?.player_2}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center text-sm font-medium text-gray-500">
+                                                            VS
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            {match.team2?.player_1} - {match.team2?.player_2}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <select
+                                                                value={match.court_id || ''}
+                                                                onChange={(e) => handleCourtChange(match.id, e.target.value)}
+                                                                className="block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                            >
+                                                                <option value="">Select Court</option>
+                                                                {courts.map((court) => (
+                                                                    <option key={court.id} value={court.id}>
+                                                                        Court {court.name}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <input
+                                                                type="datetime-local"
+                                                                value={match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : ''}
+                                                                onChange={(e) => handleScheduledTimeChange(match.id, e.target.value)}
+                                                                className="block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(match.status)}`}>
+                                                                {match.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <div className="flex items-center gap-2">
                                                                 <button
-                                                                    onClick={() => handleEditMatch(match)}
-                                                                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                                                    onClick={() => handleStartMatch(match.id)}
+                                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    disabled={match.status === 'completed' || match.status === 'cancelled'}
                                                                 >
-                                                                    Edit
+                                                                    {match.status === 'in_progress' || match.status === 'upcoming' ? 'Open' : 'Start'}
                                                                 </button>
+                                                                {(match.status === 'upcoming' || match.status === 'in_progress') && (
+                                                                    <button
+                                                                        onClick={() => handleResetMatch(match.id)}
+                                                                        className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 rounded hover:bg-orange-700"
+                                                                        title="Reset match to scheduled"
+                                                                    >
+                                                                        Reset
+                                                                    </button>
+                                                                )}
                                                                 <button
                                                                     onClick={() => handleDeleteMatch(match.id)}
                                                                     className="text-red-600 hover:text-red-900"
                                                                 >
                                                                     Delete
                                                                 </button>
-                                                            </td>
-                                                        </tr>
-                                                    )
+                                                            </div>
+                                                        </td>
+                                                    </tr>
                                                 ))}
                                             </tbody>
                                         </table>
