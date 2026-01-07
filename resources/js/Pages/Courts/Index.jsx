@@ -42,18 +42,18 @@ export default function Index({ event, courts }) {
             header={
                 <div className="flex justify-between items-center">
                     <div>
-                        <nav className="text-sm text-gray-500 mb-1">
-                            <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                        <nav className="text-sm text-neutral-600 mb-1">
+                            <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                             {' / '}
-                            <Link href={route('events.show', event.id)} className="hover:text-gray-700">{event.name}</Link>
+                            <Link href={route('events.show', event.id)} className="hover:text-dark">{event.name}</Link>
                         </nav>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                             Courts Management
                         </h2>
                     </div>
                     <button
                         onClick={() => setShowSetupModal(true)}
-                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                        className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                     >
                         Setup Courts
                     </button>
@@ -66,15 +66,15 @@ export default function Index({ event, courts }) {
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Setup Modal */}
                     {showSetupModal && (
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+                        <div className="fixed inset-0 bg-neutral-500 bg-opacity-75 flex items-center justify-center z-50">
                             <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                                <h3 className="text-lg font-semibold mb-4">Setup Courts</h3>
-                                <p className="text-sm text-gray-600 mb-4">
+                                <h3 className="text-lg font-bold font-raverist mb-4">Setup Courts</h3>
+                                <p className="text-sm text-neutral-700 mb-4">
                                     Creating new courts will delete all existing courts.
                                 </p>
                                 <form onSubmit={handleSetupCourts}>
                                     <div className="mb-4">
-                                        <label htmlFor="number_of_courts" className="block text-sm font-medium text-gray-700">
+                                        <label htmlFor="number_of_courts" className="block text-sm font-medium text-dark">
                                             Number of Courts
                                         </label>
                                         <input
@@ -84,10 +84,10 @@ export default function Index({ event, courts }) {
                                             max="50"
                                             value={setupData.number_of_courts}
                                             onChange={(e) => setSetupData('number_of_courts', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                             required
                                         />
-                                        <p className="mt-1 text-xs text-gray-500">
+                                        <p className="mt-1 text-xs text-neutral-600">
                                             Courts will be named 1, 2, 3... by default (editable)
                                         </p>
                                     </div>
@@ -95,14 +95,14 @@ export default function Index({ event, courts }) {
                                         <button
                                             type="button"
                                             onClick={() => setShowSetupModal(false)}
-                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                            className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md hover:bg-neutral-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={setupProcessing}
-                                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                                            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-600 disabled:opacity-50"
                                         >
                                             Create Courts
                                         </button>
@@ -117,10 +117,10 @@ export default function Index({ event, courts }) {
                         <div className="p-6">
                             {courts.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <p className="text-gray-500 mb-4">No courts set up yet.</p>
+                                    <p className="text-neutral-600 mb-4">No courts set up yet.</p>
                                     <button
                                         onClick={() => setShowSetupModal(true)}
-                                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                                        className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                                     >
                                         Setup Courts
                                     </button>
@@ -128,9 +128,9 @@ export default function Index({ event, courts }) {
                             ) : (
                                 <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                                     {courts.map((court) => (
-                                        <div key={court.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div key={court.id} className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-sm text-gray-500">Court</span>
+                                                <span className="text-sm text-neutral-600">Court</span>
                                                 <button
                                                     onClick={() => handleDeleteCourt(court.id)}
                                                     className="text-red-600 hover:text-red-800 text-sm"
@@ -149,12 +149,12 @@ export default function Index({ event, courts }) {
                                                             handleUpdateCourt(court.id);
                                                         }
                                                     }}
-                                                    className="text-2xl font-bold text-center text-gray-900 border-gray-300 rounded px-2 py-1 w-full"
+                                                    className="text-2xl font-bold text-center text-dark border-neutral-300 rounded px-2 py-1 w-full"
                                                     autoFocus
                                                 />
                                             ) : (
                                                 <h3
-                                                    className="text-2xl font-bold text-center text-gray-900 cursor-pointer hover:text-indigo-600"
+                                                    className="text-2xl font-bold text-center text-dark cursor-pointer hover:text-primary"
                                                     onClick={() => {
                                                         setEditingCourt(court.id);
                                                         setEditData('name', court.name);
@@ -163,7 +163,7 @@ export default function Index({ event, courts }) {
                                                     {court.name}
                                                 </h3>
                                             )}
-                                            <p className="text-xs text-center text-gray-500 mt-2">
+                                            <p className="text-xs text-center text-neutral-600 mt-2">
                                                 Click to edit name
                                             </p>
                                         </div>

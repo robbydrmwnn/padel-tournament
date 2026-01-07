@@ -2,14 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Custom Properties for Colors */
+:root {
+    --color-primary: #3E4290;
+    --color-success: #4BA661;
+    --color-neutral: #F7F7F7;
+    --color-accent: #D8E802;
+    --color-dark: #222222;
+}
+
 /* Raverist Font */
 @font-face {
     font-family: 'Raverist';
     src: url('/fonts/Raverist.woff2') format('woff2'),
          url('/fonts/Raverist.ttf') format('truetype');
-    font-weight: normal;
+    font-weight: 100 900;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
 }
 
 /* Gotham Font */
@@ -19,5 +28,52 @@
          url('/fonts/Gotham-Book.otf') format('opentype');
     font-weight: 400;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
+}
+
+/* Base Typography */
+@layer base {
+    body {
+        @apply font-gotham text-dark;
+        background-color: var(--color-neutral);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-raverist font-bold;
+        color: var(--color-primary);
+    }
+    
+    button {
+        @apply font-gotham;
+    }
+}
+
+/* Accent Button Color Override - Always use dark text for readability */
+@layer components {
+    .bg-accent,
+    .bg-accent-500,
+    .bg-accent-600,
+    .hover\:bg-accent:hover,
+    .hover\:bg-accent-600:hover,
+    .hover\:bg-accent-700:hover {
+        color: var(--color-dark) !important;
+    }
+}
+
+/* Prevent font flickering and layout shifts */
+@layer utilities {
+    /* Ensure smooth font rendering */
+    .font-raverist,
+    .font-gotham {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    
+    /* Prevent layout shift on score displays */
+    .text-8xl,
+    .text-9xl {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+    }
 }

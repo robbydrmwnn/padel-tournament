@@ -5,37 +5,37 @@ import { formatDate } from '@/Utils/dateFormatter';
 export default function Show({ event }) {
     const getStatusColor = (status) => {
         const colors = {
-            draft: 'bg-gray-100 text-gray-800',
-            active: 'bg-green-100 text-green-800',
-            completed: 'bg-blue-100 text-blue-800',
+            draft: 'bg-neutral-100 text-dark',
+            active: 'bg-success-100 text-success-800',
+            completed: 'bg-primary-100 text-primary-800',
             cancelled: 'bg-red-100 text-red-800',
         };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+        return colors[status] || 'bg-neutral-100 text-dark';
     };
 
     return (
         <AuthenticatedLayout
             header={
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                    <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                         {event.name}
                     </h2>
                     <div className="flex gap-2">
                         <Link
                             href={route('events.courts.index', event.id)}
-                            className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
+                            className="inline-flex items-center rounded-md bg-success px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-success-600"
                         >
                             Manage Courts
                         </Link>
                         <Link
                             href={route('events.categories.index', event.id)}
-                            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                         >
                             Manage Categories
                         </Link>
                         <Link
                             href={route('events.edit', event.id)}
-                            className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                            className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-gotham font-semibold text-dark shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-neutral-50"
                         >
                             Edit Event
                         </Link>
@@ -52,7 +52,7 @@ export default function Show({ event }) {
                         <div className="p-6">
                             <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Event Details</h3>
+                                    <h3 className="text-lg font-bold font-raverist text-dark mb-2">Event Details</h3>
                                 </div>
                                 <span
                                     className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(
@@ -65,27 +65,27 @@ export default function Show({ event }) {
                             
                             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Description</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Description</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {event.description || 'No description provided'}
                                     </dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Location</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Location</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {event.location || 'Not specified'}
                                     </dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Start Date</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{formatDate(event.start_date)}</dd>
+                                    <dt className="text-sm font-medium text-neutral-600">Start Date</dt>
+                                    <dd className="mt-1 text-sm text-dark">{formatDate(event.start_date)}</dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">End Date</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{formatDate(event.end_date)}</dd>
+                                    <dt className="text-sm font-medium text-neutral-600">End Date</dt>
+                                    <dd className="mt-1 text-sm text-dark">{formatDate(event.end_date)}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -95,10 +95,10 @@ export default function Show({ event }) {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-semibold text-gray-900">Categories</h3>
+                                <h3 className="text-lg font-bold font-raverist text-dark">Categories</h3>
                                 <Link
                                     href={route('events.categories.create', event.id)}
-                                    className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                                    className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                                 >
                                     Add Category
                                 </Link>
@@ -109,23 +109,23 @@ export default function Show({ event }) {
                                     {event.categories.map((category) => (
                                         <div
                                             key={category.id}
-                                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                            className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                                         >
-                                            <h4 className="text-base font-semibold text-gray-900 mb-2">
+                                            <h4 className="text-base font-semibold text-dark mb-2">
                                                 {category.name}
                                             </h4>
                                             {category.description && (
-                                                <p className="text-sm text-gray-600 mb-3">
+                                                <p className="text-sm text-neutral-700 mb-3">
                                                     {category.description}
                                                 </p>
                                             )}
-                                            <div className="text-sm text-gray-500 mb-3">
+                                            <div className="text-sm text-neutral-600 mb-3">
                                                 <p>👥 {category.participants?.length || 0} participants</p>
                                                 <p>📊 {category.groups?.length || 0} groups</p>
                                             </div>
                                             <Link
                                                 href={route('events.categories.show', [event.id, category.id])}
-                                                className="block text-center px-3 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded hover:bg-indigo-50"
+                                                className="block text-center px-3 py-2 text-sm font-medium font-gotham text-primary border border-primary rounded hover:bg-primary-50"
                                             >
                                                 View Details
                                             </Link>
@@ -133,7 +133,7 @@ export default function Show({ event }) {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center text-gray-500 py-8">
+                                <p className="text-center text-neutral-600 py-8">
                                     No categories yet. Add your first category to get started!
                                 </p>
                             )}

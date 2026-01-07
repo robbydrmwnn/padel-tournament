@@ -157,30 +157,30 @@ export default function Referee({ category, match }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <nav className="text-sm text-gray-500 mb-1">
-                        <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                    <nav className="text-sm text-neutral-600 mb-1">
+                        <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                         {' / '}
-                        <Link href={route('events.show', category.event.id)} className="hover:text-gray-700">
+                        <Link href={route('events.show', category.event.id)} className="hover:text-dark">
                             {category.event.name}
                         </Link>
                         {' / '}
-                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-gray-700">
+                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
                             {category.name}
                         </Link>
                         {' / '}
-                        <Link href={route('categories.matches.index', category.id)} className="hover:text-gray-700">
+                        <Link href={route('categories.matches.index', category.id)} className="hover:text-dark">
                             Matches
                         </Link>
                     </nav>
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                             Referee Control
                         </h2>
                         {match.court_id && (
                             <Link
                                 href={route('courts.monitor', match.court_id)}
                                 target="_blank"
-                                className="inline-flex items-center rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500"
+                                className="inline-flex items-center rounded-md bg-accent px-4 py-2 text-sm font-gotham font-semibold font-gotham text-dark shadow-sm hover:bg-accent-700"
                             >
                                 Open Court {match.court?.name} Monitor
                             </Link>
@@ -195,7 +195,7 @@ export default function Referee({ category, match }) {
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
                     {/* Flash Messages */}
                     {flash?.success && (
-                        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded relative">
+                        <div className="bg-success-50 border border-success-200 text-success-800 px-4 py-3 rounded relative">
                             {flash.success}
                         </div>
                     )}
@@ -205,7 +205,7 @@ export default function Referee({ category, match }) {
                         </div>
                     )}
                     {flash?.warning && (
-                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded relative">
+                        <div className="bg-accent-50 border border-accent-200 text-accent-800 px-4 py-3 rounded relative">
                             {flash.warning}
                         </div>
                     )}
@@ -214,11 +214,11 @@ export default function Referee({ category, match }) {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Match Information</h3>
+                                <h3 className="text-lg font-bold font-raverist text-dark">Match Information</h3>
                                 {(match.status === 'upcoming' || match.status === 'in_progress') && (
                                     <button
                                         onClick={handleResetMatch}
-                                        className="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+                                        className="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-red-700"
                                     >
                                         🔄 Reset Match
                                     </button>
@@ -226,25 +226,25 @@ export default function Referee({ category, match }) {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-sm text-gray-500">Team 1</p>
+                                    <p className="text-sm text-neutral-600">Team 1</p>
                                     <p className="text-lg font-medium">{match.team1.player_1} - {match.team1.player_2}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">Team 2</p>
+                                    <p className="text-sm text-neutral-600">Team 2</p>
                                     <p className="text-lg font-medium">{match.team2.player_1} - {match.team2.player_2}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">Court</p>
+                                    <p className="text-sm text-neutral-600">Court</p>
                                     <p className="text-base">{match.court ? `Court ${match.court.name}` : 'Not assigned'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">Phase</p>
+                                    <p className="text-sm text-neutral-600">Phase</p>
                                     <p className="text-base capitalize">{match.phase}</p>
                                 </div>
                             </div>
                             {(match.status === 'upcoming' || match.status === 'in_progress') && (
-                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <p className="text-sm text-yellow-800">
+                                <div className="mt-4 p-3 bg-accent-50 border border-accent-200 rounded-lg">
+                                    <p className="text-sm text-accent-800">
                                         <strong>Note:</strong> Need to clear this match? Use the "Reset Match" button above to free up the court for a different match.
                                     </p>
                                 </div>
@@ -256,13 +256,13 @@ export default function Referee({ category, match }) {
                     {!warmupCompleted && (
                         <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                             <div className="p-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Warm-up Timer</h3>
+                                <h3 className="text-lg font-bold font-raverist text-dark mb-4">Warm-up Timer</h3>
                                 
                                 <div className="text-center mb-6">
-                                    <div className="text-6xl font-bold text-indigo-600 mb-4">
+                                    <div className="text-6xl font-bold text-primary mb-4">
                                         {formatTime(warmupTime)}
                                     </div>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-neutral-600">
                                         {category.warmup_minutes} minute{category.warmup_minutes !== 1 ? 's' : ''} warm-up period
                                     </p>
                                 </div>
@@ -271,7 +271,7 @@ export default function Referee({ category, match }) {
                                     {!match.warmup_started_at ? (
                                         <button
                                             onClick={handleStartWarmup}
-                                            className="px-6 py-3 text-base font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                            className="px-6 py-3 text-base font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                         >
                                             Start Warm-up
                                         </button>
@@ -280,14 +280,14 @@ export default function Referee({ category, match }) {
                                             {isWarmupRunning ? (
                                                 <button
                                                     onClick={handlePauseWarmup}
-                                                    className="px-6 py-3 text-base font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                                                    className="px-6 py-3 text-base font-medium text-dark bg-accent rounded-lg hover:bg-accent-700"
                                                 >
                                                     Pause
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={handleResumeWarmup}
-                                                    className="px-6 py-3 text-base font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                                    className="px-6 py-3 text-base font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                                 >
                                                     Resume
                                                 </button>
@@ -302,7 +302,7 @@ export default function Referee({ category, match }) {
                                     )}
                                     <button
                                         onClick={handleSkipWarmup}
-                                        className="px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                        className="px-6 py-3 text-base font-medium text-white bg-primary rounded-lg hover:bg-primary-600"
                                     >
                                         Skip Warm-up
                                     </button>
@@ -317,10 +317,10 @@ export default function Referee({ category, match }) {
                             {!isMatchStarted ? (
                                 <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                                     <div className="p-6 text-center">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ready to Start Match</h3>
+                                        <h3 className="text-lg font-bold font-raverist text-dark mb-4">Ready to Start Match</h3>
                                         <button
                                             onClick={handleStartMatch}
-                                            className="px-8 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                            className="px-8 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                         >
                                             Start Match
                                         </button>
@@ -331,31 +331,31 @@ export default function Referee({ category, match }) {
                                     {/* Current Score Display */}
                                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                                         <div className="p-6">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Score</h3>
+                                            <h3 className="text-lg font-bold font-raverist text-dark mb-4">Current Score</h3>
                                             
                                             {/* Games Won */}
                                             <div className="grid grid-cols-3 gap-4 mb-6">
                                                 <div className="text-center">
-                                                    <p className="text-sm text-gray-500 mb-2">Team 1</p>
-                                                    <p className="text-4xl font-bold text-gray-900">{match.team1_score || 0}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">Games</p>
+                                                    <p className="text-sm text-neutral-600 mb-2">Team 1</p>
+                                                    <p className="text-4xl font-bold text-dark">{match.team1_score || 0}</p>
+                                                    <p className="text-xs text-neutral-600 mt-1">Games</p>
                                                 </div>
                                                 <div className="flex items-center justify-center">
                                                     <span className="text-2xl text-gray-400">-</span>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-sm text-gray-500 mb-2">Team 2</p>
-                                                    <p className="text-4xl font-bold text-gray-900">{match.team2_score || 0}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">Games</p>
+                                                    <p className="text-sm text-neutral-600 mb-2">Team 2</p>
+                                                    <p className="text-4xl font-bold text-dark">{match.team2_score || 0}</p>
+                                                    <p className="text-xs text-neutral-600 mt-1">Games</p>
                                                 </div>
                                             </div>
 
                                             {/* Current Game Points */}
                                             <div className="border-t pt-6">
-                                                <p className="text-sm text-gray-500 text-center mb-4">Current Game</p>
+                                                <p className="text-sm text-neutral-600 text-center mb-4">Current Game</p>
                                                 <div className="grid grid-cols-3 gap-4 mb-6">
                                                     <div className="text-center">
-                                                        <p className="text-5xl font-bold text-indigo-600">
+                                                        <p className="text-5xl font-bold text-primary">
                                                             {getPointDisplay(match.current_game_team1_points)}
                                                         </p>
                                                     </div>
@@ -363,14 +363,14 @@ export default function Referee({ category, match }) {
                                                         <span className="text-2xl text-gray-400">-</span>
                                                     </div>
                                                     <div className="text-center">
-                                                        <p className="text-5xl font-bold text-indigo-600">
+                                                        <p className="text-5xl font-bold text-primary">
                                                             {getPointDisplay(match.current_game_team2_points)}
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 {/* Scoring Config Info */}
-                                                <div className="text-center text-sm text-gray-500 mb-4">
+                                                <div className="text-center text-sm text-neutral-600 mb-4">
                                                     Best of {scoringConfig.bestOfGames} • 
                                                     {scoringConfig.scoringType === 'no_ad' && ' No-Ad (Golden Point)'}
                                                     {scoringConfig.scoringType === 'traditional' && ' Traditional'}
@@ -383,18 +383,18 @@ export default function Referee({ category, match }) {
                                     {/* Score Input Controls */}
                                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                                         <div className="p-6">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Score Controls</h3>
+                                            <h3 className="text-lg font-bold font-raverist text-dark mb-4">Score Controls</h3>
                                             
                                             <div className="grid grid-cols-2 gap-6">
                                                 {/* Team 1 Controls */}
-                                                <div className="border-2 border-indigo-200 rounded-lg p-6 bg-indigo-50">
-                                                    <h4 className="text-center font-semibold text-gray-900 mb-4">
+                                                <div className="border-2 border-primary-200 rounded-lg p-6 bg-primary-50">
+                                                    <h4 className="text-center font-semibold text-dark mb-4">
                                                         {match.team1.player_1} - {match.team1.player_2}
                                                     </h4>
                                                     <div className="space-y-3">
                                                         <button
                                                             onClick={() => handleScorePoint('team1')}
-                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                                         >
                                                             + Point
                                                         </button>
@@ -408,14 +408,14 @@ export default function Referee({ category, match }) {
                                                 </div>
 
                                                 {/* Team 2 Controls */}
-                                                <div className="border-2 border-purple-200 rounded-lg p-6 bg-purple-50">
-                                                    <h4 className="text-center font-semibold text-gray-900 mb-4">
+                                                <div className="border-2 border-accent-200 rounded-lg p-6 bg-accent-50">
+                                                    <h4 className="text-center font-semibold text-dark mb-4">
                                                         {match.team2.player_1} - {match.team2.player_2}
                                                     </h4>
                                                     <div className="space-y-3">
                                                         <button
                                                             onClick={() => handleScorePoint('team2')}
-                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                                         >
                                                             + Point
                                                         </button>

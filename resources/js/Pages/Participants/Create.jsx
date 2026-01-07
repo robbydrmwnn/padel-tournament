@@ -20,18 +20,18 @@ export default function Create({ category }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <nav className="text-sm text-gray-500 mb-1">
-                        <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                    <nav className="text-sm text-neutral-600 mb-1">
+                        <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                         {' / '}
-                        <Link href={route('events.show', category.event.id)} className="hover:text-gray-700">
+                        <Link href={route('events.show', category.event.id)} className="hover:text-dark">
                             {category.event.name}
                         </Link>
                         {' / '}
-                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-gray-700">
+                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
                             {category.name}
                         </Link>
                     </nav>
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                    <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                         Add Participant
                     </h2>
                 </div>
@@ -44,7 +44,7 @@ export default function Create({ category }) {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <form onSubmit={submit} className="p-6 space-y-6">
                             <div>
-                                <label htmlFor="player_1" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="player_1" className="block text-sm font-medium text-dark">
                                     Player 1 *
                                 </label>
                                 <input
@@ -52,14 +52,14 @@ export default function Create({ category }) {
                                     type="text"
                                     value={data.player_1}
                                     onChange={(e) => setData('player_1', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 />
                                 {errors.player_1 && <p className="mt-1 text-sm text-red-600">{errors.player_1}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="player_2" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="player_2" className="block text-sm font-medium text-dark">
                                     Player 2 *
                                 </label>
                                 <input
@@ -67,14 +67,14 @@ export default function Create({ category }) {
                                     type="text"
                                     value={data.player_2}
                                     onChange={(e) => setData('player_2', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 />
                                 {errors.player_2 && <p className="mt-1 text-sm text-red-600">{errors.player_2}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="name" className="block text-sm font-medium text-dark">
                                     Team Name (Optional)
                                 </label>
                                 <input
@@ -82,13 +82,13 @@ export default function Create({ category }) {
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="email" className="block text-sm font-medium text-dark">
                                     Email
                                 </label>
                                 <input
@@ -96,13 +96,13 @@ export default function Create({ category }) {
                                     type="email"
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="phone" className="block text-sm font-medium text-dark">
                                     Phone
                                 </label>
                                 <input
@@ -110,13 +110,13 @@ export default function Create({ category }) {
                                     type="tel"
                                     value={data.phone}
                                     onChange={(e) => setData('phone', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="notes" className="block text-sm font-medium text-dark">
                                     Notes
                                 </label>
                                 <textarea
@@ -124,7 +124,7 @@ export default function Create({ category }) {
                                     value={data.notes}
                                     onChange={(e) => setData('notes', e.target.value)}
                                     rows={4}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.notes && <p className="mt-1 text-sm text-red-600">{errors.notes}</p>}
                             </div>
@@ -132,14 +132,14 @@ export default function Create({ category }) {
                             <div className="flex justify-end gap-3">
                                 <Link
                                     href={route('categories.participants.index', category.id)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md shadow-sm hover:bg-neutral-50"
                                 >
                                     Cancel
                                 </Link>
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-600 disabled:opacity-50"
                                 >
                                     Add Participant
                                 </button>

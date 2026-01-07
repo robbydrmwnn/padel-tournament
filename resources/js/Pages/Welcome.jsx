@@ -15,7 +15,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
     return (
         <>
             <Head title="Welcome" />
-            <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
+            <div className="bg-neutral-50 text-black/50 dark:bg-black dark:text-white/50">
                 <img
                     id="background"
                     className="absolute -left-20 top-0 max-w-[877px]"
@@ -113,7 +113,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                             </div>
 
                                             <div className="pt-3 sm:pt-5 lg:pt-0">
-                                                <h2 className="text-xl font-semibold text-black dark:text-white">
+                                                <h2 className="text-xl font-bold font-raverist text-black dark:text-white">
                                                     Documentation
                                                 </h2>
 
@@ -164,7 +164,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                     </div>
 
                                     <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
+                                        <h2 className="text-xl font-bold font-raverist text-black dark:text-white">
                                             Laracasts
                                         </h2>
 
@@ -213,7 +213,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                     </div>
 
                                     <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
+                                        <h2 className="text-xl font-bold font-raverist text-black dark:text-white">
                                             Laravel News
                                         </h2>
 
@@ -257,7 +257,7 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                     </div>
 
                                     <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
+                                        <h2 className="text-xl font-bold font-raverist text-black dark:text-white">
                                             Vibrant Ecosystem
                                         </h2>
 

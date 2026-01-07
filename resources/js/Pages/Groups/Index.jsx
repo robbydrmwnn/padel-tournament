@@ -65,24 +65,24 @@ export default function Index({ category, groups, participants }) {
             header={
                 <div className="flex justify-between items-center">
                     <div>
-                        <nav className="text-sm text-gray-500 mb-1">
-                            <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                        <nav className="text-sm text-neutral-600 mb-1">
+                            <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                             {' / '}
-                            <Link href={route('events.show', category.event.id)} className="hover:text-gray-700">
+                            <Link href={route('events.show', category.event.id)} className="hover:text-dark">
                                 {category.event.name}
                             </Link>
                             {' / '}
-                            <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-gray-700">
+                            <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
                                 {category.name}
                             </Link>
                         </nav>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                             Group Management
                         </h2>
                     </div>
                     <button
                         onClick={() => setShowSetupModal(true)}
-                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                        className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                     >
                         Setup Groups
                     </button>
@@ -95,15 +95,15 @@ export default function Index({ category, groups, participants }) {
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
                     {/* Setup Modal */}
                     {showSetupModal && (
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+                        <div className="fixed inset-0 bg-neutral-500 bg-opacity-75 flex items-center justify-center z-50">
                             <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                                <h3 className="text-lg font-semibold mb-4">Setup Groups</h3>
-                                <p className="text-sm text-gray-600 mb-4">
+                                <h3 className="text-lg font-bold font-raverist mb-4">Setup Groups</h3>
+                                <p className="text-sm text-neutral-700 mb-4">
                                     Creating new groups will delete all existing groups and their participant assignments.
                                 </p>
                                 <form onSubmit={handleSetupGroups}>
                                     <div className="mb-4">
-                                        <label htmlFor="number_of_groups" className="block text-sm font-medium text-gray-700">
+                                        <label htmlFor="number_of_groups" className="block text-sm font-medium text-dark">
                                             Number of Groups
                                         </label>
                                         <input
@@ -113,7 +113,7 @@ export default function Index({ category, groups, participants }) {
                                             max="20"
                                             value={setupData.number_of_groups}
                                             onChange={(e) => setSetupData('number_of_groups', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                             required
                                         />
                                     </div>
@@ -121,14 +121,14 @@ export default function Index({ category, groups, participants }) {
                                         <button
                                             type="button"
                                             onClick={() => setShowSetupModal(false)}
-                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                            className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md hover:bg-neutral-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={setupProcessing}
-                                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                                            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-600 disabled:opacity-50"
                                         >
                                             Create Groups
                                         </button>
@@ -140,16 +140,16 @@ export default function Index({ category, groups, participants }) {
 
                     {/* Unassigned Participants */}
                     {unassignedParticipants.length > 0 && (
-                        <div className="overflow-hidden bg-yellow-50 border border-yellow-200 shadow-sm sm:rounded-lg">
+                        <div className="overflow-hidden bg-accent-50 border border-accent-200 shadow-sm sm:rounded-lg">
                             <div className="p-6">
-                                <h3 className="text-lg font-semibold text-yellow-900 mb-3">
+                                <h3 className="text-lg font-bold font-raverist text-accent-900 mb-3">
                                     Unassigned Participants ({unassignedParticipants.length})
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {unassignedParticipants.map((participant) => (
                                         <span
                                             key={participant.id}
-                                            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800"
+                                            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-accent-100 text-accent-800"
                                         >
                                             {participant.player_1} - {participant.player_2}
                                         </span>
@@ -163,10 +163,10 @@ export default function Index({ category, groups, participants }) {
                     {groups.length === 0 ? (
                         <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                             <div className="p-12 text-center">
-                                <p className="text-gray-500 mb-4">No groups set up yet.</p>
+                                <p className="text-neutral-600 mb-4">No groups set up yet.</p>
                                 <button
                                     onClick={() => setShowSetupModal(true)}
-                                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                                 >
                                     Setup Groups
                                 </button>
@@ -175,8 +175,8 @@ export default function Index({ category, groups, participants }) {
                     ) : (
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {groups.map((group) => (
-                                <div key={group.id} className="overflow-hidden bg-white border border-gray-200 shadow-sm sm:rounded-lg">
-                                    <div className="p-4 bg-gray-50 border-b border-gray-200">
+                                <div key={group.id} className="overflow-hidden bg-white border border-neutral-200 shadow-sm sm:rounded-lg">
+                                    <div className="p-4 bg-neutral-50 border-b border-neutral-200">
                                         <div className="flex justify-between items-center">
                                             {editingGroup === group.id ? (
                                                 <input
@@ -189,12 +189,12 @@ export default function Index({ category, groups, participants }) {
                                                             handleUpdateGroup(group.id);
                                                         }
                                                     }}
-                                                    className="text-base font-semibold text-gray-900 border-gray-300 rounded px-2 py-1"
+                                                    className="text-base font-semibold text-dark border-neutral-300 rounded px-2 py-1"
                                                     autoFocus
                                                 />
                                             ) : (
                                                 <h3
-                                                    className="text-base font-semibold text-gray-900 cursor-pointer"
+                                                    className="text-base font-semibold text-dark cursor-pointer"
                                                     onClick={() => {
                                                         setEditingGroup(group.id);
                                                         setEditData('name', group.name);
@@ -210,7 +210,7 @@ export default function Index({ category, groups, participants }) {
                                                 Delete
                                             </button>
                                         </div>
-                                        <p className="text-sm text-gray-500 mt-1">
+                                        <p className="text-sm text-neutral-600 mt-1">
                                             {group.participants.length} participant(s)
                                         </p>
                                     </div>
@@ -224,7 +224,7 @@ export default function Index({ category, groups, participants }) {
                                                         key={participant.id}
                                                         className="flex justify-between items-center text-sm"
                                                     >
-                                                        <span className="text-gray-900">{participant.player_1} - {participant.player_2}</span>
+                                                        <span className="text-dark">{participant.player_1} - {participant.player_2}</span>
                                                         <button
                                                             onClick={() => handleRemoveParticipant(group.id, participant.id)}
                                                             className="text-red-600 hover:text-red-800"
@@ -246,7 +246,7 @@ export default function Index({ category, groups, participants }) {
                                                             e.target.value = '';
                                                         }
                                                     }}
-                                                    className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    className="block w-full text-sm rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                                 >
                                                     <option value="">Add participant...</option>
                                                     {participants.map((participant) => (
@@ -267,12 +267,12 @@ export default function Index({ category, groups, participants }) {
                     {participants.length === 0 && (
                         <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                             <div className="p-6 text-center">
-                                <p className="text-gray-500 mb-4">
+                                <p className="text-neutral-600 mb-4">
                                     No participants in this category yet.
                                 </p>
                                 <Link
                                     href={route('categories.participants.create', category.id)}
-                                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
                                 >
                                     Add Participants
                                 </Link>

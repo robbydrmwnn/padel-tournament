@@ -1,14 +1,15 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
 export default function Monitor({ category, match, autoRefresh = true }) {
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // Auto-refresh every 2 seconds to get latest score
+    // Using Inertia's router.reload() to prevent font flickering
     useEffect(() => {
         if (autoRefresh && match.status === 'in_progress') {
             const interval = setInterval(() => {
-                window.location.reload();
+                router.reload({ only: ['match', 'category'], preserveScroll: true, preserveState: true });
             }, 2000);
             return () => clearInterval(interval);
         }
@@ -63,7 +64,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
                             <p className="text-xl text-gray-200">{category.name} - {match.phase === 'group' ? `Group ${match.group?.name}` : 'Knockout'}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-2xl font-semibold">Court {match.court?.name || 'TBA'}</p>
+                            <p className="text-2xl font-bold font-raverist">Court {match.court?.name || 'TBA'}</p>
                             <p className="text-lg text-gray-200">{formatTime(currentTime)}</p>
                         </div>
                     </div>
@@ -73,7 +74,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
                 <div className="max-w-7xl mx-auto px-6 py-12">
                     {/* Status Badge */}
                     <div className="text-center mb-8">
-                        <span className="inline-block px-6 py-3 text-2xl font-semibold bg-white bg-opacity-20 backdrop-blur-sm rounded-full">
+                        <span className="inline-block px-6 py-3 text-2xl font-bold font-raverist bg-white bg-opacity-20 backdrop-blur-sm rounded-full">
                             {getMatchStatus()}
                         </span>
                     </div>
@@ -95,11 +96,11 @@ export default function Monitor({ category, match, autoRefresh = true }) {
                             <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
                                 <p className="text-2xl text-gray-300 mb-4">GAMES</p>
                                 <div className="flex justify-center items-center gap-8">
-                                    <div className={`text-8xl font-bold ${match.team1_score > match.team2_score ? 'text-yellow-400' : 'text-white'}`}>
+                                    <div className={`text-8xl font-bold ${match.team1_score > match.team2_score ? 'text-accent' : 'text-white'}`}>
                                         {match.team1_score || 0}
                                     </div>
                                     <div className="text-6xl text-gray-400">-</div>
-                                    <div className={`text-8xl font-bold ${match.team2_score > match.team1_score ? 'text-yellow-400' : 'text-white'}`}>
+                                    <div className={`text-8xl font-bold ${match.team2_score > match.team1_score ? 'text-accent' : 'text-white'}`}>
                                         {match.team2_score || 0}
                                     </div>
                                 </div>
@@ -123,13 +124,13 @@ export default function Monitor({ category, match, autoRefresh = true }) {
                             <p className="text-3xl text-center text-gray-300 mb-6">CURRENT GAME</p>
                             <div className="flex justify-center items-center gap-12">
                                 <div className="text-center">
-                                    <div className="text-9xl font-bold text-green-400">
+                                    <div className="text-9xl font-bold text-success">
                                         {getPointDisplay(match.current_game_team1_points)}
                                     </div>
                                 </div>
-                                <div className="text-7xl text-gray-500">:</div>
+                                <div className="text-7xl text-neutral-600">:</div>
                                 <div className="text-center">
-                                    <div className="text-9xl font-bold text-blue-400">
+                                    <div className="text-9xl font-bold text-primary">
                                         {getPointDisplay(match.current_game_team2_points)}
                                     </div>
                                 </div>
@@ -139,7 +140,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
 
                     {/* Warm-up Message */}
                     {isWarmup && (
-                        <div className="bg-yellow-500 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
+                        <div className="bg-accent-500 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
                             <p className="text-5xl font-bold mb-4">⏱️ WARM-UP IN PROGRESS</p>
                             <p className="text-2xl text-gray-200">Match will start shortly</p>
                         </div>
@@ -147,7 +148,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
 
                     {/* Match Complete */}
                     {match.status === 'completed' && match.winner_id && (
-                        <div className="bg-green-500 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center mt-8">
+                        <div className="bg-success-600 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center mt-8">
                             <p className="text-4xl font-bold mb-4">🏆 WINNER</p>
                             <p className="text-5xl font-bold">
                                 {match.winner_id === match.team1_id 
@@ -160,7 +161,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
 
                     {/* Scheduled Message */}
                     {match.status === 'scheduled' && !match.warmup_started_at && (
-                        <div className="bg-blue-500 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
+                        <div className="bg-primary-600 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
                             <p className="text-4xl font-bold mb-4">📅 UPCOMING MATCH</p>
                             {match.scheduled_time && (
                                 <p className="text-2xl text-gray-200">
