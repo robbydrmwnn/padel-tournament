@@ -12,29 +12,31 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     return (
-        <div className="min-h-screen bg-neutral">
-            <nav className="border-b border-neutral-200 bg-white shadow-sm">
+        <div className="min-h-screen bg-dark">
+            <nav className="bg-primary shadow-2xl border-b-2 border-success">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-10 w-auto object-contain" />
+                                <Link href="/" className="flex items-center gap-3">
+                                    <ApplicationLogo className="block h-12 w-auto object-contain" />
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <div className="hidden space-x-2 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
+                                    className="px-4 py-2"
                                 >
-                                    Dashboard
+                                    <span className="font-gotham font-semibold">Dashboard</span>
                                 </NavLink>
                                 <NavLink
                                     href={route('events.index')}
                                     active={route().current('events.*')}
+                                    className="px-4 py-2"
                                 >
-                                    Events
+                                    <span className="font-gotham font-semibold">Events</span>
                                 </NavLink>
                             </div>
                         </div>
@@ -46,12 +48,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-neutral-700 transition duration-150 ease-in-out hover:text-primary focus:outline-none"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-gotham font-semibold text-white transition duration-150 ease-in-out hover:bg-primary-700 border-2 border-primary-400"
                                             >
+                                                <span>👤</span>
                                                 {user.name}
 
                                                 <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
+                                                    className="h-4 w-4"
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 20 20"
                                                     fill="currentColor"
@@ -175,9 +178,9 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
 
             {header && (
-                <header className="bg-white shadow-sm">
+                <header className="bg-neutral-900 shadow-2xl border-b-2 border-primary">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        <h2 className="text-2xl font-bold text-primary font-raverist">
+                        <h2 className="text-3xl font-bold text-white font-raverist">
                             {header}
                         </h2>
                     </div>

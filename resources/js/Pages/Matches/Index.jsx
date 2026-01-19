@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { formatDate } from '@/Utils/dateFormatter';
 import axios from 'axios';
 
 export default function Index({ category, matches, courts }) {
     const { flash } = usePage().props;
+    
     const handleCourtChange = (matchId, courtId) => {
         router.patch(route('categories.matches.update', [category.id, matchId]), {
             court_id: courtId,
@@ -37,18 +37,15 @@ export default function Index({ category, matches, courts }) {
     const handleStartMatch = async (matchId) => {
         const match = matches.find(m => m.id === matchId);
         
-        // Check if court is assigned first
         if (!match.court_id) {
             alert('❌ Please assign a court before starting this match.');
             return;
         }
         
         try {
-            // Use axios to call the validation endpoint (Inertia includes axios)
             const response = await axios.post(route('categories.matches.startPrep', [category.id, matchId]));
             
             if (response.data.success) {
-                // Success - refresh page and then open referee page
                 router.reload({
                     only: ['matches'],
                     onSuccess: () => {
@@ -59,7 +56,6 @@ export default function Index({ category, matches, courts }) {
             
         } catch (error) {
             if (error.response && error.response.data && error.response.data.error) {
-                // Show specific error from server
                 alert('❌ ' + error.response.data.error);
             } else {
                 alert('❌ An error occurred. Please try again.');
@@ -86,169 +82,194 @@ export default function Index({ category, matches, courts }) {
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: 'bg-neutral-100 text-dark',
-            upcoming: 'bg-primary-100 text-primary-800',
-            in_progress: 'bg-accent-100 text-accent-800',
-            completed: 'bg-success-100 text-success-800',
-            cancelled: 'bg-red-100 text-red-800',
+            scheduled: 'bg-neutral-400 text-white border-neutral-600',
+            upcoming: 'bg-primary text-white border-primary-700',
+            in_progress: 'bg-accent text-dark border-accent-700',
+            completed: 'bg-success text-white border-success-700',
+            cancelled: 'bg-red-600 text-white border-red-800',
         };
-        return colors[status] || 'bg-neutral-100 text-dark';
+        return colors[status] || 'bg-neutral-400 text-white border-neutral-600';
+    };
+
+    const getStatusIcon = (status) => {
+        const icons = {
+            scheduled: '📅',
+            upcoming: '⏰',
+            in_progress: '🎾',
+            completed: '✅',
+            cancelled: '❌',
+        };
+        return icons[status] || '📋';
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex justify-between items-center">
-                    <div>
-                        <nav className="text-sm text-neutral-600 mb-1">
-                            <Link href={route('events.index')} className="hover:text-dark">Events</Link>
-                            {' / '}
-                            <Link href={route('events.show', category.event.id)} className="hover:text-dark">
-                                {category.event.name}
-                            </Link>
-                            {' / '}
-                            <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
-                                {category.name}
-                            </Link>
-                        </nav>
-                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
-                            Matches - Group Phase
-                        </h2>
-                    </div>
-                    <button
-                        onClick={handleGenerateMatches}
-                        className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
-                    >
-                        Generate Matches
-                    </button>
-                </div>
-            }
-        >
+        <AuthenticatedLayout header="Matches - Group Phase">
             <Head title={`Matches - ${category.name}`} />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+            <div className="py-12 bg-dark min-h-screen">
+                <div className="mx-auto max-w-7xl px-6 lg:px-8 space-y-6">
+                    {/* Breadcrumb */}
+                    <nav className="text-sm font-gotham text-neutral-400">
+                        <Link href={route('events.index')} className="hover:text-white transition-colors">Events</Link>
+                        {' / '}
+                        <Link href={route('events.show', category.event.id)} className="hover:text-white transition-colors">
+                            {category.event.name}
+                        </Link>
+                        {' / '}
+                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-white transition-colors">
+                            {category.name}
+                        </Link>
+                        {' / '}
+                        <span className="text-white font-bold">Matches</span>
+                    </nav>
+
+                    {/* Header Banner */}
+                    <div className="bg-accent rounded-2xl p-8 shadow-lg border-4 border-primary">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h1 className="text-4xl font-bold font-raverist text-dark mb-2">Match Management</h1>
+                                <p className="text-xl font-gotham text-dark">{category.name} - Group Phase</p>
+                            </div>
+                            <button
+                                onClick={handleGenerateMatches}
+                                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-dark hover:scale-105"
+                            >
+                                <span className="text-2xl">⚙️</span>
+                                Generate Matches
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Flash Messages */}
                     {flash?.success && (
-                        <div className="bg-success-50 border border-success-200 text-success-800 px-4 py-3 rounded relative">
-                            {flash.success}
+                        <div className="bg-success rounded-xl border-4 border-success-700 text-white px-6 py-4 font-gotham font-bold shadow-lg">
+                            ✅ {flash.success}
                         </div>
                     )}
                     {flash?.error && (
-                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative">
-                            {flash.error}
+                        <div className="bg-red-600 rounded-xl border-4 border-red-800 text-white px-6 py-4 font-gotham font-bold shadow-lg">
+                            ❌ {flash.error}
                         </div>
                     )}
                     {flash?.warning && (
-                        <div className="bg-accent-50 border border-accent-200 text-accent-800 px-4 py-3 rounded relative">
-                            {flash.warning}
+                        <div className="bg-accent rounded-xl border-4 border-accent-700 text-dark px-6 py-4 font-gotham font-bold shadow-lg">
+                            ⚠️ {flash.warning}
                         </div>
                     )}
 
+                    {/* Matches Content */}
                     {matches.length === 0 ? (
-                        <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                            <div className="p-12 text-center">
-                                <p className="text-neutral-600 mb-4">No matches generated yet.</p>
-                                <p className="text-sm text-gray-400 mb-6">
-                                    Make sure you have set up groups and assigned participants before generating matches.
-                                </p>
-                                <button
-                                    onClick={handleGenerateMatches}
-                                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-primary-600"
-                                >
-                                    Generate Matches
-                                </button>
-                            </div>
+                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border-4 border-accent">
+                            <div className="text-8xl mb-6">🎾</div>
+                            <h3 className="text-3xl font-bold font-raverist text-dark mb-4">No Matches Generated</h3>
+                            <p className="text-xl font-gotham text-neutral-600 mb-4">
+                                Make sure you have set up groups and assigned participants before generating matches.
+                            </p>
+                            <button
+                                onClick={handleGenerateMatches}
+                                className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-4 border-dark"
+                            >
+                                <span className="text-2xl">⚙️</span>
+                                Generate Matches Now
+                            </button>
                         </div>
                     ) : (
                         Object.entries(matchesByGroup).map(([groupName, groupMatches]) => (
-                            <div key={groupName} className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                                <div className="p-6">
-                                    <h3 className="text-lg font-bold font-raverist text-dark mb-4">{groupName}</h3>
-                                    
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-neutral-50">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Team 1</th>
-                                                    <th className="px-4 py-3 text-center text-xs font-medium text-neutral-600 uppercase">VS</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Team 2</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Court</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Date & Time</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Status</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {groupMatches.map((match) => (
-                                                    <tr key={match.id}>
-                                                        <td className="px-4 py-3 text-sm text-dark">
-                                                            {match.team1?.player_1} - {match.team1?.player_2}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center text-sm font-medium text-neutral-600">
-                                                            VS
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-dark">
-                                                            {match.team2?.player_1} - {match.team2?.player_2}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm">
-                                                            <select
-                                                                value={match.court_id || ''}
-                                                                onChange={(e) => handleCourtChange(match.id, e.target.value)}
-                                                                className="block w-full text-sm rounded border-neutral-300 focus:border-primary focus:ring-primary"
-                                                            >
-                                                                <option value="">Select Court</option>
-                                                                {courts.map((court) => (
-                                                                    <option key={court.id} value={court.id}>
-                                                                        Court {court.name}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm">
-                                                            <input
-                                                                type="datetime-local"
-                                                                value={match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : ''}
-                                                                onChange={(e) => handleScheduledTimeChange(match.id, e.target.value)}
-                                                                className="block w-full text-sm rounded border-neutral-300 focus:border-primary focus:ring-primary"
-                                                            />
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(match.status)}`}>
-                                                                {match.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm">
-                                                            <div className="flex items-center gap-2">
-                                                                <button
-                                                                    onClick={() => handleStartMatch(match.id)}
-                                                                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-success rounded hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                    disabled={match.status === 'completed' || match.status === 'cancelled'}
-                                                                >
-                                                                    {match.status === 'in_progress' || match.status === 'upcoming' ? 'Open' : 'Start'}
-                                                                </button>
-                                                                {(match.status === 'upcoming' || match.status === 'in_progress') && (
-                                                                    <button
-                                                                        onClick={() => handleResetMatch(match.id)}
-                                                                        className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-600 rounded hover:bg-orange-700"
-                                                                        title="Reset match to scheduled"
-                                                                    >
-                                                                        Reset
-                                                                    </button>
-                                                                )}
-                                                                <button
-                                                                    onClick={() => handleDeleteMatch(match.id)}
-                                                                    className="text-red-600 hover:text-red-900"
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            <div key={groupName} className="bg-white rounded-2xl p-8 shadow-lg border-4 border-success">
+                                <h3 className="text-2xl font-bold font-raverist text-success mb-6 flex items-center gap-3">
+                                    <span className="text-3xl">🏆</span>
+                                    {groupName}
+                                </h3>
+                                
+                                <div className="space-y-4">
+                                    {groupMatches.map((match) => (
+                                        <div key={match.id} className="bg-neutral-100 rounded-xl p-6 border-2 border-neutral-300 hover:border-primary transition-all">
+                                            {/* Match Header */}
+                                            <div className="flex justify-between items-center mb-4">
+                                                <div className="flex-1">
+                                                    {/* Teams */}
+                                                    <div className="flex items-center gap-4 mb-3">
+                                                        <div className="flex-1 bg-white rounded-lg p-3 border-2 border-primary">
+                                                            <div className="text-sm font-gotham font-bold text-primary mb-1">TEAM 1</div>
+                                                            <div className="font-gotham text-dark">{match.team1?.player_1} - {match.team1?.player_2}</div>
+                                                        </div>
+                                                        <div className="text-2xl font-bold font-raverist text-neutral-600">VS</div>
+                                                        <div className="flex-1 bg-white rounded-lg p-3 border-2 border-success">
+                                                            <div className="text-sm font-gotham font-bold text-success mb-1">TEAM 2</div>
+                                                            <div className="font-gotham text-dark">{match.team2?.player_1} - {match.team2?.player_2}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Status Badge */}
+                                                <div className="ml-4">
+                                                    <span className={`px-4 py-2 text-sm font-gotham font-bold rounded-xl border-2 ${getStatusColor(match.status)}`}>
+                                                        {getStatusIcon(match.status)} {match.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Match Details */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-gotham font-bold text-neutral-600 mb-2">🏟️ COURT</label>
+                                                    <select
+                                                        value={match.court_id || ''}
+                                                        onChange={(e) => handleCourtChange(match.id, e.target.value)}
+                                                        className="block w-full font-gotham rounded-lg border-2 border-neutral-300 focus:border-primary focus:ring-primary"
+                                                    >
+                                                        <option value="">Select Court</option>
+                                                        {courts.map((court) => (
+                                                            <option key={court.id} value={court.id}>
+                                                                Court {court.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-sm font-gotham font-bold text-neutral-600 mb-2">📅 SCHEDULED TIME</label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : ''}
+                                                        onChange={(e) => handleScheduledTimeChange(match.id, e.target.value)}
+                                                        className="block w-full font-gotham rounded-lg border-2 border-neutral-300 focus:border-primary focus:ring-primary"
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Actions */}
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => handleStartMatch(match.id)}
+                                                    className="inline-flex items-center gap-2 px-5 py-3 text-sm font-gotham font-bold text-white bg-success rounded-xl hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-dark"
+                                                    disabled={match.status === 'completed' || match.status === 'cancelled'}
+                                                >
+                                                    <span className="text-lg">🎾</span>
+                                                    {match.status === 'in_progress' || match.status === 'upcoming' ? 'Open Match' : 'Start Match'}
+                                                </button>
+                                                
+                                                {(match.status === 'upcoming' || match.status === 'in_progress') && (
+                                                    <button
+                                                        onClick={() => handleResetMatch(match.id)}
+                                                        className="inline-flex items-center gap-2 px-5 py-3 text-sm font-gotham font-bold text-white bg-orange-600 rounded-xl hover:bg-orange-700 transition-all border-2 border-dark"
+                                                        title="Reset match to scheduled"
+                                                    >
+                                                        <span className="text-lg">🔄</span>
+                                                        Reset
+                                                    </button>
+                                                )}
+                                                
+                                                <button
+                                                    onClick={() => handleDeleteMatch(match.id)}
+                                                    className="inline-flex items-center gap-2 px-5 py-3 text-sm font-gotham font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all border-2 border-dark"
+                                                >
+                                                    <span className="text-lg">🗑️</span>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))
@@ -258,5 +279,3 @@ export default function Index({ category, matches, courts }) {
         </AuthenticatedLayout>
     );
 }
-
-
