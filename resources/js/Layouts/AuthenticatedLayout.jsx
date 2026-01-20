@@ -12,29 +12,31 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
+        <div className="min-h-screen bg-dark">
+            <nav className="bg-primary shadow-2xl border-b-2 border-success">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
+                                <Link href="/" className="flex items-center gap-3">
+                                    <ApplicationLogo className="block h-12 w-auto object-contain" />
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <div className="hidden space-x-2 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
+                                    className="px-4 py-2"
                                 >
-                                    Dashboard
+                                    <span className="font-gotham font-semibold">Dashboard</span>
                                 </NavLink>
                                 <NavLink
                                     href={route('events.index')}
                                     active={route().current('events.*')}
+                                    className="px-4 py-2"
                                 >
-                                    Events
+                                    <span className="font-gotham font-semibold">Events</span>
                                 </NavLink>
                             </div>
                         </div>
@@ -46,12 +48,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-gotham font-semibold text-white transition duration-150 ease-in-out hover:bg-primary-700 border-2 border-primary-400"
                                             >
+                                                <span>👤</span>
                                                 {user.name}
 
                                                 <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
+                                                    className="h-4 w-4"
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 20 20"
                                                     fill="currentColor"
@@ -91,7 +94,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         (previousState) => !previousState,
                                     )
                                 }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
+                                className="inline-flex items-center justify-center rounded-md p-2 text-neutral-600 transition duration-150 ease-in-out hover:bg-neutral-100 hover:text-primary focus:bg-neutral-100 focus:text-primary focus:outline-none"
                             >
                                 <svg
                                     className="h-6 w-6"
@@ -148,12 +151,12 @@ export default function AuthenticatedLayout({ header, children }) {
                         </ResponsiveNavLink>
                     </div>
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
+                    <div className="border-t border-neutral-200 pb-1 pt-4">
                         <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
+                            <div className="text-base font-medium text-primary">
                                 {user.name}
                             </div>
-                            <div className="text-sm font-medium text-gray-500">
+                            <div className="text-sm font-medium text-neutral-600">
                                 {user.email}
                             </div>
                         </div>
@@ -175,9 +178,11 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
 
             {header && (
-                <header className="bg-white shadow">
+                <header className="bg-neutral-900 shadow-2xl border-b-2 border-primary">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
+                        <h2 className="text-3xl font-bold text-white font-raverist">
+                            {header}
+                        </h2>
                     </div>
                 </header>
             )}

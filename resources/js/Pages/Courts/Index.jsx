@@ -38,43 +38,50 @@ export default function Index({ event, courts }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex justify-between items-center">
-                    <div>
-                        <nav className="text-sm text-gray-500 mb-1">
-                            <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
-                            {' / '}
-                            <Link href={route('events.show', event.id)} className="hover:text-gray-700">{event.name}</Link>
-                        </nav>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Courts Management
-                        </h2>
-                    </div>
-                    <button
-                        onClick={() => setShowSetupModal(true)}
-                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                    >
-                        Setup Courts
-                    </button>
-                </div>
-            }
-        >
+        <AuthenticatedLayout header="Courts Management">
             <Head title={`Courts - ${event.name}`} />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="py-12 bg-dark min-h-screen">
+                <div className="mx-auto max-w-7xl px-6 lg:px-8">
+                    {/* Breadcrumb */}
+                    <nav className="text-sm font-gotham text-neutral-400 mb-6">
+                        <Link href={route('events.index')} className="hover:text-white transition-colors">Events</Link>
+                        {' / '}
+                        <Link href={route('events.show', event.id)} className="hover:text-white transition-colors">{event.name}</Link>
+                        {' / '}
+                        <span className="text-white font-bold">Courts</span>
+                    </nav>
+
+                    {/* Header Banner */}
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h1 className="text-4xl font-bold font-raverist text-white mb-2">Courts Management</h1>
+                                <p className="text-xl font-gotham text-white">{event.name}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowSetupModal(true)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark hover:scale-105"
+                            >
+                                <span className="text-2xl">⚙️</span>
+                                Setup Courts
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Setup Modal */}
                     {showSetupModal && (
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                                <h3 className="text-lg font-semibold mb-4">Setup Courts</h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Creating new courts will delete all existing courts.
-                                </p>
+                        <div className="fixed inset-0 bg-dark bg-opacity-90 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border-4 border-success">
+                                <h3 className="text-2xl font-bold font-raverist text-success mb-4">Setup Courts</h3>
+                                <div className="bg-accent-100 rounded-xl p-4 mb-6 border-2 border-accent">
+                                    <p className="text-base font-gotham text-dark">
+                                        ⚠️ Creating new courts will delete all existing courts.
+                                    </p>
+                                </div>
                                 <form onSubmit={handleSetupCourts}>
-                                    <div className="mb-4">
-                                        <label htmlFor="number_of_courts" className="block text-sm font-medium text-gray-700">
+                                    <div className="mb-6">
+                                        <label htmlFor="number_of_courts" className="block text-base font-gotham font-bold text-dark mb-2">
                                             Number of Courts
                                         </label>
                                         <input
@@ -84,27 +91,27 @@ export default function Index({ event, courts }) {
                                             max="50"
                                             value={setupData.number_of_courts}
                                             onChange={(e) => setSetupData('number_of_courts', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-success focus:ring-success text-lg p-3"
                                             required
                                         />
-                                        <p className="mt-1 text-xs text-gray-500">
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
                                             Courts will be named 1, 2, 3... by default (editable)
                                         </p>
                                     </div>
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex gap-3">
                                         <button
                                             type="button"
                                             onClick={() => setShowSetupModal(false)}
-                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                            className="flex-1 px-6 py-3 text-sm font-gotham font-bold text-dark bg-white border-2 border-neutral-400 rounded-xl hover:bg-neutral-100 transition-all"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={setupProcessing}
-                                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                                            className="flex-1 px-6 py-3 text-sm font-gotham font-bold text-white bg-success rounded-xl hover:bg-success-600 disabled:opacity-50 transition-all border-2 border-dark"
                                         >
-                                            Create Courts
+                                            {setupProcessing ? 'Creating...' : 'Create Courts'}
                                         </button>
                                     </div>
                                 </form>
@@ -113,69 +120,75 @@ export default function Index({ event, courts }) {
                     )}
 
                     {/* Courts List */}
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            {courts.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <p className="text-gray-500 mb-4">No courts set up yet.</p>
-                                    <button
-                                        onClick={() => setShowSetupModal(true)}
-                                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                                    >
-                                        Setup Courts
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-                                    {courts.map((court) => (
-                                        <div key={court.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-sm text-gray-500">Court</span>
-                                                <button
-                                                    onClick={() => handleDeleteCourt(court.id)}
-                                                    className="text-red-600 hover:text-red-800 text-sm"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                            {editingCourt === court.id ? (
-                                                <input
-                                                    type="text"
-                                                    value={editData.name}
-                                                    onChange={(e) => setEditData('name', e.target.value)}
-                                                    onBlur={() => handleUpdateCourt(court.id)}
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            handleUpdateCourt(court.id);
-                                                        }
-                                                    }}
-                                                    className="text-2xl font-bold text-center text-gray-900 border-gray-300 rounded px-2 py-1 w-full"
-                                                    autoFocus
-                                                />
-                                            ) : (
-                                                <h3
-                                                    className="text-2xl font-bold text-center text-gray-900 cursor-pointer hover:text-indigo-600"
-                                                    onClick={() => {
-                                                        setEditingCourt(court.id);
-                                                        setEditData('name', court.name);
-                                                    }}
-                                                >
-                                                    {court.name}
-                                                </h3>
-                                            )}
-                                            <p className="text-xs text-center text-gray-500 mt-2">
-                                                Click to edit name
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                    {courts.length === 0 ? (
+                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border-4 border-success">
+                            <div className="text-8xl mb-6">🏟️</div>
+                            <h3 className="text-3xl font-bold font-raverist text-dark mb-4">No Courts Set Up</h3>
+                            <p className="text-xl font-gotham text-neutral-600 mb-8">Set up courts to start organizing matches!</p>
+                            <button
+                                onClick={() => setShowSetupModal(true)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-success px-8 py-4 text-lg font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-4 border-dark"
+                            >
+                                <span className="text-2xl">⚙️</span>
+                                Setup Courts Now
+                            </button>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-success">
+                            <h3 className="text-2xl font-bold font-raverist text-success mb-6">
+                                All Courts ({courts.length})
+                            </h3>
+                            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                                {courts.map((court) => (
+                                    <div key={court.id} className="bg-neutral-100 rounded-xl p-6 border-2 border-success hover:border-primary transition-all group">
+                                        <div className="text-center mb-3">
+                                            <div className="text-5xl mb-3">🎾</div>
+                                            <p className="text-sm font-gotham font-bold text-neutral-600 mb-2">COURT</p>
+                                        </div>
+                                        
+                                        {editingCourt === court.id ? (
+                                            <input
+                                                type="text"
+                                                value={editData.name}
+                                                onChange={(e) => setEditData('name', e.target.value)}
+                                                onBlur={() => handleUpdateCourt(court.id)}
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleUpdateCourt(court.id);
+                                                    }
+                                                }}
+                                                className="text-3xl font-bold font-raverist text-center text-success border-2 border-success rounded-xl px-3 py-2 w-full"
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <h3
+                                                className="text-3xl font-bold font-raverist text-center text-success cursor-pointer hover:text-primary transition-colors mb-2"
+                                                onClick={() => {
+                                                    setEditingCourt(court.id);
+                                                    setEditData('name', court.name);
+                                                }}
+                                            >
+                                                {court.name}
+                                            </h3>
+                                        )}
+                                        
+                                        <p className="text-xs font-gotham text-center text-neutral-600 mb-3">
+                                            Click to edit name
+                                        </p>
+                                        
+                                        <button
+                                            onClick={() => handleDeleteCourt(court.id)}
+                                            className="w-full px-4 py-2 text-sm font-gotham font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all border-2 border-dark"
+                                        >
+                                            🗑️ Delete
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
     );
 }
-
-

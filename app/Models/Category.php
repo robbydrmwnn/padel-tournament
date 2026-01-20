@@ -15,6 +15,13 @@ class Category extends Model
         'max_participants',
         'teams_advance_per_group',
         'group_phase_completed',
+        'group_best_of_games',
+        'group_scoring_type',
+        'group_advantage_limit',
+        'knockout_best_of_games',
+        'knockout_scoring_type',
+        'knockout_advantage_limit',
+        'warmup_minutes',
     ];
 
     protected $casts = [

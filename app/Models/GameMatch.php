@@ -23,10 +23,26 @@ class GameMatch extends Model
         'winner_id',
         'status',
         'notes',
+        'warmup_started_at',
+        'warmup_ended_at',
+        'warmup_skipped',
+        'match_started_at',
+        'match_ended_at',
+        'score_details',
+        'current_game_team1_points',
+        'current_game_team2_points',
+        'current_game_advantages',
+        'current_server_team_id',
     ];
 
     protected $casts = [
         'scheduled_time' => 'datetime',
+        'warmup_started_at' => 'datetime',
+        'warmup_ended_at' => 'datetime',
+        'match_started_at' => 'datetime',
+        'match_ended_at' => 'datetime',
+        'score_details' => 'array',
+        'warmup_skipped' => 'boolean',
     ];
 
     public function category(): BelongsTo
@@ -57,5 +73,10 @@ class GameMatch extends Model
     public function winner(): BelongsTo
     {
         return $this->belongsTo(Participant::class, 'winner_id');
+    }
+
+    public function currentServerTeam(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'current_server_team_id');
     }
 }

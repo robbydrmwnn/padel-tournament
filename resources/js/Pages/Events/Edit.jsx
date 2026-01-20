@@ -25,7 +25,7 @@ export default function Edit({ event }) {
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                     Edit Event
                 </h2>
             }
@@ -37,7 +37,7 @@ export default function Edit({ event }) {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <form onSubmit={submit} className="p-6 space-y-6">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="name" className="block text-sm font-medium text-dark">
                                     Event Name *
                                 </label>
                                 <input
@@ -45,14 +45,14 @@ export default function Edit({ event }) {
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 />
                                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="description" className="block text-sm font-medium text-dark">
                                     Description
                                 </label>
                                 <textarea
@@ -60,14 +60,14 @@ export default function Edit({ event }) {
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     rows={4}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="start_date" className="block text-sm font-medium text-dark">
                                         Start Date *
                                     </label>
                                     <input
@@ -75,14 +75,14 @@ export default function Edit({ event }) {
                                         type="date"
                                         value={data.start_date}
                                         onChange={(e) => setData('start_date', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                         required
                                     />
                                     {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
                                 </div>
 
                                 <div>
-                                    <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="end_date" className="block text-sm font-medium text-dark">
                                         End Date *
                                     </label>
                                     <input
@@ -90,7 +90,7 @@ export default function Edit({ event }) {
                                         type="date"
                                         value={data.end_date}
                                         onChange={(e) => setData('end_date', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                         required
                                     />
                                     {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
@@ -98,7 +98,7 @@ export default function Edit({ event }) {
                             </div>
 
                             <div>
-                                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="location" className="block text-sm font-medium text-dark">
                                     Location
                                 </label>
                                 <input
@@ -106,20 +106,20 @@ export default function Edit({ event }) {
                                     type="text"
                                     value={data.location}
                                     onChange={(e) => setData('location', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.location && <p className="mt-1 text-sm text-red-600">{errors.location}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="status" className="block text-sm font-medium text-dark">
                                     Status *
                                 </label>
                                 <select
                                     id="status"
                                     value={data.status}
                                     onChange={(e) => setData('status', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 >
                                     <option value="draft">Draft</option>
@@ -142,14 +142,14 @@ export default function Edit({ event }) {
                                 <div className="flex gap-3">
                                     <Link
                                         href={route('events.index')}
-                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                                        className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md shadow-sm hover:bg-neutral-50"
                                     >
                                         Cancel
                                     </Link>
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-600 disabled:opacity-50"
                                     >
                                         Update Event
                                     </button>

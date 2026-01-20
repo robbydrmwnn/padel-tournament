@@ -18,12 +18,12 @@ export default function Create({ event }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <nav className="text-sm text-gray-500 mb-1">
-                        <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                    <nav className="text-sm text-neutral-600 mb-1">
+                        <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                         {' / '}
-                        <Link href={route('events.show', event.id)} className="hover:text-gray-700">{event.name}</Link>
+                        <Link href={route('events.show', event.id)} className="hover:text-dark">{event.name}</Link>
                     </nav>
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                    <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                         Create Category
                     </h2>
                 </div>
@@ -36,7 +36,7 @@ export default function Create({ event }) {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <form onSubmit={submit} className="p-6 space-y-6">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="name" className="block text-sm font-medium text-dark">
                                     Category Name *
                                 </label>
                                 <input
@@ -44,14 +44,14 @@ export default function Create({ event }) {
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 />
                                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="description" className="block text-sm font-medium text-dark">
                                     Description
                                 </label>
                                 <textarea
@@ -59,13 +59,13 @@ export default function Create({ event }) {
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     rows={4}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="max_participants" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="max_participants" className="block text-sm font-medium text-dark">
                                     Maximum Participants
                                 </label>
                                 <input
@@ -74,13 +74,13 @@ export default function Create({ event }) {
                                     min="1"
                                     value={data.max_participants}
                                     onChange={(e) => setData('max_participants', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {errors.max_participants && <p className="mt-1 text-sm text-red-600">{errors.max_participants}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="teams_advance_per_group" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="teams_advance_per_group" className="block text-sm font-medium text-dark">
                                     Teams Advancing Per Group *
                                 </label>
                                 <input
@@ -90,10 +90,10 @@ export default function Create({ event }) {
                                     max="10"
                                     value={data.teams_advance_per_group}
                                     onChange={(e) => setData('teams_advance_per_group', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
                                     required
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-neutral-600">
                                     Number of teams that will advance from each group to the knockout stage
                                 </p>
                                 {errors.teams_advance_per_group && <p className="mt-1 text-sm text-red-600">{errors.teams_advance_per_group}</p>}
@@ -102,14 +102,14 @@ export default function Create({ event }) {
                             <div className="flex justify-end gap-3">
                                 <Link
                                     href={route('events.categories.index', event.id)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md shadow-sm hover:bg-neutral-50"
                                 >
                                     Cancel
                                 </Link>
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-600 disabled:opacity-50"
                                 >
                                     Create Category
                                 </button>

@@ -7,24 +7,24 @@ export default function Show({ category, participant }) {
             header={
                 <div className="flex justify-between items-center">
                     <div>
-                        <nav className="text-sm text-gray-500 mb-1">
-                            <Link href={route('events.index')} className="hover:text-gray-700">Events</Link>
+                        <nav className="text-sm text-neutral-600 mb-1">
+                            <Link href={route('events.index')} className="hover:text-dark">Events</Link>
                             {' / '}
-                            <Link href={route('events.show', category.event.id)} className="hover:text-gray-700">
+                            <Link href={route('events.show', category.event.id)} className="hover:text-dark">
                                 {category.event.name}
                             </Link>
                             {' / '}
-                            <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-gray-700">
+                            <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
                                 {category.name}
                             </Link>
                         </nav>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
                             {participant.player_1} - {participant.player_2}
                         </h2>
                     </div>
                     <Link
                         href={route('categories.participants.edit', [category.id, participant.id])}
-                        className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-gotham font-semibold text-dark shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-neutral-50"
                     >
                         Edit
                     </Link>
@@ -37,43 +37,43 @@ export default function Show({ category, participant }) {
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Participant Details</h3>
+                            <h3 className="text-lg font-bold font-raverist text-dark mb-4">Participant Details</h3>
                             
                             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Player 1</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{participant.player_1}</dd>
+                                    <dt className="text-sm font-medium text-neutral-600">Player 1</dt>
+                                    <dd className="mt-1 text-sm text-dark">{participant.player_1}</dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Player 2</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{participant.player_2}</dd>
+                                    <dt className="text-sm font-medium text-neutral-600">Player 2</dt>
+                                    <dd className="mt-1 text-sm text-dark">{participant.player_2}</dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Team Name</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Team Name</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {participant.name || 'Not provided'}
                                     </dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Email</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Email</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {participant.email || 'Not provided'}
                                     </dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Phone</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {participant.phone || 'Not provided'}
                                     </dd>
                                 </div>
                                 
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Group Assignment</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
+                                    <dt className="text-sm font-medium text-neutral-600">Group Assignment</dt>
+                                    <dd className="mt-1 text-sm text-dark">
                                         {participant.groups && participant.groups.length > 0
                                             ? participant.groups.map(g => g.name).join(', ')
                                             : 'Not assigned to any group'}
@@ -82,8 +82,8 @@ export default function Show({ category, participant }) {
                                 
                                 {participant.notes && (
                                     <div className="sm:col-span-2">
-                                        <dt className="text-sm font-medium text-gray-500">Notes</dt>
-                                        <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                                        <dt className="text-sm font-medium text-neutral-600">Notes</dt>
+                                        <dd className="mt-1 text-sm text-dark whitespace-pre-wrap">
                                             {participant.notes}
                                         </dd>
                                     </div>
