@@ -52,6 +52,16 @@ export default function Referee({ category, match }) {
         return () => clearInterval(interval);
     }, [isWarmupRunning, warmupTime]);
 
+    // Auto-refresh match data during active play to ensure scores are current
+    useEffect(() => {
+        if (match.status === 'in_progress' && match.match_started_at) {
+            const interval = setInterval(() => {
+                router.reload({ only: ['match', 'category'], preserveScroll: true, preserveState: true });
+            }, 3000); // Refresh every 3 seconds
+            return () => clearInterval(interval);
+        }
+    }, [match.status, match.match_started_at]);
+
     const handleStartWarmup = () => {
         router.post(route('categories.matches.warmup.start', [category.id, match.id]), {}, {
             preserveScroll: true,
@@ -134,9 +144,63 @@ export default function Referee({ category, match }) {
         }
     };
 
+    const handleAdjustGameScore = (team, adjustment) => {
+        const currentScore = team === 'team1' ? match.team1_score : match.team2_score;
+        const newScore = Math.max(0, currentScore + adjustment);
+        
+        if (confirm(`${adjustment > 0 ? 'Add' : 'Remove'} 1 game ${adjustment > 0 ? 'to' : 'from'} ${team === 'team1' ? 'Team 1' : 'Team 2'}?\n\nNew games score will be: ${newScore}`)) {
+            router.post(route('categories.matches.adjust-game-score', [category.id, match.id]), {
+                team: team,
+                score: newScore,
+            }, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const handleSetCurrentPoints = (team) => {
+        const pointOptions = ['0', '15', '30', '40', 'AD'];
+        const currentPoints = team === 'team1' ? match.current_game_team1_points : match.current_game_team2_points;
+        
+        const newPoints = prompt(
+            `Set current game points for ${team === 'team1' ? 'Team 1' : 'Team 2'}\n\nCurrent: ${currentPoints || '0'}\n\nEnter: 0, 15, 30, 40, or AD`,
+            currentPoints || '0'
+        );
+        
+        if (newPoints !== null && pointOptions.includes(newPoints.toUpperCase())) {
+            router.post(route('categories.matches.adjust-current-points', [category.id, match.id]), {
+                team: team,
+                points: newPoints.toUpperCase(),
+            }, {
+                preserveScroll: true,
+            });
+        } else if (newPoints !== null) {
+            alert('Invalid points! Please enter: 0, 15, 30, 40, or AD');
+        }
+    };
+
     const handleResetMatch = () => {
         if (confirm('⚠️ RESET MATCH?\n\nThis will completely reset the match to scheduled state:\n• All scores will be cleared\n• Warm-up will be reset\n• Match status will return to scheduled\n• Court will become available for other matches\n\nThis action is useful if you started the wrong match by mistake.\n\nAre you sure?')) {
             router.post(route('categories.matches.reset', [category.id, match.id]));
+        }
+    };
+
+    const handleCompleteMatch = () => {
+        const team1Score = match.team1_score || 0;
+        const team2Score = match.team2_score || 0;
+        const bestOf = scoringConfig.bestOfGames;
+        
+        let winnerText = '';
+        if (team1Score > team2Score) {
+            winnerText = `Winner: Team 1 (${match.team1.player_1} - ${match.team1.player_2})`;
+        } else if (team2Score > team1Score) {
+            winnerText = `Winner: Team 2 (${match.team2.player_1} - ${match.team2.player_2})`;
+        } else {
+            winnerText = 'Result: Draw';
+        }
+        
+        if (confirm(`Complete Match?\n\nFinal Score: ${team1Score} - ${team2Score}\n${winnerText}\n\nThis will mark the match as completed and free the court.\n\nAre you sure?`)) {
+            router.post(route('categories.matches.complete', [category.id, match.id]));
         }
     };
 
@@ -153,284 +217,335 @@ export default function Referee({ category, match }) {
 
     const isMatchStarted = match.match_started_at !== null;
 
+    // Check if a team has won (fulfilled winning condition)
+    const getWinningTeam = () => {
+        if (match.status === 'completed') return null;
+        
+        const gamesNeededToWin = Math.ceil(scoringConfig.bestOfGames / 2);
+        const team1Score = match.team1_score || 0;
+        const team2Score = match.team2_score || 0;
+        
+        if (team1Score >= gamesNeededToWin && team1Score > team2Score) {
+            return 'team1';
+        } else if (team2Score >= gamesNeededToWin && team2Score > team1Score) {
+            return 'team2';
+        }
+        
+        return null;
+    };
+
+    const winningTeam = getWinningTeam();
+
     return (
         <AuthenticatedLayout
             header={
-                <div>
-                    <nav className="text-sm text-neutral-600 mb-1">
-                        <Link href={route('events.index')} className="hover:text-dark">Events</Link>
-                        {' / '}
-                        <Link href={route('events.show', category.event.id)} className="hover:text-dark">
-                            {category.event.name}
-                        </Link>
-                        {' / '}
-                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-dark">
-                            {category.name}
-                        </Link>
-                        {' / '}
-                        <Link href={route('categories.matches.index', category.id)} className="hover:text-dark">
-                            Matches
-                        </Link>
-                    </nav>
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
-                            Referee Control
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="text-lg font-bold font-raverist text-dark">
+                            🎾 Referee - Court {match.court?.name || 'TBA'}
                         </h2>
+                        <p className="text-xs text-neutral-600">{category.event.name} • {category.name}</p>
+                    </div>
+                    <div className="flex gap-2">
                         {match.court_id && (
                             <Link
                                 href={route('courts.monitor', match.court_id)}
                                 target="_blank"
-                                className="inline-flex items-center rounded-md bg-accent px-4 py-2 text-sm font-gotham font-semibold font-gotham text-dark shadow-sm hover:bg-accent-700"
+                                className="inline-flex items-center rounded-md bg-accent px-3 py-1 text-xs font-gotham font-semibold text-dark shadow-sm hover:bg-accent-700"
                             >
-                                Open Court {match.court?.name} Monitor
+                                📺 Monitor
                             </Link>
                         )}
+                        <Link
+                            href={route('categories.matches.index', category.id)}
+                            className="inline-flex items-center rounded-md bg-neutral-200 px-3 py-1 text-xs font-gotham font-semibold text-dark shadow-sm hover:bg-neutral-300"
+                        >
+                            ← Back
+                        </Link>
                     </div>
                 </div>
             }
         >
             <Head title="Referee Control" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+            <div className="h-[calc(100vh-8rem)] overflow-hidden">
+                <div className="mx-auto max-w-6xl px-4 py-2 h-full flex flex-col gap-2">
                     {/* Flash Messages */}
-                    {flash?.success && (
-                        <div className="bg-success-50 border border-success-200 text-success-800 px-4 py-3 rounded relative">
-                            {flash.success}
-                        </div>
-                    )}
-                    {flash?.error && (
-                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded relative">
-                            {flash.error}
-                        </div>
-                    )}
-                    {flash?.warning && (
-                        <div className="bg-accent-50 border border-accent-200 text-accent-800 px-4 py-3 rounded relative">
-                            {flash.warning}
-                        </div>
-                    )}
-
-                    {/* Match Info */}
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold font-raverist text-dark">Match Information</h3>
-                                {(match.status === 'upcoming' || match.status === 'in_progress') && (
-                                    <button
-                                        onClick={handleResetMatch}
-                                        className="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-gotham font-semibold font-gotham text-white shadow-sm hover:bg-red-700"
-                                    >
-                                        🔄 Reset Match
-                                    </button>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-neutral-600">Team 1</p>
-                                    <p className="text-lg font-medium">{match.team1.player_1} - {match.team1.player_2}</p>
+                    {(flash?.success || flash?.error || flash?.warning) && (
+                        <div className="flex-shrink-0">
+                            {flash?.success && (
+                                <div className="bg-success-50 border border-success-200 text-success-800 px-2 py-1 rounded text-xs">
+                                    {flash.success}
                                 </div>
-                                <div>
-                                    <p className="text-sm text-neutral-600">Team 2</p>
-                                    <p className="text-lg font-medium">{match.team2.player_1} - {match.team2.player_2}</p>
+                            )}
+                            {flash?.error && (
+                                <div className="bg-red-50 border border-red-200 text-red-800 px-2 py-1 rounded text-xs">
+                                    {flash.error}
                                 </div>
-                                <div>
-                                    <p className="text-sm text-neutral-600">Court</p>
-                                    <p className="text-base">{match.court ? `Court ${match.court.name}` : 'Not assigned'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-neutral-600">Phase</p>
-                                    <p className="text-base capitalize">{match.phase}</p>
-                                </div>
-                            </div>
-                            {(match.status === 'upcoming' || match.status === 'in_progress') && (
-                                <div className="mt-4 p-3 bg-accent-50 border border-accent-200 rounded-lg">
-                                    <p className="text-sm text-accent-800">
-                                        <strong>Note:</strong> Need to clear this match? Use the "Reset Match" button above to free up the court for a different match.
-                                    </p>
+                            )}
+                            {flash?.warning && (
+                                <div className="bg-accent-50 border border-accent-200 text-accent-800 px-2 py-1 rounded text-xs">
+                                    {flash.warning}
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* Match Info - Compact */}
+                    <div className="flex-shrink-0 bg-white shadow-sm rounded-lg p-2 border-2 border-primary">
+                        <div className="flex justify-between items-center">
+                            <div className="grid grid-cols-2 gap-3 flex-1">
+                                <div>
+                                    <p className="text-xs text-neutral-600">Team 1: {match.team1.player_1} - {match.team1.player_2}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-600">Team 2: {match.team2.player_1} - {match.team2.player_2}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                {match.status === 'in_progress' && match.match_started_at && (
+                                    <button
+                                        onClick={handleCompleteMatch}
+                                        className="inline-flex items-center rounded-md bg-success px-3 py-1 text-xs font-gotham font-semibold text-white shadow-sm hover:bg-success-700"
+                                        title="Complete Match"
+                                    >
+                                        ✅ Complete
+                                    </button>
+                                )}
+                                {(match.status === 'upcoming' || match.status === 'in_progress') && (
+                                    <button
+                                        onClick={handleResetMatch}
+                                        className="inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-gotham font-semibold text-white shadow-sm hover:bg-red-700"
+                                        title="Reset Match"
+                                    >
+                                        🔄
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Warm-up Control */}
+                    {/* Warm-up Control - Compact */}
                     {!warmupCompleted && (
-                        <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                            <div className="p-6">
-                                <h3 className="text-lg font-bold font-raverist text-dark mb-4">Warm-up Timer</h3>
-                                
-                                <div className="text-center mb-6">
-                                    <div className="text-6xl font-bold text-primary mb-4">
-                                        {formatTime(warmupTime)}
-                                    </div>
-                                    <p className="text-sm text-neutral-600">
-                                        {category.warmup_minutes} minute{category.warmup_minutes !== 1 ? 's' : ''} warm-up period
-                                    </p>
+                        <div className="flex-shrink-0 bg-white shadow-sm rounded-lg p-2 border-2 border-accent">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="text-2xl font-bold text-primary">
+                                    ⏱️ {formatTime(warmupTime)}
                                 </div>
-
-                                <div className="flex justify-center gap-3">
+                                <div className="flex gap-2">
                                     {!match.warmup_started_at ? (
                                         <button
                                             onClick={handleStartWarmup}
-                                            className="px-6 py-3 text-base font-medium text-white bg-success rounded-lg hover:bg-success-700"
+                                            className="px-3 py-1 text-sm font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                         >
-                                            Start Warm-up
+                                            ▶ Start
                                         </button>
                                     ) : (
                                         <>
                                             {isWarmupRunning ? (
                                                 <button
                                                     onClick={handlePauseWarmup}
-                                                    className="px-6 py-3 text-base font-medium text-dark bg-accent rounded-lg hover:bg-accent-700"
+                                                    className="px-2 py-1 text-sm font-medium text-dark bg-accent rounded-lg hover:bg-accent-700"
                                                 >
-                                                    Pause
+                                                    ⏸
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={handleResumeWarmup}
-                                                    className="px-6 py-3 text-base font-medium text-white bg-success rounded-lg hover:bg-success-700"
+                                                    className="px-2 py-1 text-sm font-medium text-white bg-success rounded-lg hover:bg-success-700"
                                                 >
-                                                    Resume
+                                                    ▶
                                                 </button>
                                             )}
                                             <button
                                                 onClick={handleResetWarmup}
-                                                className="px-6 py-3 text-base font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700"
+                                                className="px-2 py-1 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700"
                                             >
-                                                Reset
+                                                🔄
                                             </button>
                                         </>
                                     )}
                                     <button
                                         onClick={handleSkipWarmup}
-                                        className="px-6 py-3 text-base font-medium text-white bg-primary rounded-lg hover:bg-primary-600"
+                                        className="px-3 py-1 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-600"
                                     >
-                                        Skip Warm-up
+                                        ⏭ Skip
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Match Control */}
+                    {/* Match Control - Compact */}
                     {warmupCompleted && (
                         <>
                             {!isMatchStarted ? (
-                                <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                                    <div className="p-6 text-center">
-                                        <h3 className="text-lg font-bold font-raverist text-dark mb-4">Ready to Start Match</h3>
-                                        <button
-                                            onClick={handleStartMatch}
-                                            className="px-8 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
-                                        >
-                                            Start Match
-                                        </button>
-                                    </div>
+                                <div className="flex-1 flex items-center justify-center bg-white shadow-sm rounded-lg border-4 border-success">
+                                    <button
+                                        onClick={handleStartMatch}
+                                        className="px-16 py-10 text-4xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-xl"
+                                    >
+                                        🎾 START MATCH
+                                    </button>
                                 </div>
                             ) : (
-                                <>
-                                    {/* Current Score Display */}
-                                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                                        <div className="p-6">
-                                            <h3 className="text-lg font-bold font-raverist text-dark mb-4">Current Score</h3>
-                                            
-                                            {/* Games Won */}
-                                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                                <div className="text-center">
-                                                    <p className="text-sm text-neutral-600 mb-2">Team 1</p>
-                                                    <p className="text-4xl font-bold text-dark">{match.team1_score || 0}</p>
-                                                    <p className="text-xs text-neutral-600 mt-1">Games</p>
+                                <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+                                    {/* Score Display & Controls - All in One */}
+                                    <div className="bg-white shadow-sm rounded-lg p-3 border-4 border-primary flex flex-col">
+                                        {/* Scoring Info */}
+                                        <div className="text-center mb-2">
+                                            <div className="text-xs text-neutral-600">
+                                                Best of {scoringConfig.bestOfGames} • 
+                                                {scoringConfig.scoringType === 'no_ad' && ' No-Ad'}
+                                                {scoringConfig.scoringType === 'traditional' && ' Traditional'}
+                                                {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Adv`}
+                                            </div>
+                                            {match.current_game_advantages > 0 && (
+                                                <div className="mt-1 text-sm font-bold text-primary">
+                                                    Advantages: {match.current_game_advantages} / 2
                                                 </div>
-                                                <div className="flex items-center justify-center">
-                                                    <span className="text-2xl text-gray-400">-</span>
+                                            )}
+                                            {match.current_game_advantages >= 2 && 
+                                             match.current_game_team1_points === '40' && 
+                                             match.current_game_team2_points === '40' && (
+                                                <div className="mt-1">
+                                                    <span className="inline-block px-4 py-2 text-base font-bold text-white bg-red-600 rounded-lg animate-pulse">
+                                                        ⚡ GOLDEN POINT ⚡
+                                                    </span>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm text-neutral-600 mb-2">Team 2</p>
-                                                    <p className="text-4xl font-bold text-dark">{match.team2_score || 0}</p>
-                                                    <p className="text-xs text-neutral-600 mt-1">Games</p>
+                                            )}
+                                        </div>
+
+                                        {/* Team 1 */}
+                                        <div className="flex-1 border-4 border-success rounded-lg p-4 bg-success-50 mb-2">
+                                            <div className="flex items-center gap-4 h-full">
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-neutral-600 mb-1">Team 1</p>
+                                                    <p className="text-lg font-bold">{match.team1.player_1} - {match.team1.player_2}</p>
+                                                    {winningTeam === 'team1' && (
+                                                        <div className="mt-1">
+                                                            <span className="inline-block px-3 py-1 text-sm font-bold text-white bg-accent rounded-lg border-2 border-success animate-pulse">
+                                                                🏆 WINNER
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-center min-w-[140px]">
+                                                    <p className="text-sm text-neutral-600 mb-1">Games</p>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() => handleAdjustGameScore('team1', -1)}
+                                                            className="px-2 py-1 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700"
+                                                            disabled={match.team1_score === 0}
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <p className="text-7xl font-bold text-dark leading-none">{match.team1_score || 0}</p>
+                                                        <button
+                                                            onClick={() => handleAdjustGameScore('team1', 1)}
+                                                            className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="text-center min-w-[140px]">
+                                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                                        <p className="text-sm text-neutral-600">Points</p>
+                                                        <button
+                                                            onClick={() => handleSetCurrentPoints('team1')}
+                                                            className="px-1 py-0 text-xs text-blue-600 hover:text-blue-800"
+                                                            title="Set points"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-7xl font-bold text-primary leading-none">{getPointDisplay(match.current_game_team1_points)}</p>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <button
+                                                        onClick={() => handleScorePoint('team1')}
+                                                        className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
+                                                    >
+                                                        + POINT
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleUndoPoint('team1')}
+                                                        className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                    >
+                                                        ↶ Undo
+                                                    </button>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            {/* Current Game Points */}
-                                            <div className="border-t pt-6">
-                                                <p className="text-sm text-neutral-600 text-center mb-4">Current Game</p>
-                                                <div className="grid grid-cols-3 gap-4 mb-6">
-                                                    <div className="text-center">
-                                                        <p className="text-5xl font-bold text-primary">
-                                                            {getPointDisplay(match.current_game_team1_points)}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center justify-center">
-                                                        <span className="text-2xl text-gray-400">-</span>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-5xl font-bold text-primary">
-                                                            {getPointDisplay(match.current_game_team2_points)}
-                                                        </p>
+                                        {/* VS Divider */}
+                                        <div className="text-center text-2xl font-bold text-gray-400">VS</div>
+
+                                        {/* Team 2 */}
+                                        <div className="flex-1 border-4 border-primary rounded-lg p-4 bg-primary-50">
+                                            <div className="flex items-center gap-4 h-full">
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-neutral-600 mb-1">Team 2</p>
+                                                    <p className="text-lg font-bold">{match.team2.player_1} - {match.team2.player_2}</p>
+                                                    {winningTeam === 'team2' && (
+                                                        <div className="mt-1">
+                                                            <span className="inline-block px-3 py-1 text-sm font-bold text-white bg-accent rounded-lg border-2 border-primary animate-pulse">
+                                                                🏆 WINNER
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-center min-w-[140px]">
+                                                    <p className="text-sm text-neutral-600 mb-1">Games</p>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() => handleAdjustGameScore('team2', -1)}
+                                                            className="px-2 py-1 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700"
+                                                            disabled={match.team2_score === 0}
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <p className="text-7xl font-bold text-dark leading-none">{match.team2_score || 0}</p>
+                                                        <button
+                                                            onClick={() => handleAdjustGameScore('team2', 1)}
+                                                            className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
+                                                        >
+                                                            +
+                                                        </button>
                                                     </div>
                                                 </div>
-
-                                                {/* Scoring Config Info */}
-                                                <div className="text-center text-sm text-neutral-600 mb-4">
-                                                    Best of {scoringConfig.bestOfGames} • 
-                                                    {scoringConfig.scoringType === 'no_ad' && ' No-Ad (Golden Point)'}
-                                                    {scoringConfig.scoringType === 'traditional' && ' Traditional'}
-                                                    {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Advantages`}
+                                                <div className="text-center min-w-[140px]">
+                                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                                        <p className="text-sm text-neutral-600">Points</p>
+                                                        <button
+                                                            onClick={() => handleSetCurrentPoints('team2')}
+                                                            className="px-1 py-0 text-xs text-blue-600 hover:text-blue-800"
+                                                            title="Set points"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-7xl font-bold text-primary leading-none">{getPointDisplay(match.current_game_team2_points)}</p>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <button
+                                                        onClick={() => handleScorePoint('team2')}
+                                                        className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
+                                                    >
+                                                        + POINT
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleUndoPoint('team2')}
+                                                        className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                    >
+                                                        ↶ Undo
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Score Input Controls */}
-                                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                                        <div className="p-6">
-                                            <h3 className="text-lg font-bold font-raverist text-dark mb-4">Score Controls</h3>
-                                            
-                                            <div className="grid grid-cols-2 gap-6">
-                                                {/* Team 1 Controls */}
-                                                <div className="border-2 border-primary-200 rounded-lg p-6 bg-primary-50">
-                                                    <h4 className="text-center font-semibold text-dark mb-4">
-                                                        {match.team1.player_1} - {match.team1.player_2}
-                                                    </h4>
-                                                    <div className="space-y-3">
-                                                        <button
-                                                            onClick={() => handleScorePoint('team1')}
-                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
-                                                        >
-                                                            + Point
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUndoPoint('team1')}
-                                                            className="w-full px-6 py-4 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                                                        >
-                                                            - Undo Point
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Team 2 Controls */}
-                                                <div className="border-2 border-accent-200 rounded-lg p-6 bg-accent-50">
-                                                    <h4 className="text-center font-semibold text-dark mb-4">
-                                                        {match.team2.player_1} - {match.team2.player_2}
-                                                    </h4>
-                                                    <div className="space-y-3">
-                                                        <button
-                                                            onClick={() => handleScorePoint('team2')}
-                                                            className="w-full px-6 py-4 text-lg font-medium text-white bg-success rounded-lg hover:bg-success-700"
-                                                        >
-                                                            + Point
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUndoPoint('team2')}
-                                                            className="w-full px-6 py-4 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                                                        >
-                                                            - Undo Point
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
+                                </div>
                             )}
                         </>
                     )}

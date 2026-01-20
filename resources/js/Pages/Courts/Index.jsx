@@ -61,7 +61,7 @@ export default function Index({ event, courts }) {
                             </div>
                             <button
                                 onClick={() => setShowSetupModal(true)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark hover:scale-105"
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent hover:scale-105"
                             >
                                 <span className="text-2xl">⚙️</span>
                                 Setup Courts

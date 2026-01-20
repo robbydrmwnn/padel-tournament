@@ -78,7 +78,7 @@ export default function Index({ category, groups, participants }) {
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 shadow-lg border-4 border-success">
+                    <div className="bg-success rounded-2xl p-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-4xl font-bold font-raverist text-white mb-2">Group Management</h1>
@@ -86,7 +86,7 @@ export default function Index({ category, groups, participants }) {
                             </div>
                             <button
                                 onClick={() => setShowSetupModal(true)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-success px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark hover:scale-105"
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-white-600 transition-all border-2 border-accent hover:scale-105"
                             >
                                 <span className="text-2xl">⚙️</span>
                                 Setup Groups

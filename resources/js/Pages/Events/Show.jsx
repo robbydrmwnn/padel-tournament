@@ -30,28 +30,28 @@ export default function Show({ event }) {
             <div className="py-12 bg-dark min-h-screen">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8 space-y-6">
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 shadow-lg border-4 border-success">
+                    <div className="bg-success rounded-2xl p-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center">
                             <div className="flex-1">
                                 <div className="flex items-center gap-4 mb-3">
                                     <h1 className="text-4xl font-bold font-raverist text-white">{event.name}</h1>
-                                    <span className={`px-4 py-2 text-sm font-gotham font-bold rounded-xl border-2 ${getStatusColor(event.status)}`}>
+                                    {/* <span className={`px-4 py-2 text-sm font-gotham font-bold rounded-xl border-2 ${getStatusColor(event.status)}`}>
                                         {getStatusIcon(event.status)} {event.status.toUpperCase()}
-                                    </span>
+                                    </span> */}
                                 </div>
                                 <p className="text-xl font-gotham text-neutral-200">{event.description || 'Tournament Event'}</p>
                             </div>
                             <div className="flex gap-3">
                                 <Link
                                     href={route('events.courts.index', event.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-neutral-600"
                                 >
                                     <span className="text-xl">🏟️</span>
                                     Courts
                                 </Link>
                                 <Link
                                     href={route('events.categories.index', event.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-600 transition-all border-2 border-accent"
                                 >
                                     <span className="text-xl">📋</span>
                                     Categories
@@ -100,7 +100,7 @@ export default function Show({ event }) {
                             <h3 className="text-2xl font-bold font-raverist text-success">Categories</h3>
                             <Link
                                 href={route('events.categories.create', event.id)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark"
+                                className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-accent"
                             >
                                 <span className="text-xl">➕</span>
                                 Add Category
@@ -116,9 +116,14 @@ export default function Show({ event }) {
                                         className="bg-neutral-100 rounded-xl p-4 hover:bg-success hover:text-white transition-all border-2 border-neutral-300 hover:border-success group"
                                     >
                                         <h4 className="text-lg font-bold font-raverist text-success group-hover:text-white mb-2">{category.name}</h4>
-                                        <p className="text-sm font-gotham text-neutral-700 group-hover:text-white">
-                                            {category.participants_count || 0} participants
-                                        </p>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-gotham text-neutral-700 group-hover:text-white">
+                                                👥 {category.participants_count || 0} participants
+                                            </p>
+                                            <p className="text-sm font-gotham text-neutral-700 group-hover:text-white">
+                                                📊 {category.groups_count || 0} groups
+                                            </p>
+                                        </div>
                                     </Link>
                                 ))}
                             </div>

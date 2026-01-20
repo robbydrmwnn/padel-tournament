@@ -143,9 +143,13 @@ class MatchController extends Controller
 
         $court->load('event');
 
-        return Inertia::render('Matches/CourtMonitor', [
-            'court' => $court,
+        // If there's a match, use its category, otherwise use a default
+        $category = $match ? $match->category : null;
+
+        return Inertia::render('Matches/Monitor', [
+            'category' => $category,
             'match' => $match, // Will be null if no upcoming/in_progress match
+            'court' => $court, // Pass court for fallback display
         ]);
     }
 
@@ -316,11 +320,23 @@ class MatchController extends Controller
             'advantage_limit' => $category->knockout_advantage_limit,
         ];
 
-        $team1Points = $match->current_game_team1_points;
-        $team2Points = $match->current_game_team2_points;
+        // Ensure points are valid strings (handle null, empty string, or 0)
+        $team1Points = $match->current_game_team1_points ?: '0';
+        $team2Points = $match->current_game_team2_points ?: '0';
+        
+        \Log::info('Score point attempt', [
+            'team' => $team,
+            'current_team1_points' => $team1Points,
+            'current_team2_points' => $team2Points,
+            'raw_team1' => $match->current_game_team1_points,
+            'raw_team2' => $match->current_game_team2_points,
+        ]);
         
         // Point progression: 0 -> 15 -> 30 -> 40
         $pointProgression = ['0' => '15', '15' => '30', '30' => '40'];
+        
+        // Track if game was won (to avoid overwriting reset points)
+        $gameWon = false;
 
         if ($team === 'team1') {
             // Check if game is won
@@ -330,36 +346,51 @@ class MatchController extends Controller
                     if ($config['scoring_type'] === 'no_ad') {
                         // Golden point - team 1 wins
                         $this->teamWinsGame($match, 'team1', $config['best_of']);
+                        $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
-                        // Traditional - go to advantage
-                        $team1Points = 'AD';
-                        $team2Points = '40';
-                    } else if ($config['scoring_type'] === 'advantage_limit') {
-                        // Check advantage limit
-                        if ($match->current_game_advantages >= $config['advantage_limit']) {
+                        // Check if golden point (after 2 advantages)
+                        if ($match->current_game_advantages >= 2) {
                             // Golden point - team 1 wins
                             $this->teamWinsGame($match, 'team1', $config['best_of']);
+                            $gameWon = true;
                         } else {
                             // Go to advantage
                             $team1Points = 'AD';
                             $team2Points = '40';
-                            $match->current_game_advantages++;
+                        }
+                    } else if ($config['scoring_type'] === 'advantage_limit') {
+                        // Check advantage limit (max 2)
+                        if ($match->current_game_advantages >= 2) {
+                            // Golden point - team 1 wins
+                            $this->teamWinsGame($match, 'team1', $config['best_of']);
+                            $gameWon = true;
+                        } else {
+                            // Go to advantage
+                            $team1Points = 'AD';
+                            $team2Points = '40';
                         }
                     }
                 } else if ($team2Points === 'AD') {
-                    // Back to deuce
+                    // Back to deuce - don't reset advantages (accumulate for golden point)
                     $team1Points = '40';
                     $team2Points = '40';
                 } else {
                     // Team 1 wins game
                     $this->teamWinsGame($match, 'team1', $config['best_of']);
+                    $gameWon = true;
                 }
             } else if ($team1Points === 'AD') {
                 // Team 1 wins game
                 $this->teamWinsGame($match, 'team1', $config['best_of']);
+                $gameWon = true;
             } else {
                 // Progress point
-                $team1Points = $pointProgression[$team1Points];
+                if (isset($pointProgression[$team1Points])) {
+                    $team1Points = $pointProgression[$team1Points];
+                } else {
+                    \Log::error('Invalid point value for team1', ['points' => $team1Points]);
+                    return back()->with('error', 'Invalid point value: ' . $team1Points);
+                }
             }
         } else {
             // Team 2 scores
@@ -369,44 +400,80 @@ class MatchController extends Controller
                     if ($config['scoring_type'] === 'no_ad') {
                         // Golden point - team 2 wins
                         $this->teamWinsGame($match, 'team2', $config['best_of']);
+                        $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
-                        // Traditional - go to advantage
-                        $team2Points = 'AD';
-                        $team1Points = '40';
-                    } else if ($config['scoring_type'] === 'advantage_limit') {
-                        // Check advantage limit
-                        if ($match->current_game_advantages >= $config['advantage_limit']) {
+                        // Check if golden point (after 2 advantages)
+                        if ($match->current_game_advantages >= 2) {
                             // Golden point - team 2 wins
                             $this->teamWinsGame($match, 'team2', $config['best_of']);
+                            $gameWon = true;
                         } else {
                             // Go to advantage
                             $team2Points = 'AD';
                             $team1Points = '40';
-                            $match->current_game_advantages++;
+                        }
+                    } else if ($config['scoring_type'] === 'advantage_limit') {
+                        // Check advantage limit (max 2)
+                        if ($match->current_game_advantages >= 2) {
+                            // Golden point - team 2 wins
+                            $this->teamWinsGame($match, 'team2', $config['best_of']);
+                            $gameWon = true;
+                        } else {
+                            // Go to advantage
+                            $team2Points = 'AD';
+                            $team1Points = '40';
                         }
                     }
                 } else if ($team1Points === 'AD') {
-                    // Back to deuce
+                    // Back to deuce - don't reset advantages (accumulate for golden point)
                     $team1Points = '40';
                     $team2Points = '40';
                 } else {
                     // Team 2 wins game
                     $this->teamWinsGame($match, 'team2', $config['best_of']);
+                    $gameWon = true;
                 }
             } else if ($team2Points === 'AD') {
                 // Team 2 wins game
                 $this->teamWinsGame($match, 'team2', $config['best_of']);
+                $gameWon = true;
             } else {
                 // Progress point
-                $team2Points = $pointProgression[$team2Points];
+                if (isset($pointProgression[$team2Points])) {
+                    $team2Points = $pointProgression[$team2Points];
+                } else {
+                    \Log::error('Invalid point value for team2', ['points' => $team2Points]);
+                    return back()->with('error', 'Invalid point value: ' . $team2Points);
+                }
             }
         }
 
-        // Update current game points if game not won
-        if ($match->status === 'in_progress') {
+        // Update current game points ONLY if game was not won
+        // (teamWinsGame already resets points to 0-0)
+        \Log::info('Before update check', [
+            'gameWon' => $gameWon,
+            'match_status' => $match->status,
+            'will_update' => !$gameWon && in_array($match->status, ['in_progress', 'upcoming']),
+        ]);
+        
+        if (!$gameWon && in_array($match->status, ['in_progress', 'upcoming'])) {
+            // Detect if we just went to advantage (from 40-40 to AD-40 or 40-AD)
+            $oldPoints = [
+                $match->current_game_team1_points ?: '0', 
+                $match->current_game_team2_points ?: '0'
+            ];
+            $newPoints = [$team1Points, $team2Points];
+            
+            // Increment advantage counter if we just went from deuce to advantage
+            if (in_array('AD', $newPoints) && !in_array('AD', $oldPoints) && 
+                $oldPoints[0] === '40' && $oldPoints[1] === '40') {
+                $match->current_game_advantages++;
+            }
+            
             $match->update([
                 'current_game_team1_points' => $team1Points,
                 'current_game_team2_points' => $team2Points,
+                'current_game_advantages' => $match->current_game_advantages,
             ]);
         }
 
@@ -435,21 +502,20 @@ class MatchController extends Controller
             'team2' => $team2Score,
         ];
 
-        // Check if match is won
+        // Check if match is won - only auto-complete for best of 5
         $gamesNeededToWin = ceil($bestOf / 2);
         $matchWon = false;
         $winnerId = null;
 
-        if ($team1Score >= $gamesNeededToWin && $team1Score > $team2Score) {
-            $matchWon = true;
-            $winnerId = $match->team1_id;
-        } else if ($team2Score >= $gamesNeededToWin && $team2Score > $team1Score) {
-            $matchWon = true;
-            $winnerId = $match->team2_id;
-        } else if ($bestOf === 4 && $team1Score === 2 && $team2Score === 2) {
-            // Best of 4 can end in a draw
-            $matchWon = true;
-            $winnerId = null;
+        // Only auto-complete for best of 5 matches
+        if ($bestOf === 5) {
+            if ($team1Score >= $gamesNeededToWin && $team1Score > $team2Score) {
+                $matchWon = true;
+                $winnerId = $match->team1_id;
+            } else if ($team2Score >= $gamesNeededToWin && $team2Score > $team1Score) {
+                $matchWon = true;
+                $winnerId = $match->team2_id;
+            }
         }
 
         if ($matchWon) {
@@ -462,7 +528,7 @@ class MatchController extends Controller
                 'score_details' => $scoreDetails,
             ]);
         } else {
-            // Start new game
+            // Start new game or continue (for best of 3/4, referee will manually complete)
             $match->update([
                 'team1_score' => $team1Score,
                 'team2_score' => $team2Score,
@@ -577,6 +643,61 @@ class MatchController extends Controller
     }
 
     /**
+     * Manually adjust game score
+     */
+    public function adjustGameScore(Request $request, Category $category, GameMatch $match): RedirectResponse
+    {
+        $validated = $request->validate([
+            'team' => 'required|in:team1,team2',
+            'score' => 'required|integer|min:0',
+        ]);
+
+        $team = $validated['team'];
+        $newScore = $validated['score'];
+
+        // Update the game score
+        $match->update([
+            $team . '_score' => $newScore,
+        ]);
+
+        \Log::info('Game score manually adjusted', [
+            'team' => $team,
+            'new_score' => $newScore,
+            'match_id' => $match->id,
+        ]);
+
+        return back()->with('success', 'Game score updated successfully.');
+    }
+
+    /**
+     * Manually adjust current game points
+     */
+    public function adjustCurrentPoints(Request $request, Category $category, GameMatch $match): RedirectResponse
+    {
+        $validated = $request->validate([
+            'team' => 'required|in:team1,team2',
+            'points' => 'required|in:0,15,30,40,AD',
+        ]);
+
+        $team = $validated['team'];
+        $newPoints = $validated['points'];
+
+        // Update the current game points
+        $field = 'current_game_' . $team . '_points';
+        $match->update([
+            $field => $newPoints,
+        ]);
+
+        \Log::info('Current game points manually adjusted', [
+            'team' => $team,
+            'new_points' => $newPoints,
+            'match_id' => $match->id,
+        ]);
+
+        return back()->with('success', 'Current game points updated successfully.');
+    }
+
+    /**
      * Reset match to scheduled state (undo start)
      */
     public function resetMatch(Category $category, GameMatch $match): RedirectResponse
@@ -613,5 +734,46 @@ class MatchController extends Controller
 
         return redirect()->route('categories.matches.index', $category)
             ->with('success', $message);
+    }
+
+    /**
+     * Manually complete a match (for best of 3/4)
+     */
+    public function completeMatch(Category $category, GameMatch $match): RedirectResponse
+    {
+        if ($match->status === 'completed') {
+            return back()->with('error', 'Match is already completed.');
+        }
+
+        if (!$match->match_started_at) {
+            return back()->with('error', 'Cannot complete a match that hasn\'t started.');
+        }
+
+        // Determine winner based on current score
+        $winnerId = null;
+        $team1Score = $match->team1_score ?? 0;
+        $team2Score = $match->team2_score ?? 0;
+
+        if ($team1Score > $team2Score) {
+            $winnerId = $match->team1_id;
+        } else if ($team2Score > $team1Score) {
+            $winnerId = $match->team2_id;
+        }
+        // else it's a draw (winnerId remains null)
+
+        $match->update([
+            'status' => 'completed',
+            'match_ended_at' => now(),
+            'winner_id' => $winnerId,
+        ]);
+
+        \Log::info('Match manually completed', [
+            'match_id' => $match->id,
+            'team1_score' => $team1Score,
+            'team2_score' => $team2Score,
+            'winner_id' => $winnerId,
+        ]);
+
+        return back()->with('success', 'Match completed successfully.');
     }
 }

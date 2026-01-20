@@ -18,7 +18,7 @@ export default function Show({ event, category }) {
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 mb-8 shadow-lg border-4 border-success">
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center flex-wrap gap-4">
                             <div>
                                 <h1 className="text-4xl font-bold font-raverist text-white mb-2">{category.name}</h1>
@@ -27,14 +27,14 @@ export default function Show({ event, category }) {
                             <div className="flex gap-3 flex-wrap">
                                 <Link
                                     href={route('categories.participants.index', category.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent"
                                 >
                                     <span className="text-xl">👥</span>
                                     Participants
                                 </Link>
                                 <Link
                                     href={route('categories.groups.index', category.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-dark"
                                 >
                                     <span className="text-xl">🏆</span>
                                     Groups
@@ -45,6 +45,13 @@ export default function Show({ event, category }) {
                                 >
                                     <span className="text-xl">🎾</span>
                                     Matches
+                                </Link>
+                                <Link
+                                    href={route('events.categories.leaderboard', [event.id, category.id])}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-700 transition-all border-2 border-dark"
+                                >
+                                    <span className="text-xl">📊</span>
+                                    Leaderboard
                                 </Link>
                                 <Link
                                     href={route('events.categories.edit', [event.id, category.id])}

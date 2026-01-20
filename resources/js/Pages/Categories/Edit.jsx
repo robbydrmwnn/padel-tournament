@@ -28,58 +28,68 @@ export default function Edit({ event, category }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div>
-                    <nav className="text-sm text-neutral-600 mb-1">
-                        <Link href={route('events.index')} className="hover:text-dark">Events</Link>
-                        {' / '}
-                        <Link href={route('events.show', event.id)} className="hover:text-dark">{event.name}</Link>
-                    </nav>
-                    <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
-                        Edit Category
-                    </h2>
-                </div>
-            }
-        >
+        <AuthenticatedLayout header="Edit Category">
             <Head title="Edit Category" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-3xl sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <form onSubmit={submit} className="p-6 space-y-6">
+            <div className="py-12 bg-dark min-h-screen">
+                <div className="mx-auto max-w-3xl px-6 lg:px-8">
+                    {/* Breadcrumb */}
+                    <nav className="text-sm font-gotham text-neutral-400 mb-6">
+                        <Link href={route('events.index')} className="hover:text-white transition-colors">Events</Link>
+                        {' / '}
+                        <Link href={route('events.show', event.id)} className="hover:text-white transition-colors">{event.name}</Link>
+                        {' / '}
+                        <span className="text-white font-bold">Edit Category</span>
+                    </nav>
+
+                    {/* Header Banner */}
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
+                        <div className="flex items-center gap-4">
+                            <div className="text-5xl">✏️</div>
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-dark">
-                                    Category Name *
+                                <h1 className="text-3xl font-bold font-raverist text-white mb-1">Edit Category</h1>
+                                <p className="text-lg font-gotham text-neutral-200">Update category details for {event.name}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Form Card */}
+                    <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-primary">
+                        <form onSubmit={submit} className="space-y-6">
+                            <div>
+                                <label htmlFor="name" className="block text-base font-gotham font-bold text-dark mb-2">
+                                    📝 Category Name *
                                 </label>
                                 <input
                                     id="name"
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                    placeholder="Enter category name..."
                                     required
                                 />
-                                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                                {errors.name && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.name}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-dark">
-                                    Description
+                                <label htmlFor="description" className="block text-base font-gotham font-bold text-dark mb-2">
+                                    📋 Description
                                 </label>
                                 <textarea
                                     id="description"
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     rows={4}
-                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                    placeholder="Describe your category..."
                                 />
-                                {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+                                {errors.description && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.description}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="max_participants" className="block text-sm font-medium text-dark">
-                                    Maximum Participants
+                                <label htmlFor="max_participants" className="block text-base font-gotham font-bold text-dark mb-2">
+                                    👥 Maximum Participants
                                 </label>
                                 <input
                                     id="max_participants"
@@ -87,14 +97,15 @@ export default function Edit({ event, category }) {
                                     min="1"
                                     value={data.max_participants}
                                     onChange={(e) => setData('max_participants', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                    placeholder="Enter maximum participants..."
                                 />
-                                {errors.max_participants && <p className="mt-1 text-sm text-red-600">{errors.max_participants}</p>}
+                                {errors.max_participants && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.max_participants}</p>}
                             </div>
 
                             <div>
-                                <label htmlFor="teams_advance_per_group" className="block text-sm font-medium text-dark">
-                                    Teams Advancing Per Group *
+                                <label htmlFor="teams_advance_per_group" className="block text-base font-gotham font-bold text-dark mb-2">
+                                    🚀 Teams Advancing Per Group *
                                 </label>
                                 <input
                                     id="teams_advance_per_group"
@@ -103,65 +114,67 @@ export default function Edit({ event, category }) {
                                     max="10"
                                     value={data.teams_advance_per_group}
                                     onChange={(e) => setData('teams_advance_per_group', e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                     required
                                 />
-                                <p className="mt-1 text-xs text-neutral-600">
-                                    Number of teams that will advance from each group to the knockout stage
+                                <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                    💡 Number of teams that will advance from each group to the knockout stage
                                 </p>
-                                {errors.teams_advance_per_group && <p className="mt-1 text-sm text-red-600">{errors.teams_advance_per_group}</p>}
+                                {errors.teams_advance_per_group && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.teams_advance_per_group}</p>}
                             </div>
 
                             {/* Group Phase Scoring Settings */}
-                            <div className="border-t pt-4">
-                                <h3 className="text-lg font-medium text-dark mb-4">Group Phase Scoring Settings</h3>
+                            <div className="border-t-2 border-neutral-200 pt-6">
+                                <h3 className="text-xl font-gotham font-bold text-dark mb-4 flex items-center gap-2">
+                                    🏐 Group Phase Scoring Settings
+                                </h3>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="group_best_of_games" className="block text-sm font-medium text-dark">
-                                            Best of Games *
+                                        <label htmlFor="group_best_of_games" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            🎲 Best of Games *
                                         </label>
                                         <select
                                             id="group_best_of_games"
                                             value={data.group_best_of_games}
                                             onChange={(e) => setData('group_best_of_games', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
                                             <option value="3">Best of 3 (first to 2)</option>
                                             <option value="4">Best of 4 (can draw 2-2)</option>
                                             <option value="5">Best of 5 (first to 3)</option>
                                         </select>
-                                        {errors.group_best_of_games && <p className="mt-1 text-sm text-red-600">{errors.group_best_of_games}</p>}
+                                        {errors.group_best_of_games && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_best_of_games}</p>}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="group_scoring_type" className="block text-sm font-medium text-dark">
-                                            Scoring Type *
+                                        <label htmlFor="group_scoring_type" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            📊 Scoring Type *
                                         </label>
                                         <select
                                             id="group_scoring_type"
                                             value={data.group_scoring_type}
                                             onChange={(e) => setData('group_scoring_type', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
                                             <option value="no_ad">No-Ad (Golden Point at 40-40)</option>
                                             <option value="traditional">Traditional (Deuce/Advantage)</option>
                                             <option value="advantage_limit">Advantage Limit</option>
                                         </select>
-                                        <p className="mt-1 text-xs text-neutral-600">
-                                            {data.group_scoring_type === 'no_ad' && 'At 40-40, one decisive point (receiver chooses side)'}
-                                            {data.group_scoring_type === 'traditional' && 'Traditional tennis scoring with unlimited deuces'}
-                                            {data.group_scoring_type === 'advantage_limit' && 'After X advantages, go to golden point'}
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            {data.group_scoring_type === 'no_ad' && '💡 At 40-40, one decisive point (receiver chooses side)'}
+                                            {data.group_scoring_type === 'traditional' && '💡 Traditional tennis scoring with unlimited deuces'}
+                                            {data.group_scoring_type === 'advantage_limit' && '💡 After X advantages, go to golden point'}
                                         </p>
-                                        {errors.group_scoring_type && <p className="mt-1 text-sm text-red-600">{errors.group_scoring_type}</p>}
+                                        {errors.group_scoring_type && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_scoring_type}</p>}
                                     </div>
 
                                     {data.group_scoring_type === 'advantage_limit' && (
                                         <div>
-                                            <label htmlFor="group_advantage_limit" className="block text-sm font-medium text-dark">
-                                                Advantage Limit *
+                                            <label htmlFor="group_advantage_limit" className="block text-base font-gotham font-bold text-dark mb-2">
+                                                🔢 Advantage Limit *
                                             </label>
                                             <input
                                                 id="group_advantage_limit"
@@ -170,65 +183,67 @@ export default function Edit({ event, category }) {
                                                 max="10"
                                                 value={data.group_advantage_limit}
                                                 onChange={(e) => setData('group_advantage_limit', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                                className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                                 required
                                             />
-                                            <p className="mt-1 text-xs text-neutral-600">
-                                                Number of advantages before going to golden point
+                                            <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                                💡 Number of advantages before going to golden point
                                             </p>
-                                            {errors.group_advantage_limit && <p className="mt-1 text-sm text-red-600">{errors.group_advantage_limit}</p>}
+                                            {errors.group_advantage_limit && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_advantage_limit}</p>}
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Knockout Phase Scoring Settings */}
-                            <div className="border-t pt-4">
-                                <h3 className="text-lg font-medium text-dark mb-4">Knockout Phase Scoring Settings</h3>
+                            <div className="border-t-2 border-neutral-200 pt-6">
+                                <h3 className="text-xl font-gotham font-bold text-dark mb-4 flex items-center gap-2">
+                                    🏆 Knockout Phase Scoring Settings
+                                </h3>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="knockout_best_of_games" className="block text-sm font-medium text-dark">
-                                            Best of Games *
+                                        <label htmlFor="knockout_best_of_games" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            🎲 Best of Games *
                                         </label>
                                         <select
                                             id="knockout_best_of_games"
                                             value={data.knockout_best_of_games}
                                             onChange={(e) => setData('knockout_best_of_games', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
                                             <option value="3">Best of 3 (first to 2)</option>
                                             <option value="5">Best of 5 (first to 3)</option>
                                         </select>
-                                        <p className="mt-1 text-xs text-neutral-600">
-                                            Knockout phase cannot end in a draw
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 Knockout phase cannot end in a draw
                                         </p>
-                                        {errors.knockout_best_of_games && <p className="mt-1 text-sm text-red-600">{errors.knockout_best_of_games}</p>}
+                                        {errors.knockout_best_of_games && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_best_of_games}</p>}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="knockout_scoring_type" className="block text-sm font-medium text-dark">
-                                            Scoring Type *
+                                        <label htmlFor="knockout_scoring_type" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            📊 Scoring Type *
                                         </label>
                                         <select
                                             id="knockout_scoring_type"
                                             value={data.knockout_scoring_type}
                                             onChange={(e) => setData('knockout_scoring_type', e.target.value)}
-                                            className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
                                             <option value="no_ad">No-Ad (Golden Point at 40-40)</option>
                                             <option value="traditional">Traditional (Deuce/Advantage)</option>
                                             <option value="advantage_limit">Advantage Limit</option>
                                         </select>
-                                        {errors.knockout_scoring_type && <p className="mt-1 text-sm text-red-600">{errors.knockout_scoring_type}</p>}
+                                        {errors.knockout_scoring_type && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_scoring_type}</p>}
                                     </div>
 
                                     {data.knockout_scoring_type === 'advantage_limit' && (
                                         <div>
-                                            <label htmlFor="knockout_advantage_limit" className="block text-sm font-medium text-dark">
-                                                Advantage Limit *
+                                            <label htmlFor="knockout_advantage_limit" className="block text-base font-gotham font-bold text-dark mb-2">
+                                                🔢 Advantage Limit *
                                             </label>
                                             <input
                                                 id="knockout_advantage_limit"
@@ -237,25 +252,27 @@ export default function Edit({ event, category }) {
                                                 max="10"
                                                 value={data.knockout_advantage_limit}
                                                 onChange={(e) => setData('knockout_advantage_limit', e.target.value)}
-                                                className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                                className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                                 required
                                             />
-                                            <p className="mt-1 text-xs text-neutral-600">
-                                                Number of advantages before going to golden point
+                                            <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                                💡 Number of advantages before going to golden point
                                             </p>
-                                            {errors.knockout_advantage_limit && <p className="mt-1 text-sm text-red-600">{errors.knockout_advantage_limit}</p>}
+                                            {errors.knockout_advantage_limit && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_advantage_limit}</p>}
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Warm-up Timer */}
-                            <div className="border-t pt-4">
-                                <h3 className="text-lg font-medium text-dark mb-4">Match Settings</h3>
+                            <div className="border-t-2 border-neutral-200 pt-6">
+                                <h3 className="text-xl font-gotham font-bold text-dark mb-4 flex items-center gap-2">
+                                    ⚙️ Match Settings
+                                </h3>
                                 
                                 <div>
-                                    <label htmlFor="warmup_minutes" className="block text-sm font-medium text-dark">
-                                        Warm-up Duration (minutes) *
+                                    <label htmlFor="warmup_minutes" className="block text-base font-gotham font-bold text-dark mb-2">
+                                        ⏱️ Warm-up Duration (minutes) *
                                     </label>
                                     <input
                                         id="warmup_minutes"
@@ -264,40 +281,40 @@ export default function Edit({ event, category }) {
                                         max="30"
                                         value={data.warmup_minutes}
                                         onChange={(e) => setData('warmup_minutes', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary focus:ring-primary"
+                                        className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                         required
                                     />
-                                    <p className="mt-1 text-xs text-neutral-600">
-                                        Duration of the warm-up period before each match
+                                    <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                        💡 Duration of the warm-up period before each match
                                     </p>
-                                    {errors.warmup_minutes && <p className="mt-1 text-sm text-red-600">{errors.warmup_minutes}</p>}
+                                    {errors.warmup_minutes && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.warmup_minutes}</p>}
                                 </div>
                             </div>
 
-                            <div className="flex justify-between">
-                                <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700"
-                                >
-                                    Delete Category
-                                </button>
-                                
-                                <div className="flex gap-3">
+                            <div className="flex flex-col gap-4 pt-4">
+                                <div className="flex gap-4">
                                     <Link
                                         href={route('events.categories.index', event.id)}
-                                        className="px-4 py-2 text-sm font-medium text-dark bg-white border border-neutral-300 rounded-md shadow-sm hover:bg-neutral-50"
+                                        className="flex-1 text-center px-6 py-3 text-base font-gotham font-bold text-dark bg-white border-2 border-neutral-400 rounded-xl shadow-lg hover:bg-neutral-100 transition-all"
                                     >
                                         Cancel
                                     </Link>
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md shadow-sm hover:bg-primary-600 disabled:opacity-50"
+                                        className="flex-1 px-6 py-3 text-base font-gotham font-bold text-white bg-success border-2 border-dark rounded-xl shadow-lg hover:bg-success-600 disabled:opacity-50 transition-all"
                                     >
-                                        Update Category
+                                        {processing ? '⏳ Updating...' : '✅ Update Category'}
                                     </button>
                                 </div>
+                                
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    className="w-full px-6 py-3 text-base font-gotham font-bold text-white bg-red-600 border-2 border-dark rounded-xl shadow-lg hover:bg-red-700 transition-all"
+                                >
+                                    🗑️ Delete Category
+                                </button>
                             </div>
                         </form>
                     </div>

@@ -53,6 +53,8 @@ Route::middleware('auth')->group(function () {
         ->name('events.categories.index');
     Route::get('events/{event}/categories/{category}', [CategoryController::class, 'show'])
         ->name('events.categories.show');
+    Route::get('events/{event}/categories/{category}/leaderboard', [CategoryController::class, 'leaderboard'])
+        ->name('events.categories.leaderboard');
     
     // Participants nested under categories
     // Custom routes must come BEFORE resource routes to avoid conflicts
@@ -111,6 +113,12 @@ Route::middleware('auth')->group(function () {
         ->name('categories.matches.score');
     Route::post('categories/{category}/matches/{match}/undo', [MatchController::class, 'undoPoint'])
         ->name('categories.matches.undo');
+    Route::post('categories/{category}/matches/{match}/adjust-game-score', [MatchController::class, 'adjustGameScore'])
+        ->name('categories.matches.adjust-game-score');
+    Route::post('categories/{category}/matches/{match}/adjust-current-points', [MatchController::class, 'adjustCurrentPoints'])
+        ->name('categories.matches.adjust-current-points');
+    Route::post('categories/{category}/matches/{match}/complete', [MatchController::class, 'completeMatch'])
+        ->name('categories.matches.complete');
     Route::post('categories/{category}/matches/{match}/reset', [MatchController::class, 'resetMatch'])
         ->name('categories.matches.reset');
 });

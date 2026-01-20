@@ -30,7 +30,7 @@ export default function Create() {
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 mb-8 shadow-lg border-4 border-success">
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
                         <div className="flex items-center gap-4">
                             <div className="text-5xl">🏆</div>
                             <div>

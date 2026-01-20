@@ -30,7 +30,7 @@ export default function Index({ events }) {
             <div className="py-12 bg-dark min-h-screen">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 mb-8 shadow-lg border-4 border-success">
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-4xl font-bold font-raverist text-white mb-2">Tournament Events</h1>
@@ -38,7 +38,7 @@ export default function Index({ events }) {
                             </div>
                             <Link
                                 href={route('events.create')}
-                                className="inline-flex items-center gap-2 rounded-xl bg-success px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark hover:scale-105"
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent hover:scale-105"
                             >
                                 <span className="text-2xl">➕</span>
                                 Create Event

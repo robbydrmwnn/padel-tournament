@@ -18,7 +18,7 @@ export default function Index({ event, categories }) {
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-primary">
+                    <div className="bg-success rounded-2xl p-8 mb-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-4xl font-bold font-raverist text-white mb-2">Categories</h1>
@@ -26,7 +26,7 @@ export default function Index({ event, categories }) {
                             </div>
                             <Link
                                 href={route('events.categories.create', event.id)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark hover:scale-105"
+                                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent hover:scale-105"
                             >
                                 <span className="text-2xl">➕</span>
                                 Create Category
@@ -82,7 +82,7 @@ export default function Index({ event, categories }) {
                                     </div>
                                     
                                     {/* Action Buttons */}
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2 mb-2">
                                         <Link
                                             href={route('events.categories.show', [event.id, category.id])}
                                             className="flex-1 text-center px-4 py-3 text-sm font-gotham font-bold text-white bg-success rounded-xl hover:bg-success-600 transition-all border-2 border-dark"
@@ -96,6 +96,12 @@ export default function Index({ event, categories }) {
                                             Edit
                                         </Link>
                                     </div>
+                                    <Link
+                                        href={route('events.categories.leaderboard', [event.id, category.id])}
+                                        className="block text-center px-4 py-3 text-sm font-gotham font-bold text-white bg-primary rounded-xl hover:bg-primary-600 transition-all border-2 border-dark"
+                                    >
+                                        📊 Leaderboard
+                                    </Link>
                                 </div>
                             ))}
                         </div>

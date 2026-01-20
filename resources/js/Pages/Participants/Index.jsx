@@ -45,7 +45,7 @@ export default function Index({ category, participants }) {
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-primary rounded-2xl p-8 shadow-lg border-4 border-accent">
+                    <div className="bg-success rounded-2xl p-8 shadow-lg border-4 border-accent">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-4xl font-bold font-raverist text-white mb-2">Participants</h1>
@@ -54,14 +54,14 @@ export default function Index({ category, participants }) {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowImport(!showImport)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-dark"
                                 >
                                     <span className="text-xl">{showImport ? '✖️' : '📊'}</span>
                                     {showImport ? 'Hide Import' : 'Import Excel'}
                                 </button>
                                 <Link
                                     href={route('categories.participants.create', category.id)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-dark"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent"
                                 >
                                     <span className="text-xl">➕</span>
                                     Add Participant

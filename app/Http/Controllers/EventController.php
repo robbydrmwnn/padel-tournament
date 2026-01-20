@@ -55,7 +55,12 @@ class EventController extends Controller
      */
     public function show(Event $event): Response
     {
-        $event->load(['categories.participants', 'categories.groups']);
+        $event->load([
+            'categories' => function ($query) {
+                $query->withCount(['participants', 'groups']);
+            },
+            'courts'
+        ]);
         
         return Inertia::render('Events/Show', [
             'event' => $event
@@ -68,7 +73,11 @@ class EventController extends Controller
     public function edit(Event $event): Response
     {
         return Inertia::render('Events/Edit', [
-            'event' => $event
+            'event' => [
+                ...$event->toArray(),
+                'start_date' => $event->start_date->format('Y-m-d'),
+                'end_date' => $event->end_date->format('Y-m-d'),
+            ]
         ]);
     }
 

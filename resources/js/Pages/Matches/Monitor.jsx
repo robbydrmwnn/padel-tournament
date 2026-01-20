@@ -1,19 +1,19 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
-export default function Monitor({ category, match, autoRefresh = true }) {
+export default function Monitor({ category, match, court, autoRefresh = true }) {
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // Auto-refresh every 2 seconds to get latest score
     // Using Inertia's router.reload() to prevent font flickering
     useEffect(() => {
-        if (autoRefresh && match.status === 'in_progress') {
+        if (autoRefresh && match && match.status === 'in_progress') {
             const interval = setInterval(() => {
-                router.reload({ only: ['match', 'category'], preserveScroll: true, preserveState: true });
-            }, 2000);
+                router.reload({ only: ['match', 'category', 'court'], preserveScroll: true, preserveState: true });
+            }, 200);
             return () => clearInterval(interval);
         }
-    }, [autoRefresh, match.status]);
+    }, [autoRefresh, match?.status]);
 
     // Update clock every second
     useEffect(() => {
@@ -33,6 +33,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
     };
 
     const getMatchStatus = () => {
+        if (!match) return 'No Match Scheduled';
         if (match.status === 'scheduled' && !match.warmup_started_at) {
             return 'Scheduled';
         }
@@ -40,7 +41,7 @@ export default function Monitor({ category, match, autoRefresh = true }) {
             return 'Warm-up';
         }
         if (match.status === 'in_progress') {
-            return 'In Progress';
+            return ''; // Hide status text during match
         }
         if (match.status === 'completed') {
             return 'Match Complete';
@@ -48,139 +49,252 @@ export default function Monitor({ category, match, autoRefresh = true }) {
         return match.status;
     };
 
-    const isMatchStarted = match.match_started_at !== null;
-    const isWarmup = match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped;
+    const isMatchStarted = match && match.match_started_at !== null;
+    const isWarmup = match && match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped;
+
+    // Check if a team has won (fulfilled winning condition)
+    const getWinningTeam = () => {
+        if (!match || match.status === 'completed') return null;
+        
+        const bestOf = match.phase === 'group' 
+            ? category?.group_best_of_games 
+            : category?.knockout_best_of_games;
+        
+        if (!bestOf) return null;
+        
+        const gamesNeededToWin = Math.ceil(bestOf / 2);
+        const team1Score = match.team1_score || 0;
+        const team2Score = match.team2_score || 0;
+        
+        if (team1Score >= gamesNeededToWin && team1Score > team2Score) {
+            return 'team1';
+        } else if (team2Score >= gamesNeededToWin && team2Score > team1Score) {
+            return 'team2';
+        }
+        
+        return null;
+    };
+
+    const winningTeam = getWinningTeam();
 
     return (
         <>
-            <Head title={`Match Monitor - Court ${match.court?.name || ''}`} />
+            <Head title={`Match Monitor - Court ${match?.court?.name || court?.name || ''}`} />
 
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white">
+            <div className="h-screen overflow-hidden bg-dark text-white flex flex-col">
                 {/* Header */}
-                <div className="bg-black bg-opacity-30 backdrop-blur-sm p-6 shadow-lg">
-                    <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold">{category.event.name}</h1>
-                            <p className="text-xl text-gray-200">{category.name} - {match.phase === 'group' ? `Group ${match.group?.name}` : 'Knockout'}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-2xl font-bold font-raverist">Court {match.court?.name || 'TBA'}</p>
-                            <p className="text-lg text-gray-200">{formatTime(currentTime)}</p>
-                        </div>
+                <div className="bg-primary py-2 px-4 shadow-2xl border-b-4 border-accent flex-shrink-0">
+                    <div className="max-w-7xl mx-auto text-center">
+                        <h1 className="text-4xl font-bold font-raverist text-white leading-tight">{category?.event?.name || court?.event?.name || 'Tournament'}</h1>
+                        {match && <p className="text-2xl text-white font-gotham font-bold mt-1 leading-tight">{category?.name} - {match.phase === 'group' ? `Group ${match.group?.name}` : 'Knockout'}</p>}
                     </div>
                 </div>
 
                 {/* Main Content */}
-                <div className="max-w-7xl mx-auto px-6 py-12">
+                <div className="flex-1 overflow-hidden flex flex-col justify-center max-w-7xl mx-auto w-full px-6 py-2">
                     {/* Status Badge */}
-                    <div className="text-center mb-8">
-                        <span className="inline-block px-6 py-3 text-2xl font-bold font-raverist bg-white bg-opacity-20 backdrop-blur-sm rounded-full">
-                            {getMatchStatus()}
-                        </span>
-                    </div>
-
-                    {/* Team Names and Games Score */}
-                    <div className="grid grid-cols-3 gap-8 items-center mb-12">
-                        {/* Team 1 */}
-                        <div className="text-right">
-                            <h2 className="text-4xl font-bold mb-2">
-                                {match.team1.player_1}
-                            </h2>
-                            <p className="text-3xl text-gray-300">
-                                {match.team1.player_2}
-                            </p>
+                    {getMatchStatus() && (
+                        <div className="text-center mb-2">
+                            <span className="inline-block px-8 py-2 text-4xl font-bold font-raverist bg-primary text-white rounded-xl shadow-2xl border-4 border-accent">
+                                {getMatchStatus()}
+                            </span>
                         </div>
+                    )}
 
-                        {/* Games Score */}
-                        <div className="text-center">
-                            <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-3xl p-8 shadow-2xl">
-                                <p className="text-2xl text-gray-300 mb-4">GAMES</p>
-                                <div className="flex justify-center items-center gap-8">
-                                    <div className={`text-8xl font-bold ${match.team1_score > match.team2_score ? 'text-accent' : 'text-white'}`}>
-                                        {match.team1_score || 0}
+                    {!match ? (
+                        /* No Match Display */
+                        <div className="space-y-4">
+                            <div className="bg-neutral-900 rounded-2xl p-10 shadow-2xl border-4 border-accent text-center">
+                                <div className="text-8xl mb-6">🎾</div>
+                                <h2 className="text-7xl font-bold font-raverist text-white mb-6">COURT {court?.name || 'AVAILABLE'}</h2>
+                                <p className="text-5xl font-gotham text-accent font-bold mb-8">Ready for Action</p>
+                                <div className="mt-8 pt-8 border-t-4 border-accent">
+                                    <p className="text-4xl font-gotham text-white font-bold mb-3">No Active Match</p>
+                                    <p className="text-3xl font-gotham text-gray-400 font-bold">Waiting for next match assignment...</p>
+                                </div>
+                            </div>
+                            {court?.event && (
+                                <div className="bg-primary rounded-xl p-5 shadow-xl border-4 border-accent text-center">
+                                    <p className="text-4xl font-bold font-raverist text-white mb-2">{court.event.name}</p>
+                                    {court.event.location && <p className="text-2xl font-gotham text-white font-bold">{court.event.location}</p>}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                    <>
+                    {/* Scoreboard - Vertical Layout */}
+                    <div className={`bg-neutral-900 rounded-2xl ${isWarmup ? 'p-3' : 'p-4'} shadow-2xl border-4 border-accent`}>
+                        {/* Team 1 */}
+                        <div className={`bg-success rounded-xl ${isWarmup ? 'p-3 mb-2' : 'p-5 mb-3'} border-4 border-accent`}>
+                            <div className="flex items-center gap-6">
+                                <div className="flex-1">
+                                    <h2 className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
+                                        {match.team1.player_1} <br/> {match.team1.player_2}
+                                    </h2>
+                                    {winningTeam === 'team1' && (
+                                        <div className="mt-2">
+                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
+                                                🏆 WINNER
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-5 flex-shrink-0">
+                                    {/* Games Won */}
+                                    <div className={`text-center bg-dark rounded-lg ${isWarmup ? 'py-3' : 'py-5'} border-4 border-accent ${isWarmup ? 'w-[150px]' : 'w-[200px]'}`}>
+                                        <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
+                                            {match.team1_score || 0}
+                                        </div>
                                     </div>
-                                    <div className="text-6xl text-gray-400">-</div>
-                                    <div className={`text-8xl font-bold ${match.team2_score > match.team1_score ? 'text-accent' : 'text-white'}`}>
-                                        {match.team2_score || 0}
-                                    </div>
+                                    {/* Current Game Points */}
+                                    {isMatchStarted && !isWarmup ? (
+                                        <div className="text-center bg-dark rounded-lg py-5 border-4 border-accent w-[200px]">
+                                            <div className="text-9xl font-bold text-white leading-none">
+                                                {getPointDisplay(match.current_game_team1_points)}
+                                            </div>
+                                        </div>
+                                    ) : isWarmup ? (
+                                        <div className="w-[150px]"></div>
+                                    ) : (
+                                        <div className="w-[200px]"></div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
+                        {/* VS Divider */}
+                        <div className={`text-center ${isWarmup ? 'my-1' : 'my-2'}`}>
+                            <span className={`${isWarmup ? 'text-4xl' : 'text-6xl'} font-bold font-raverist text-accent`}>VS</span>
+                        </div>
+
                         {/* Team 2 */}
-                        <div className="text-left">
-                            <h2 className="text-4xl font-bold mb-2">
-                                {match.team2.player_1}
-                            </h2>
-                            <p className="text-3xl text-gray-300">
-                                {match.team2.player_2}
-                            </p>
+                        <div className={`bg-primary rounded-xl ${isWarmup ? 'p-3' : 'p-5'} border-4 border-accent`}>
+                            <div className="flex items-center gap-6">
+                                <div className="flex-1">
+                                    <h2 className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
+                                        {match.team2.player_1} <br/> {match.team2.player_2}
+                                    </h2>
+                                    {winningTeam === 'team2' && (
+                                        <div className="mt-2">
+                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
+                                                🏆 WINNER
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-5 flex-shrink-0">
+                                    {/* Games Won */}
+                                    <div className={`text-center bg-dark rounded-lg ${isWarmup ? 'py-3' : 'py-5'} border-4 border-accent ${isWarmup ? 'w-[150px]' : 'w-[200px]'}`}>
+                                        <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
+                                            {match.team2_score || 0}
+                                        </div>
+                                    </div>
+                                    {/* Current Game Points */}
+                                    {isMatchStarted && !isWarmup ? (
+                                        <div className="text-center bg-dark rounded-lg py-5 border-4 border-accent w-[200px]">
+                                            <div className="text-9xl font-bold text-white leading-none">
+                                                {getPointDisplay(match.current_game_team2_points)}
+                                            </div>
+                                        </div>
+                                    ) : isWarmup ? (
+                                        <div className="w-[150px]"></div>
+                                    ) : (
+                                        <div className="w-[200px]"></div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Current Game Score */}
-                    {isMatchStarted && !isWarmup && (
-                        <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-3xl p-12 shadow-2xl">
-                            <p className="text-3xl text-center text-gray-300 mb-6">CURRENT GAME</p>
-                            <div className="flex justify-center items-center gap-12">
-                                <div className="text-center">
-                                    <div className="text-9xl font-bold text-success">
-                                        {getPointDisplay(match.current_game_team1_points)}
-                                    </div>
-                                </div>
-                                <div className="text-7xl text-neutral-600">:</div>
-                                <div className="text-center">
-                                    <div className="text-9xl font-bold text-primary">
-                                        {getPointDisplay(match.current_game_team2_points)}
-                                    </div>
-                                </div>
+                    {/* AD Counter and Golden Point Status */}
+                    {isMatchStarted && !isWarmup && match.current_game_advantages >= 2 && 
+                     match.current_game_team1_points === '40' && 
+                     match.current_game_team2_points === '40' ? (
+                        <div className="text-center mt-2">
+                            <div className="inline-block bg-red-600 px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
+                                <p className="text-4xl font-bold font-raverist text-white">
+                                    ⚡ GOLDEN POINT ⚡
+                                </p>
+                            </div>
+                        </div>
+                    ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && (
+                        <div className="text-center mt-2">
+                            <div className="inline-block bg-primary px-4 py-1 rounded-lg border-2 border-accent">
+                                <p className="text-2xl font-bold font-gotham text-white">
+                                    AD: {match.current_game_advantages}/2
+                                </p>
                             </div>
                         </div>
                     )}
 
                     {/* Warm-up Message */}
                     {isWarmup && (
-                        <div className="bg-accent-500 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
-                            <p className="text-5xl font-bold mb-4">⏱️ WARM-UP IN PROGRESS</p>
-                            <p className="text-2xl text-gray-200">Match will start shortly</p>
+                        <div className="bg-primary rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
+                            <p className="text-4xl font-bold font-raverist text-white">⏱️ WARM-UP IN PROGRESS</p>
                         </div>
                     )}
 
                     {/* Match Complete */}
-                    {match.status === 'completed' && match.winner_id && (
-                        <div className="bg-success-600 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center mt-8">
-                            <p className="text-4xl font-bold mb-4">🏆 WINNER</p>
-                            <p className="text-5xl font-bold">
-                                {match.winner_id === match.team1_id 
-                                    ? `${match.team1.player_1} - ${match.team1.player_2}`
-                                    : `${match.team2.player_1} - ${match.team2.player_2}`
-                                }
+                    {match.status === 'completed' && (
+                        <div className={`${match.winner_id ? 'bg-success' : 'bg-primary'} rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent`}>
+                            <p className="text-3xl font-bold font-raverist mb-2 text-white">
+                                {match.winner_id ? '🏆 WINNER 🏆' : '🤝 MATCH DRAW 🤝'}
+                            </p>
+                            {match.winner_id ? (
+                                <p className="text-5xl font-bold font-raverist text-white leading-tight mb-3">
+                                    {match.winner_id === match.team1_id 
+                                        ? `${match.team1.player_1} / ${match.team1.player_2}`
+                                        : `${match.team2.player_1} / ${match.team2.player_2}`
+                                    }
+                                </p>
+                            ) : null}
+                            <p className="text-4xl font-bold font-gotham text-white">
+                                Final Score: {match.team1_score || 0} - {match.team2_score || 0}
                             </p>
                         </div>
                     )}
 
                     {/* Scheduled Message */}
                     {match.status === 'scheduled' && !match.warmup_started_at && (
-                        <div className="bg-primary-600 bg-opacity-20 backdrop-blur-sm rounded-3xl p-12 shadow-2xl text-center">
-                            <p className="text-4xl font-bold mb-4">📅 UPCOMING MATCH</p>
+                        <div className="bg-neutral-900 rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
+                            <p className="text-3xl font-bold font-raverist mb-2 text-accent">📅 UPCOMING MATCH</p>
                             {match.scheduled_time && (
-                                <p className="text-2xl text-gray-200">
+                                <p className="text-2xl text-white font-gotham font-bold">
                                     Scheduled: {new Date(match.scheduled_time).toLocaleString()}
                                 </p>
                             )}
                         </div>
                     )}
+                    </>
+                    )}
                 </div>
 
                 {/* Footer */}
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-30 backdrop-blur-sm p-4">
-                    <div className="max-w-7xl mx-auto text-center text-gray-300">
-                        <p className="text-lg">
-                            Scoring: {match.phase === 'group' 
-                                ? `Best of ${category.group_best_of_games} • ${category.group_scoring_type === 'no_ad' ? 'No-Ad' : category.group_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                                : `Best of ${category.knockout_best_of_games} • ${category.knockout_scoring_type === 'no_ad' ? 'No-Ad' : category.knockout_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                            }
-                        </p>
+                <div className="bg-primary py-3 px-6 border-t-4 border-accent flex-shrink-0">
+                    <div className="max-w-7xl mx-auto">
+                        {match && category && (
+                            <div className="flex justify-between items-center">
+                                <p className="text-xl font-gotham font-bold text-white">
+                                    Court {match?.court?.name || court?.name || 'TBA'} • {formatTime(currentTime)}
+                                </p>
+                                <p className="text-2xl font-gotham font-bold text-white">
+                                    📊 {match.phase === 'group' 
+                                        ? `Best of ${category.group_best_of_games} Games • ${category.group_scoring_type === 'no_ad' ? 'No-Ad' : category.group_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
+                                        : `Best of ${category.knockout_best_of_games} Games • ${category.knockout_scoring_type === 'no_ad' ? 'No-Ad' : category.knockout_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
+                                    }
+                                </p>
+                            </div>
+                        )}
+                        {!match && (
+                            <div className="flex justify-between items-center">
+                                <p className="text-xl font-gotham font-bold text-white">
+                                    Court {court?.name || 'TBA'} • {formatTime(currentTime)}
+                                </p>
+                                <p className="text-2xl font-gotham font-bold text-white">
+                                    🎾 Court ready for next match
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
