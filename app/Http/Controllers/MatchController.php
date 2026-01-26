@@ -120,7 +120,7 @@ class MatchController extends Controller
     public function referee(Category $category, GameMatch $match): Response
     {
         $category->load('event');
-        $match->load(['team1', 'team2', 'court', 'group']);
+        $match->load(['team1', 'team2', 'court', 'group', 'tournamentPhase']);
 
         return Inertia::render('Matches/Referee', [
             'category' => $category,
@@ -137,7 +137,7 @@ class MatchController extends Controller
         // Don't show scheduled matches - those show default view
         $match = \App\Models\GameMatch::where('court_id', $court->id)
             ->whereIn('status', ['upcoming', 'in_progress'])
-            ->with(['team1', 'team2', 'court', 'group', 'category.event'])
+            ->with(['team1', 'team2', 'court', 'group', 'category.event', 'tournamentPhase'])
             ->orderBy('updated_at', 'desc')
             ->first();
 
@@ -310,19 +310,18 @@ class MatchController extends Controller
     {
         $team = $request->input('team'); // 'team1' or 'team2'
         
-        // Get scoring configuration
-        $config = $match->phase === 'group' ? [
-            'best_of' => $category->group_best_of_games,
-            'scoring_type' => $category->group_scoring_type,
-            'advantage_limit' => $category->group_advantage_limit,
-            'tiebreaker_points' => $category->group_tiebreaker_points,
-            'tiebreaker_two_point_difference' => $category->group_tiebreaker_two_point_difference,
-        ] : [
-            'best_of' => $category->knockout_best_of_games,
-            'scoring_type' => $category->knockout_scoring_type,
-            'advantage_limit' => $category->knockout_advantage_limit,
-            'tiebreaker_points' => $category->knockout_tiebreaker_points,
-            'tiebreaker_two_point_difference' => $category->knockout_tiebreaker_two_point_difference,
+        // Get scoring configuration from the match's phase
+        $phase = $match->tournamentPhase;
+        if (!$phase) {
+            return back()->with('error', 'Match phase not found.');
+        }
+
+        $config = [
+            'best_of' => $phase->games_target,
+            'scoring_type' => $phase->scoring_type,
+            'advantage_limit' => $phase->advantage_limit,
+            'tiebreaker_points' => $phase->tiebreaker_points,
+            'tiebreaker_two_point_difference' => $phase->tiebreaker_two_point_difference,
         ];
 
         // Determine if we should enter tie-breaker mode

@@ -8,19 +8,20 @@ export default function Referee({ category, match }) {
     const [isWarmupRunning, setIsWarmupRunning] = useState(false);
     const [warmupCompleted, setWarmupCompleted] = useState(false);
     
-    // Get scoring configuration based on match phase
-    const scoringConfig = match.phase === 'group' ? {
-        bestOfGames: category.group_best_of_games,
-        scoringType: category.group_scoring_type,
-        advantageLimit: category.group_advantage_limit,
-        tiebreakerPoints: category.group_tiebreaker_points,
-        tiebreakerTwoPointDiff: category.group_tiebreaker_two_point_difference,
+    // Get scoring configuration from match's phase
+    const phase = match.tournament_phase;
+    const scoringConfig = phase ? {
+        bestOfGames: phase.games_target,
+        scoringType: phase.scoring_type,
+        advantageLimit: phase.advantage_limit,
+        tiebreakerPoints: phase.tiebreaker_points,
+        tiebreakerTwoPointDiff: phase.tiebreaker_two_point_difference,
     } : {
-        bestOfGames: category.knockout_best_of_games,
-        scoringType: category.knockout_scoring_type,
-        advantageLimit: category.knockout_advantage_limit,
-        tiebreakerPoints: category.knockout_tiebreaker_points,
-        tiebreakerTwoPointDiff: category.knockout_tiebreaker_two_point_difference,
+        bestOfGames: 4,
+        scoringType: 'no_ad',
+        advantageLimit: null,
+        tiebreakerPoints: 7,
+        tiebreakerTwoPointDiff: true,
     };
 
     // Initialize warmup state
@@ -253,7 +254,10 @@ export default function Referee({ category, match }) {
                         <h2 className="text-lg font-bold font-raverist text-dark">
                             🎾 Referee - Court {match.court?.name || 'TBA'}
                         </h2>
-                        <p className="text-xs text-neutral-600">{category.event.name} • {category.name}</p>
+                        <p className="text-xs text-neutral-600">
+                            {category.event.name} • {category.name}
+                            {phase && <> • <span className="font-bold text-primary">{phase.name}</span></>}
+                        </p>
                     </div>
                     <div className="flex gap-2">
                         {match.court_id && (

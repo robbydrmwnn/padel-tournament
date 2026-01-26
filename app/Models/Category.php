@@ -49,6 +49,16 @@ class Category extends Model
         return $this->hasMany(Group::class);
     }
 
+    public function phases(): HasMany
+    {
+        return $this->hasMany(TournamentPhase::class)->orderBy('order');
+    }
+
+    public function currentPhase()
+    {
+        return $this->phases()->where('is_completed', false)->orderBy('order')->first();
+    }
+
     public function matches(): HasMany
     {
         return $this->hasMany(GameMatch::class);

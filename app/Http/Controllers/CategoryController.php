@@ -45,21 +45,45 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'max_participants' => 'nullable|integer|min:1',
-            'teams_advance_per_group' => 'required|integer|min:1|max:10',
-            'group_best_of_games' => 'required|integer|in:3,4,5,6,8',
-            'group_scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
-            'group_advantage_limit' => 'nullable|integer|min:1|max:10|required_if:group_scoring_type,advantage_limit',
-            'group_tiebreaker_points' => 'required|integer|min:5|max:15',
-            'group_tiebreaker_two_point_difference' => 'required|boolean',
-            'knockout_best_of_games' => 'required|integer|in:3,5,6,8,10,12',
-            'knockout_scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
-            'knockout_advantage_limit' => 'nullable|integer|min:1|max:10|required_if:knockout_scoring_type,advantage_limit',
-            'knockout_tiebreaker_points' => 'required|integer|min:5|max:15',
-            'knockout_tiebreaker_two_point_difference' => 'required|boolean',
             'warmup_minutes' => 'required|integer|min:0|max:30',
+            'phases' => 'required|array|min:1',
+            'phases.*.name' => 'required|string|max:255',
+            'phases.*.type' => 'required|in:group,knockout',
+            'phases.*.number_of_groups' => 'nullable|integer|min:1|required_if:phases.*.type,group',
+            'phases.*.teams_advance_per_group' => 'nullable|integer|min:1|required_if:phases.*.type,group',
+            'phases.*.games_target' => 'required|integer|in:4,6,8,10,12',
+            'phases.*.scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
+            'phases.*.advantage_limit' => 'nullable|integer|min:1|max:10',
+            'phases.*.tiebreaker_points' => 'required|integer|min:5|max:15',
+            'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
         ]);
 
-        $event->categories()->create($validated);
+        $category = $event->categories()->create([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'max_participants' => $validated['max_participants'],
+            'warmup_minutes' => $validated['warmup_minutes'],
+        ]);
+
+        // Create phases
+        foreach ($validated['phases'] as $index => $phaseData) {
+            $isFinalPhase = ($index === count($validated['phases']) - 1); // Last phase is always final
+            
+            \App\Models\TournamentPhase::create([
+                'category_id' => $category->id,
+                'name' => $phaseData['name'],
+                'type' => $phaseData['type'],
+                'order' => $index + 1,
+                'number_of_groups' => $phaseData['number_of_groups'] ?? null,
+                'teams_advance_per_group' => $phaseData['teams_advance_per_group'] ?? null,
+                'games_target' => $phaseData['games_target'],
+                'scoring_type' => $phaseData['scoring_type'],
+                'advantage_limit' => $phaseData['advantage_limit'] ?? null,
+                'tiebreaker_points' => $phaseData['tiebreaker_points'],
+                'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                'is_final_phase' => $isFinalPhase,
+            ]);
+        }
 
         return redirect()->route('events.categories.index', $event)
             ->with('success', 'Category created successfully.');
@@ -83,6 +107,8 @@ class CategoryController extends Controller
      */
     public function edit(Event $event, Category $category): Response
     {
+        $category->load('phases');
+        
         return Inertia::render('Categories/Edit', [
             'event' => $event,
             'category' => $category
@@ -98,21 +124,72 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'max_participants' => 'nullable|integer|min:1',
-            'teams_advance_per_group' => 'required|integer|min:1|max:10',
-            'group_best_of_games' => 'required|integer|in:3,4,5,6,8',
-            'group_scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
-            'group_advantage_limit' => 'nullable|integer|min:1|max:10|required_if:group_scoring_type,advantage_limit',
-            'group_tiebreaker_points' => 'required|integer|min:5|max:15',
-            'group_tiebreaker_two_point_difference' => 'required|boolean',
-            'knockout_best_of_games' => 'required|integer|in:3,5,6,8,10,12',
-            'knockout_scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
-            'knockout_advantage_limit' => 'nullable|integer|min:1|max:10|required_if:knockout_scoring_type,advantage_limit',
-            'knockout_tiebreaker_points' => 'required|integer|min:5|max:15',
-            'knockout_tiebreaker_two_point_difference' => 'required|boolean',
             'warmup_minutes' => 'required|integer|min:0|max:30',
+            'phases' => 'required|array|min:1',
+            'phases.*.id' => 'nullable|integer|exists:tournament_phases,id',
+            'phases.*.name' => 'required|string|max:255',
+            'phases.*.type' => 'required|in:group,knockout',
+            'phases.*.number_of_groups' => 'nullable|integer|min:1|required_if:phases.*.type,group',
+            'phases.*.teams_advance_per_group' => 'nullable|integer|min:1|required_if:phases.*.type,group',
+            'phases.*.games_target' => 'required|integer|in:4,6,8,10,12',
+            'phases.*.scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
+            'phases.*.advantage_limit' => 'nullable|integer|min:1|max:10',
+            'phases.*.tiebreaker_points' => 'required|integer|min:5|max:15',
+            'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
         ]);
 
-        $category->update($validated);
+        $category->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'max_participants' => $validated['max_participants'],
+            'warmup_minutes' => $validated['warmup_minutes'],
+        ]);
+
+        // Get existing phase IDs
+        $existingPhaseIds = $category->phases->pluck('id')->toArray();
+        $submittedPhaseIds = collect($validated['phases'])->pluck('id')->filter()->toArray();
+        
+        // Delete phases that were removed
+        $phasesToDelete = array_diff($existingPhaseIds, $submittedPhaseIds);
+        \App\Models\TournamentPhase::whereIn('id', $phasesToDelete)->delete();
+
+        // Update or create phases
+        foreach ($validated['phases'] as $index => $phaseData) {
+            $isFinalPhase = ($index === count($validated['phases']) - 1); // Last phase is always final
+            
+            if (!empty($phaseData['id'])) {
+                // Update existing phase
+                \App\Models\TournamentPhase::where('id', $phaseData['id'])->update([
+                    'name' => $phaseData['name'],
+                    'type' => $phaseData['type'],
+                    'order' => $index + 1,
+                    'number_of_groups' => $phaseData['number_of_groups'] ?? null,
+                    'teams_advance_per_group' => $phaseData['teams_advance_per_group'] ?? null,
+                    'games_target' => $phaseData['games_target'],
+                    'scoring_type' => $phaseData['scoring_type'],
+                    'advantage_limit' => $phaseData['advantage_limit'] ?? null,
+                    'tiebreaker_points' => $phaseData['tiebreaker_points'],
+                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                    'is_final_phase' => $isFinalPhase,
+                ]);
+            } else {
+                // Create new phase
+                \App\Models\TournamentPhase::create([
+                    'category_id' => $category->id,
+                    'name' => $phaseData['name'],
+                    'type' => $phaseData['type'],
+                    'order' => $index + 1,
+                    'number_of_groups' => $phaseData['number_of_groups'] ?? null,
+                    'teams_advance_per_group' => $phaseData['teams_advance_per_group'] ?? null,
+                    'games_target' => $phaseData['games_target'],
+                    'scoring_type' => $phaseData['scoring_type'],
+                    'advantage_limit' => $phaseData['advantage_limit'] ?? null,
+                    'tiebreaker_points' => $phaseData['tiebreaker_points'],
+                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                    'is_final_phase' => $isFinalPhase,
+                ]);
+            }
+        }
 
         return redirect()->route('events.categories.index', $event)
             ->with('success', 'Category updated successfully.');

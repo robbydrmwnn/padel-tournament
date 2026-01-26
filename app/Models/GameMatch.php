@@ -12,6 +12,7 @@ class GameMatch extends Model
     protected $fillable = [
         'category_id',
         'group_id',
+        'phase_id',
         'team1_id',
         'team2_id',
         'court_id',
@@ -50,6 +51,11 @@ class GameMatch extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function tournamentPhase(): BelongsTo
+    {
+        return $this->belongsTo(TournamentPhase::class, 'phase_id');
     }
 
     public function group(): BelongsTo

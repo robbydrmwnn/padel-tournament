@@ -11,6 +11,7 @@ class Group extends Model
 {
     protected $fillable = [
         'category_id',
+        'phase_id',
         'name',
         'order',
     ];
@@ -18,6 +19,11 @@ class Group extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function phase(): BelongsTo
+    {
+        return $this->belongsTo(TournamentPhase::class, 'phase_id');
     }
 
     public function participants(): BelongsToMany

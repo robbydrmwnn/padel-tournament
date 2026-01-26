@@ -61,11 +61,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
     const getWinningTeam = () => {
         if (!match || match.status === 'completed') return null;
         
-        const bestOf = match.phase === 'group' 
-            ? category?.group_best_of_games 
-            : category?.knockout_best_of_games;
-        
-        if (!bestOf) return null;
+        const bestOf = match.tournament_phase?.games_target || 4;
         
         const gamesNeededToWin = Math.ceil(bestOf / 2);
         const team1Score = match.team1_score || 0;
@@ -91,7 +87,16 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                 <div className="bg-primary py-2 px-4 shadow-2xl border-b-4 border-accent flex-shrink-0">
                     <div className="max-w-7xl mx-auto text-center">
                         <h1 className="text-4xl font-bold font-raverist text-white leading-tight">{category?.event?.name || court?.event?.name || 'Tournament'}</h1>
-                        {match && <p className="text-2xl text-white font-gotham font-bold mt-1 leading-tight">{category?.name} - {match.phase === 'group' ? `Group ${match.group?.name}` : 'Knockout'}</p>}
+                        {match && (
+                            <div>
+                                <p className="text-2xl text-white font-gotham font-bold mt-1 leading-tight">{category?.name}</p>
+                                {match.tournament_phase && (
+                                    <p className="text-3xl text-accent font-gotham font-bold mt-2 leading-tight">
+                                        {match.tournament_phase.name}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -219,9 +224,9 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                     🔥 TIE-BREAKER 🔥
                                 </p>
                                 <p className="text-2xl font-gotham text-white mt-1">
-                                    {match.phase === 'group' 
-                                        ? `First to ${category?.group_tiebreaker_points}${category?.group_tiebreaker_two_point_difference ? ', win by 2' : ''}`
-                                        : `First to ${category?.knockout_tiebreaker_points}${category?.knockout_tiebreaker_two_point_difference ? ', win by 2' : ''}`
+                                    {match.tournament_phase 
+                                        ? `First to ${match.tournament_phase.tiebreaker_points}${match.tournament_phase.tiebreaker_two_point_difference ? ', win by 2' : ''}`
+                                        : 'First to 7'
                                     }
                                 </p>
                             </div>
@@ -299,11 +304,10 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 <p className="text-2xl font-gotham font-bold text-white">
                                     {match.is_tiebreaker ? (
                                         <>🔥 TIE-BREAKER</>
+                                    ) : match.tournament_phase ? (
+                                        <>📊 First to {match.tournament_phase.games_target} Games • {match.tournament_phase.scoring_type === 'no_ad' ? 'No-Ad' : match.tournament_phase.scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}</>
                                     ) : (
-                                        <>📊 {match.phase === 'group' 
-                                            ? `First to ${category.group_best_of_games} Games • ${category.group_scoring_type === 'no_ad' ? 'No-Ad' : category.group_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                                            : `First to ${category.knockout_best_of_games} Games • ${category.knockout_scoring_type === 'no_ad' ? 'No-Ad' : category.knockout_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                                        }</>
+                                        <>📊 Match in Progress</>
                                     )}
                                 </p>
                             </div>
