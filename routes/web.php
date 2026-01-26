@@ -77,10 +77,22 @@ Route::middleware('auth')->group(function () {
         ->name('categories.matches.index');
     Route::post('categories/{category}/matches/generate', [MatchController::class, 'generate'])
         ->name('categories.matches.generate');
+    Route::post('categories/{category}/matches/create-knockout', [MatchController::class, 'createKnockoutMatches'])
+        ->name('categories.matches.create-knockout');
     Route::patch('categories/{category}/matches/{match}', [MatchController::class, 'update'])
         ->name('categories.matches.update');
     Route::delete('categories/{category}/matches/{match}', [MatchController::class, 'destroy'])
         ->name('categories.matches.destroy');
+    
+    // Phase management
+    Route::get('phases/{phase}/standings', [\App\Http\Controllers\PhaseController::class, 'getStandings'])
+        ->name('phases.standings');
+    Route::get('phases/{phase}/advancing', [\App\Http\Controllers\PhaseController::class, 'getAdvancingParticipants'])
+        ->name('phases.advancing');
+    Route::post('categories/{category}/phases/{phase}/assign-from-previous', [\App\Http\Controllers\PhaseController::class, 'assignFromPreviousPhase'])
+        ->name('phases.assign-from-previous');
+    Route::post('categories/{category}/phases/{phase}/resolve-matches', [\App\Http\Controllers\PhaseController::class, 'resolvePhaseMatches'])
+        ->name('phases.resolve-matches');
     
     // Match control - Referee
     Route::get('categories/{category}/matches/{match}/referee', [MatchController::class, 'referee'])

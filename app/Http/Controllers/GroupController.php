@@ -18,39 +18,50 @@ class GroupController extends Controller
     {
         $category->load([
             'event',
-            'groups.participants',
+            'phases' => function ($query) {
+                $query->orderBy('order');
+            },
+            'phases.groups.participants',
             'participants'
         ]);
         
+        // Get current phase (first incomplete phase)
+        $currentPhase = $category->phases()->where('is_completed', false)->orderBy('order')->first();
+        
         return Inertia::render('Groups/Index', [
             'category' => $category,
-            'groups' => $category->groups,
+            'phases' => $category->phases,
+            'currentPhase' => $currentPhase,
             'participants' => $category->participants
         ]);
     }
 
     /**
-     * Setup groups for a category
+     * Setup groups for a specific phase
      */
     public function setup(Request $request, Category $category): RedirectResponse
     {
         $validated = $request->validate([
+            'phase_id' => 'required|exists:tournament_phases,id',
             'number_of_groups' => 'required|integer|min:1|max:20',
         ]);
 
-        // Delete existing groups
-        $category->groups()->delete();
+        $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
+        
+        // Delete existing groups for this phase
+        $phase->groups()->delete();
 
         // Create new groups with letter names (A, B, C, etc.)
         for ($i = 1; $i <= $validated['number_of_groups']; $i++) {
-            $category->groups()->create([
+            $phase->groups()->create([
+                'category_id' => $category->id,
                 'name' => 'Group ' . chr(64 + $i), // chr(65) = 'A', chr(66) = 'B', etc.
                 'order' => $i,
             ]);
         }
 
         return redirect()->route('categories.groups.index', $category)
-            ->with('success', 'Groups created successfully.');
+            ->with('success', "Groups created for {$phase->name}.");
     }
 
     /**

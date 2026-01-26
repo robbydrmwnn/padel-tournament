@@ -19,55 +19,130 @@ class MatchController extends Controller
     {
         $category->load([
             'event.courts',
-            'groups.participants',
-            'matches' => function ($query) {
-                $query->with(['team1', 'team2', 'court', 'group'])
-                      ->where('phase', 'group')
-                      ->orderBy('group_id')
+            'phases' => function ($query) {
+                $query->orderBy('order');
+            },
+            'phases.groups.participants',
+            'phases.matches' => function ($query) {
+                $query->with(['team1', 'team2', 'court', 'group', 'tournamentPhase'])
+                      ->orderBy('match_order')
                       ->orderBy('scheduled_time');
             }
         ]);
         
+        // Get current phase
+        $currentPhase = $category->phases()->where('is_completed', false)->orderBy('order')->first();
+        
         return Inertia::render('Matches/Index', [
             'category' => $category,
-            'matches' => $category->matches,
+            'phases' => $category->phases,
+            'currentPhase' => $currentPhase,
             'courts' => $category->event->courts,
         ]);
     }
 
     /**
-     * Generate group phase matches (round-robin)
+     * Generate matches for a specific phase
      */
-    public function generate(Category $category): RedirectResponse
+    public function generate(Request $request, Category $category): RedirectResponse
     {
-        // Delete existing group phase matches
-        $category->matches()->where('phase', 'group')->delete();
+        $validated = $request->validate([
+            'phase_id' => 'required|exists:tournament_phases,id',
+        ]);
 
-        // Get all groups with participants
-        $groups = $category->groups()->with('participants')->get();
+        $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
 
-        foreach ($groups as $group) {
-            $participants = $group->participants;
-            
-            // Generate round-robin matches
-            $count = $participants->count();
-            
-            for ($i = 0; $i < $count; $i++) {
-                for ($j = $i + 1; $j < $count; $j++) {
-                    GameMatch::create([
-                        'category_id' => $category->id,
-                        'group_id' => $group->id,
-                        'team1_id' => $participants[$i]->id,
-                        'team2_id' => $participants[$j]->id,
-                        'phase' => 'group',
-                        'status' => 'scheduled',
-                    ]);
+        // Delete existing matches for this phase
+        $phase->matches()->delete();
+
+        if ($phase->type === 'group') {
+            // Generate round-robin matches for group phase
+            $groups = $phase->groups()->with('participants')->get();
+
+            if ($groups->isEmpty()) {
+                return back()->with('error', 'Please create groups for this phase first');
+            }
+
+            $matchOrder = 1;
+            foreach ($groups as $group) {
+                $participants = $group->participants;
+                
+                if ($participants->count() < 2) {
+                    continue;
+                }
+                
+                // Generate round-robin matches
+                $count = $participants->count();
+                
+                for ($i = 0; $i < $count; $i++) {
+                    for ($j = $i + 1; $j < $count; $j++) {
+                        GameMatch::create([
+                            'category_id' => $category->id,
+                            'phase_id' => $phase->id,
+                            'group_id' => $group->id,
+                            'team1_id' => $participants[$i]->id,
+                            'team2_id' => $participants[$j]->id,
+                            'phase' => 'group',
+                            'status' => 'scheduled',
+                            'match_order' => $matchOrder++,
+                        ]);
+                    }
                 }
             }
+
+            return redirect()->route('categories.matches.index', $category)
+                ->with('success', "Matches generated for {$phase->name}.");
         }
 
+        // For knockout phases, return to index for manual setup
         return redirect()->route('categories.matches.index', $category)
-            ->with('success', 'Group phase matches generated successfully.');
+            ->with('info', "Please set up matches manually for knockout phase: {$phase->name}");
+    }
+
+    /**
+     * Create matches for knockout phase with templates
+     */
+    public function createKnockoutMatches(Request $request, Category $category): RedirectResponse
+    {
+        $validated = $request->validate([
+            'phase_id' => 'required|exists:tournament_phases,id',
+            'matches' => 'required|array|min:1',
+            'matches.*.team1_template' => 'required|string',
+            'matches.*.team2_template' => 'required|string',
+        ]);
+
+        $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
+
+        if ($phase->type !== 'knockout') {
+            return back()->with('error', 'This endpoint is only for knockout phases');
+        }
+
+        // Delete existing matches for this phase
+        $phase->matches()->delete();
+
+        $created = 0;
+        // Create matches with templates
+        foreach ($validated['matches'] as $index => $matchData) {
+            GameMatch::create([
+                'category_id' => $category->id,
+                'phase_id' => $phase->id,
+                'team1_template' => $matchData['team1_template'],
+                'team2_template' => $matchData['team2_template'],
+                'phase' => 'knockout',
+                'status' => 'scheduled',
+                'match_order' => $index + 1,
+            ]);
+            $created++;
+        }
+
+        \Log::info('Knockout matches created', [
+            'phase_id' => $phase->id,
+            'phase_name' => $phase->name,
+            'count' => $created,
+        ]);
+
+        return redirect()->route('categories.matches.index', $category)
+            ->with('success', "$created match(es) created for {$phase->name}. Participants will be assigned after previous phase completes.");
     }
 
     /**
