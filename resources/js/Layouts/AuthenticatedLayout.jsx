@@ -25,13 +25,6 @@ export default function AuthenticatedLayout({ header, children }) {
 
                             <div className="hidden space-x-2 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                    className="px-4 py-2"
-                                >
-                                    <span className="font-gotham font-semibold">Dashboard</span>
-                                </NavLink>
-                                <NavLink
                                     href={route('events.index')}
                                     active={route().current('events.*')}
                                     className="px-4 py-2"
@@ -137,12 +130,6 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
                         <ResponsiveNavLink
                             href={route('events.index')}
                             active={route().current('events.*')}
