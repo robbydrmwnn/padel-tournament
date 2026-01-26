@@ -3,6 +3,26 @@ import { useState, useEffect } from 'react';
 
 export default function Monitor({ category, match, court, autoRefresh = true }) {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [warmupTime, setWarmupTime] = useState(0);
+
+    // Initialize warmup time
+    useEffect(() => {
+        if (match && category && match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped) {
+            const elapsed = Math.floor((Date.now() - new Date(match.warmup_started_at).getTime()) / 1000);
+            const remaining = Math.max(0, (category.warmup_minutes * 60) - elapsed);
+            setWarmupTime(remaining);
+        }
+    }, [match, category]);
+
+    // Warmup countdown timer
+    useEffect(() => {
+        if (match && match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped && warmupTime > 0) {
+            const interval = setInterval(() => {
+                setWarmupTime((prev) => Math.max(0, prev - 1));
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [match, warmupTime]);
 
     // Auto-refresh every 2 seconds to get latest score
     // Using Inertia's router.reload() to prevent font flickering
@@ -35,6 +55,12 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
 
     const formatTime = (date) => {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatWarmupTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     const getMatchStatus = () => {
@@ -254,7 +280,10 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     {/* Warm-up Message */}
                     {isWarmup && (
                         <div className="bg-primary rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
-                            <p className="text-4xl font-bold font-raverist text-white">⏱️ WARM-UP IN PROGRESS</p>
+                            <p className="text-4xl font-bold font-raverist text-white mb-2">⏱️ WARM-UP IN PROGRESS</p>
+                            <div className="text-7xl font-bold font-gotham text-accent">
+                                {formatWarmupTime(warmupTime)}
+                            </div>
                         </div>
                     )}
 
