@@ -24,6 +24,11 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
     }, []);
 
     const getPointDisplay = (points) => {
+        // If in tie-breaker mode, display numerical points
+        if (match && match.is_tiebreaker) {
+            return points || '0';
+        }
+        // Otherwise, display tennis scoring
         if (points === 'AD') return 'AD';
         return points || '0';
     };
@@ -207,7 +212,21 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     </div>
 
                     {/* AD Counter and Golden Point Status */}
-                    {isMatchStarted && !isWarmup && match.current_game_advantages >= 2 && 
+                    {isMatchStarted && !isWarmup && match.is_tiebreaker ? (
+                        <div className="text-center mt-2">
+                            <div className="inline-block bg-red-600 px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
+                                <p className="text-4xl font-bold font-raverist text-white">
+                                    🔥 TIE-BREAKER 🔥
+                                </p>
+                                <p className="text-2xl font-gotham text-white mt-1">
+                                    {match.phase === 'group' 
+                                        ? `First to ${category?.group_tiebreaker_points}${category?.group_tiebreaker_two_point_difference ? ', win by 2' : ''}`
+                                        : `First to ${category?.knockout_tiebreaker_points}${category?.knockout_tiebreaker_two_point_difference ? ', win by 2' : ''}`
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    ) : isMatchStarted && !isWarmup && match.current_game_advantages >= 2 && 
                      match.current_game_team1_points === '40' && 
                      match.current_game_team2_points === '40' ? (
                         <div className="text-center mt-2">
@@ -278,10 +297,14 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                     Court {match?.court?.name || court?.name || 'TBA'} • {formatTime(currentTime)}
                                 </p>
                                 <p className="text-2xl font-gotham font-bold text-white">
-                                    📊 {match.phase === 'group' 
-                                        ? `Best of ${category.group_best_of_games} Games • ${category.group_scoring_type === 'no_ad' ? 'No-Ad' : category.group_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                                        : `Best of ${category.knockout_best_of_games} Games • ${category.knockout_scoring_type === 'no_ad' ? 'No-Ad' : category.knockout_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
-                                    }
+                                    {match.is_tiebreaker ? (
+                                        <>🔥 TIE-BREAKER</>
+                                    ) : (
+                                        <>📊 {match.phase === 'group' 
+                                            ? `First to ${category.group_best_of_games} Games • ${category.group_scoring_type === 'no_ad' ? 'No-Ad' : category.group_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
+                                            : `First to ${category.knockout_best_of_games} Games • ${category.knockout_scoring_type === 'no_ad' ? 'No-Ad' : category.knockout_scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}`
+                                        }</>
+                                    )}
                                 </p>
                             </div>
                         )}

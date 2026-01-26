@@ -33,6 +33,7 @@ class GameMatch extends Model
         'current_game_team2_points',
         'current_game_advantages',
         'current_server_team_id',
+        'is_tiebreaker',
     ];
 
     protected $casts = [
@@ -43,6 +44,7 @@ class GameMatch extends Model
         'match_ended_at' => 'datetime',
         'score_details' => 'array',
         'warmup_skipped' => 'boolean',
+        'is_tiebreaker' => 'boolean',
     ];
 
     public function category(): BelongsTo

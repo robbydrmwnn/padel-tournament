@@ -13,10 +13,14 @@ export default function Referee({ category, match }) {
         bestOfGames: category.group_best_of_games,
         scoringType: category.group_scoring_type,
         advantageLimit: category.group_advantage_limit,
+        tiebreakerPoints: category.group_tiebreaker_points,
+        tiebreakerTwoPointDiff: category.group_tiebreaker_two_point_difference,
     } : {
         bestOfGames: category.knockout_best_of_games,
         scoringType: category.knockout_scoring_type,
         advantageLimit: category.knockout_advantage_limit,
+        tiebreakerPoints: category.knockout_tiebreaker_points,
+        tiebreakerTwoPointDiff: category.knockout_tiebreaker_two_point_difference,
     };
 
     // Initialize warmup state
@@ -211,6 +215,11 @@ export default function Referee({ category, match }) {
     };
 
     const getPointDisplay = (points) => {
+        // If in tie-breaker mode, display numerical points
+        if (match.is_tiebreaker) {
+            return points || '0';
+        }
+        // Otherwise, display tennis scoring
         if (points === 'AD') return 'AD';
         return points || '0';
     };
@@ -394,18 +403,30 @@ export default function Referee({ category, match }) {
                                     <div className="bg-white shadow-sm rounded-lg p-3 border-4 border-primary flex flex-col">
                                         {/* Scoring Info */}
                                         <div className="text-center mb-2">
-                                            <div className="text-xs text-neutral-600">
-                                                Best of {scoringConfig.bestOfGames} • 
-                                                {scoringConfig.scoringType === 'no_ad' && ' No-Ad'}
-                                                {scoringConfig.scoringType === 'traditional' && ' Traditional'}
-                                                {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Adv`}
-                                            </div>
-                                            {match.current_game_advantages > 0 && (
+                                            {match.is_tiebreaker ? (
+                                                <div className="text-base font-bold text-red-600 mb-2">
+                                                    🔥 TIE-BREAKER 🔥
+                                                    <div className="text-sm text-neutral-600 font-normal mt-1">
+                                                        First to {scoringConfig.tiebreakerPoints}{scoringConfig.tiebreakerTwoPointDiff && ', win by 2'}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-neutral-600">
+                                                    First to {scoringConfig.bestOfGames} • 
+                                                    {scoringConfig.scoringType === 'no_ad' && ' No-Ad'}
+                                                    {scoringConfig.scoringType === 'traditional' && ' Traditional'}
+                                                    {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Adv`}
+                                                    <div className="mt-1">
+                                                        Tie-breaker at {scoringConfig.bestOfGames / 2 - 1}-{scoringConfig.bestOfGames / 2 - 1}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {!match.is_tiebreaker && match.current_game_advantages > 0 && (
                                                 <div className="mt-1 text-sm font-bold text-primary">
                                                     Advantages: {match.current_game_advantages} / 2
                                                 </div>
                                             )}
-                                            {match.current_game_advantages >= 2 && 
+                                            {!match.is_tiebreaker && match.current_game_advantages >= 2 && 
                                              match.current_game_team1_points === '40' && 
                                              match.current_game_team2_points === '40' && (
                                                 <div className="mt-1">

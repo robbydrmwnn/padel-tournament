@@ -297,6 +297,7 @@ class MatchController extends Controller
             'team2_score' => 0,
             'current_server_team_id' => $match->team1_id, // Team 1 serves first
             'score_details' => ['games' => []],
+            'is_tiebreaker' => false,
         ]);
 
         return back();
@@ -314,12 +315,40 @@ class MatchController extends Controller
             'best_of' => $category->group_best_of_games,
             'scoring_type' => $category->group_scoring_type,
             'advantage_limit' => $category->group_advantage_limit,
+            'tiebreaker_points' => $category->group_tiebreaker_points,
+            'tiebreaker_two_point_difference' => $category->group_tiebreaker_two_point_difference,
         ] : [
             'best_of' => $category->knockout_best_of_games,
             'scoring_type' => $category->knockout_scoring_type,
             'advantage_limit' => $category->knockout_advantage_limit,
+            'tiebreaker_points' => $category->knockout_tiebreaker_points,
+            'tiebreaker_two_point_difference' => $category->knockout_tiebreaker_two_point_difference,
         ];
 
+        // Determine if we should enter tie-breaker mode
+        $tieScore = $config['best_of'] / 2 - 1; // For first to 4: 3-3, for first to 6: 5-5
+        $shouldEnterTiebreaker = !$match->is_tiebreaker && 
+                                 $match->team1_score == $tieScore && 
+                                 $match->team2_score == $tieScore;
+
+        if ($shouldEnterTiebreaker) {
+            // Enter tie-breaker mode
+            $match->update([
+                'is_tiebreaker' => true,
+                'current_game_team1_points' => '0',
+                'current_game_team2_points' => '0',
+                'current_game_advantages' => 0,
+            ]);
+            // Reload to get updated state
+            $match->refresh();
+        }
+
+        // Check if we're in tie-breaker mode
+        if ($match->is_tiebreaker) {
+            return $this->scoreTiebreakerPoint($match, $team, $config);
+        }
+
+        // Regular game scoring (tennis points: 0, 15, 30, 40, AD)
         // Ensure points are valid strings (handle null, empty string, or 0)
         $team1Points = $match->current_game_team1_points ?: '0';
         $team2Points = $match->current_game_team2_points ?: '0';
@@ -481,6 +510,61 @@ class MatchController extends Controller
     }
 
     /**
+     * Score a point in tie-breaker mode
+     */
+    private function scoreTiebreakerPoint(GameMatch $match, string $team, array $config): RedirectResponse
+    {
+        $team1Points = (int)($match->current_game_team1_points ?: 0);
+        $team2Points = (int)($match->current_game_team2_points ?: 0);
+
+        // Increment points
+        if ($team === 'team1') {
+            $team1Points++;
+        } else {
+            $team2Points++;
+        }
+
+        // Check if tie-breaker is won
+        $targetPoints = $config['tiebreaker_points'];
+        $requireTwoPointDiff = $config['tiebreaker_two_point_difference'];
+        $tiebreakerWon = false;
+        $winner = null;
+
+        if ($requireTwoPointDiff) {
+            // Must reach target points AND have 2-point lead
+            if ($team1Points >= $targetPoints && $team1Points - $team2Points >= 2) {
+                $tiebreakerWon = true;
+                $winner = 'team1';
+            } else if ($team2Points >= $targetPoints && $team2Points - $team1Points >= 2) {
+                $tiebreakerWon = true;
+                $winner = 'team2';
+            }
+        } else {
+            // First to reach target points wins
+            if ($team1Points >= $targetPoints) {
+                $tiebreakerWon = true;
+                $winner = 'team1';
+            } else if ($team2Points >= $targetPoints) {
+                $tiebreakerWon = true;
+                $winner = 'team2';
+            }
+        }
+
+        if ($tiebreakerWon) {
+            // Team wins the tie-breaker, which means they win the match
+            $this->teamWinsTiebreaker($match, $winner, $config['best_of']);
+        } else {
+            // Update tie-breaker points
+            $match->update([
+                'current_game_team1_points' => (string)$team1Points,
+                'current_game_team2_points' => (string)$team2Points,
+            ]);
+        }
+
+        return back();
+    }
+
+    /**
      * Helper method to handle team winning a game
      */
     private function teamWinsGame(GameMatch $match, string $team, int $bestOf)
@@ -542,6 +626,47 @@ class MatchController extends Controller
                     : $match->team1_id,
             ]);
         }
+    }
+
+    /**
+     * Helper method to handle team winning a tie-breaker
+     */
+    private function teamWinsTiebreaker(GameMatch $match, string $team, int $bestOf)
+    {
+        $team1Score = $match->team1_score;
+        $team2Score = $match->team2_score;
+
+        // Increment game score (tie-breaker counts as one game)
+        if ($team === 'team1') {
+            $team1Score++;
+        } else {
+            $team2Score++;
+        }
+
+        // Store game result in score_details
+        $scoreDetails = $match->score_details ?? ['games' => []];
+        $scoreDetails['games'][] = [
+            'team1' => $team1Score,
+            'team2' => $team2Score,
+            'tiebreaker' => true,
+            'tiebreaker_score' => [
+                'team1' => $match->current_game_team1_points,
+                'team2' => $match->current_game_team2_points,
+            ],
+        ];
+
+        // Tie-breaker winner wins the match
+        $winnerId = $team === 'team1' ? $match->team1_id : $match->team2_id;
+
+        $match->update([
+            'team1_score' => $team1Score,
+            'team2_score' => $team2Score,
+            'winner_id' => $winnerId,
+            'status' => 'completed',
+            'match_ended_at' => now(),
+            'score_details' => $scoreDetails,
+            'is_tiebreaker' => false,
+        ]);
     }
 
     /**
@@ -726,6 +851,7 @@ class MatchController extends Controller
             'current_game_team2_points' => null,
             'current_game_advantages' => 0,
             'current_server_team_id' => null,
+            'is_tiebreaker' => false,
         ]);
 
         $message = $wasUpcoming && !$wasStarted

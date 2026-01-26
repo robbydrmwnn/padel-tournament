@@ -18,14 +18,20 @@ class Category extends Model
         'group_best_of_games',
         'group_scoring_type',
         'group_advantage_limit',
+        'group_tiebreaker_points',
+        'group_tiebreaker_two_point_difference',
         'knockout_best_of_games',
         'knockout_scoring_type',
         'knockout_advantage_limit',
+        'knockout_tiebreaker_points',
+        'knockout_tiebreaker_two_point_difference',
         'warmup_minutes',
     ];
 
     protected $casts = [
         'group_phase_completed' => 'boolean',
+        'group_tiebreaker_two_point_difference' => 'boolean',
+        'knockout_tiebreaker_two_point_difference' => 'boolean',
     ];
 
     public function event(): BelongsTo

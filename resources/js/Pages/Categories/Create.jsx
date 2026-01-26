@@ -7,12 +7,16 @@ export default function Create({ event }) {
         description: '',
         max_participants: '',
         teams_advance_per_group: 2,
-        group_best_of_games: 3,
+        group_best_of_games: 4,
         group_scoring_type: 'no_ad',
         group_advantage_limit: '',
-        knockout_best_of_games: 3,
+        group_tiebreaker_points: 7,
+        group_tiebreaker_two_point_difference: true,
+        knockout_best_of_games: 6,
         knockout_scoring_type: 'no_ad',
         knockout_advantage_limit: '',
+        knockout_tiebreaker_points: 7,
+        knockout_tiebreaker_two_point_difference: true,
         warmup_minutes: 5,
     });
 
@@ -126,7 +130,7 @@ export default function Create({ event }) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label htmlFor="group_best_of_games" className="block text-base font-gotham font-bold text-dark mb-2">
-                                            🎲 Best of Games *
+                                            🎲 First to X Games *
                                         </label>
                                         <select
                                             id="group_best_of_games"
@@ -135,12 +139,16 @@ export default function Create({ event }) {
                                             className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
-                                            <option value="3">Best of 3 (first to 2)</option>
-                                            <option value="4">Best of 4 (can draw 2-2)</option>
-                                            <option value="5">Best of 5 (first to 3)</option>
+                                            <option value="4">First to 4 Games</option>
+                                            <option value="6">First to 6 Games</option>
+                                            <option value="8">First to 8 Games</option>
                                         </select>
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 Tie-breaker triggers at 3-3, 5-5, or 7-7
+                                        </p>
                                         {errors.group_best_of_games && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_best_of_games}</p>}
                                     </div>
+                                    <div></div>
 
                                     <div>
                                         <label htmlFor="group_scoring_type" className="block text-base font-gotham font-bold text-dark mb-2">
@@ -154,7 +162,7 @@ export default function Create({ event }) {
                                             required
                                         >
                                             <option value="no_ad">No-Ad (Golden Point at 40-40)</option>
-                                            <option value="traditional">Traditional (Deuce/Advantage)</option>
+                                            <option value="traditional">Traditional (Unlimited Deuce)</option>
                                             <option value="advantage_limit">Advantage Limit</option>
                                         </select>
                                         <p className="mt-2 text-sm font-gotham text-neutral-600">
@@ -186,6 +194,47 @@ export default function Create({ event }) {
                                             {errors.group_advantage_limit && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_advantage_limit}</p>}
                                         </div>
                                     )}
+                                    {data.group_scoring_type !== 'advantage_limit' && <div></div>}
+
+                                    <div>
+                                        <label htmlFor="group_tiebreaker_points" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            🎯 Tie-breaker Points *
+                                        </label>
+                                        <input
+                                            id="group_tiebreaker_points"
+                                            type="number"
+                                            min="5"
+                                            max="15"
+                                            value={data.group_tiebreaker_points}
+                                            onChange={(e) => setData('group_tiebreaker_points', e.target.value)}
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                            required
+                                        />
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 First to X points in tie-breaker (typically 7)
+                                        </p>
+                                        {errors.group_tiebreaker_points && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_tiebreaker_points}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="group_tiebreaker_two_point_difference" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            📏 Require 2-Point Difference *
+                                        </label>
+                                        <select
+                                            id="group_tiebreaker_two_point_difference"
+                                            value={data.group_tiebreaker_two_point_difference}
+                                            onChange={(e) => setData('group_tiebreaker_two_point_difference', e.target.value === 'true')}
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                            required
+                                        >
+                                            <option value="true">Yes - Must win by 2</option>
+                                            <option value="false">No - First to reach points</option>
+                                        </select>
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 {data.group_tiebreaker_two_point_difference ? 'Continues until 2-point lead' : 'First to reach target wins'}
+                                        </p>
+                                        {errors.group_tiebreaker_two_point_difference && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.group_tiebreaker_two_point_difference}</p>}
+                                    </div>
                                 </div>
                             </div>
 
@@ -198,7 +247,7 @@ export default function Create({ event }) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label htmlFor="knockout_best_of_games" className="block text-base font-gotham font-bold text-dark mb-2">
-                                            🎲 Best of Games *
+                                            🎲 First to X Games *
                                         </label>
                                         <select
                                             id="knockout_best_of_games"
@@ -207,14 +256,16 @@ export default function Create({ event }) {
                                             className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
                                             required
                                         >
-                                            <option value="3">Best of 3 (first to 2)</option>
-                                            <option value="5">Best of 5 (first to 3)</option>
+                                            <option value="6">First to 6 Games</option>
+                                            <option value="8">First to 8 Games</option>
+                                            <option value="10">First to 10 Games</option>
                                         </select>
                                         <p className="mt-2 text-sm font-gotham text-neutral-600">
-                                            💡 Knockout phase cannot end in a draw
+                                            💡 Knockout cannot end in draw. Tie-breaker at 5-5, 7-7, or 9-9
                                         </p>
                                         {errors.knockout_best_of_games && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_best_of_games}</p>}
                                     </div>
+                                    <div></div>
 
                                     <div>
                                         <label htmlFor="knockout_scoring_type" className="block text-base font-gotham font-bold text-dark mb-2">
@@ -228,7 +279,7 @@ export default function Create({ event }) {
                                             required
                                         >
                                             <option value="no_ad">No-Ad (Golden Point at 40-40)</option>
-                                            <option value="traditional">Traditional (Deuce/Advantage)</option>
+                                            <option value="traditional">Traditional (Unlimited Deuce)</option>
                                             <option value="advantage_limit">Advantage Limit</option>
                                         </select>
                                         {errors.knockout_scoring_type && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_scoring_type}</p>}
@@ -255,6 +306,47 @@ export default function Create({ event }) {
                                             {errors.knockout_advantage_limit && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_advantage_limit}</p>}
                                         </div>
                                     )}
+                                    {data.knockout_scoring_type !== 'advantage_limit' && <div></div>}
+                                    
+                                    <div>
+                                        <label htmlFor="knockout_tiebreaker_points" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            🎯 Tie-breaker Points *
+                                        </label>
+                                        <input
+                                            id="knockout_tiebreaker_points"
+                                            type="number"
+                                            min="5"
+                                            max="15"
+                                            value={data.knockout_tiebreaker_points}
+                                            onChange={(e) => setData('knockout_tiebreaker_points', e.target.value)}
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                            required
+                                        />
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 First to X points in tie-breaker (typically 7)
+                                        </p>
+                                        {errors.knockout_tiebreaker_points && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_tiebreaker_points}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="knockout_tiebreaker_two_point_difference" className="block text-base font-gotham font-bold text-dark mb-2">
+                                            📏 Require 2-Point Difference *
+                                        </label>
+                                        <select
+                                            id="knockout_tiebreaker_two_point_difference"
+                                            value={data.knockout_tiebreaker_two_point_difference}
+                                            onChange={(e) => setData('knockout_tiebreaker_two_point_difference', e.target.value === 'true')}
+                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                            required
+                                        >
+                                            <option value="true">Yes - Must win by 2</option>
+                                            <option value="false">No - First to reach points</option>
+                                        </select>
+                                        <p className="mt-2 text-sm font-gotham text-neutral-600">
+                                            💡 {data.knockout_tiebreaker_two_point_difference ? 'Continues until 2-point lead' : 'First to reach target wins'}
+                                        </p>
+                                        {errors.knockout_tiebreaker_two_point_difference && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.knockout_tiebreaker_two_point_difference}</p>}
+                                    </div>
                                 </div>
                             </div>
 
