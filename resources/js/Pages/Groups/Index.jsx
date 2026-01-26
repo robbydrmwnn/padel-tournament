@@ -12,7 +12,6 @@ export default function Index({ category, phases, currentPhase, participants }) 
     
     const { data: setupData, setData: setSetupData, post: postSetup, processing: setupProcessing } = useForm({
         phase_id: selectedPhaseId,
-        number_of_groups: selectedPhase?.number_of_groups || 4,
     });
 
     const { data: editData, setData: setEditData, patch: patchEdit } = useForm({
@@ -112,14 +111,18 @@ export default function Index({ category, phases, currentPhase, participants }) 
                                     )}
                                     <button
                                         onClick={() => {
+                                            if (!selectedPhase.number_of_groups || selectedPhase.number_of_groups < 1) {
+                                                alert('This phase does not have a valid number of groups configured. Please edit the category to set the number of groups for this phase.');
+                                                return;
+                                            }
                                             setSetupData('phase_id', selectedPhaseId);
-                                            setSetupData('number_of_groups', selectedPhase.number_of_groups || groups.length || 4);
                                             setShowSetupModal(true);
                                         }}
                                         className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-white-600 transition-all border-2 border-accent hover:scale-105"
+                                        title={selectedPhase.number_of_groups ? `Will create ${selectedPhase.number_of_groups} groups` : 'Phase configuration required'}
                                     >
                                         <span className="text-2xl">⚙️</span>
-                                        Setup Groups
+                                        Setup Groups ({selectedPhase.number_of_groups || '?'})
                                     </button>
                                 </div>
                             )}
@@ -162,27 +165,27 @@ export default function Index({ category, phases, currentPhase, participants }) 
                                 <h3 className="text-2xl font-bold font-raverist text-success mb-4">
                                     Setup Groups for {selectedPhase.name}
                                 </h3>
-                                <div className="bg-accent-100 rounded-xl p-4 mb-6 border-2 border-accent">
-                                    <p className="text-base font-gotham text-dark">
-                                        ⚠️ Creating new groups will delete existing groups and their participant assignments for this phase.
+                                <div className="bg-primary-100 rounded-xl p-6 mb-4 border-2 border-primary">
+                                    <p className="text-3xl font-bold font-raverist text-primary text-center mb-2">
+                                        {selectedPhase.number_of_groups} Groups
+                                    </p>
+                                    <p className="text-sm font-gotham text-dark text-center">
+                                        Configured in phase settings
+                                    </p>
+                                </div>
+                                {groups.length > 0 && (
+                                    <div className="bg-accent-100 rounded-xl p-4 mb-4 border-2 border-accent">
+                                        <p className="text-base font-gotham text-dark">
+                                            ⚠️ This will delete all existing groups and their participant assignments for this phase.
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="bg-neutral-100 rounded-xl p-3 mb-6 border border-neutral-300">
+                                    <p className="text-xs font-gotham text-neutral-600 text-center">
+                                        💡 To change the number of groups, edit the phase configuration in category settings
                                     </p>
                                 </div>
                                 <form onSubmit={handleSetupGroups}>
-                                    <div className="mb-6">
-                                        <label htmlFor="number_of_groups" className="block text-base font-gotham font-bold text-dark mb-2">
-                                            Number of Groups
-                                        </label>
-                                        <input
-                                            id="number_of_groups"
-                                            type="number"
-                                            min="1"
-                                            max="20"
-                                            value={setupData.number_of_groups}
-                                            onChange={(e) => setSetupData('number_of_groups', e.target.value)}
-                                            className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-success focus:ring-success text-lg p-3"
-                                            required
-                                        />
-                                    </div>
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
@@ -263,14 +266,17 @@ export default function Index({ category, phases, currentPhase, participants }) 
                                     <p className="text-xl font-gotham text-neutral-600 mb-8">Create groups for {selectedPhase.name}!</p>
                                     <button
                                         onClick={() => {
+                                            if (!selectedPhase.number_of_groups || selectedPhase.number_of_groups < 1) {
+                                                alert('This phase does not have a valid number of groups configured. Please edit the category to set the number of groups for this phase.');
+                                                return;
+                                            }
                                             setSetupData('phase_id', selectedPhaseId);
-                                            setSetupData('number_of_groups', selectedPhase.number_of_groups || 4);
                                             setShowSetupModal(true);
                                         }}
                                         className="inline-flex items-center gap-2 rounded-xl bg-success px-8 py-4 text-lg font-gotham font-bold text-white shadow-lg hover:bg-success-600 transition-all border-4 border-dark"
                                     >
                                         <span className="text-2xl">⚙️</span>
-                                        Setup Groups Now
+                                        Setup {selectedPhase.number_of_groups || '?'} Groups Now
                                     </button>
                                 </div>
                             ) : (

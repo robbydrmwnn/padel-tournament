@@ -43,16 +43,21 @@ class GroupController extends Controller
     {
         $validated = $request->validate([
             'phase_id' => 'required|exists:tournament_phases,id',
-            'number_of_groups' => 'required|integer|min:1|max:20',
         ]);
 
         $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
         
+        // Validate that the phase has number_of_groups configured
+        if (!$phase->number_of_groups || $phase->number_of_groups < 1) {
+            return redirect()->route('categories.groups.index', $category)
+                ->with('error', 'This phase does not have a valid number of groups configured. Please edit the phase settings first.');
+        }
+        
         // Delete existing groups for this phase
         $phase->groups()->delete();
 
-        // Create new groups with letter names (A, B, C, etc.)
-        for ($i = 1; $i <= $validated['number_of_groups']; $i++) {
+        // Create new groups with letter names (A, B, C, etc.) using the phase's configured number
+        for ($i = 1; $i <= $phase->number_of_groups; $i++) {
             $phase->groups()->create([
                 'category_id' => $category->id,
                 'name' => 'Group ' . chr(64 + $i), // chr(65) = 'A', chr(66) = 'B', etc.
@@ -61,7 +66,7 @@ class GroupController extends Controller
         }
 
         return redirect()->route('categories.groups.index', $category)
-            ->with('success', "Groups created for {$phase->name}.");
+            ->with('success', "{$phase->number_of_groups} groups created for {$phase->name}.");
     }
 
     /**
