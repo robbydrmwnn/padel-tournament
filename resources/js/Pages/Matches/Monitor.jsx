@@ -87,15 +87,14 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
     const getWinningTeam = () => {
         if (!match || match.status === 'completed') return null;
         
-        const bestOf = match.tournament_phase?.games_target || 4;
+        const gamesTarget = match.tournament_phase?.games_target || 4;
         
-        const gamesNeededToWin = Math.ceil(bestOf / 2);
         const team1Score = match.team1_score || 0;
         const team2Score = match.team2_score || 0;
         
-        if (team1Score >= gamesNeededToWin && team1Score > team2Score) {
+        if (team1Score >= gamesTarget && team1Score > team2Score) {
             return 'team1';
-        } else if (team2Score >= gamesNeededToWin && team2Score > team1Score) {
+        } else if (team2Score >= gamesTarget && team2Score > team1Score) {
             return 'team2';
         }
         

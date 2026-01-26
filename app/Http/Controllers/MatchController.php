@@ -392,7 +392,7 @@ class MatchController extends Controller
         }
 
         $config = [
-            'best_of' => $phase->games_target,
+            'games_target' => $phase->games_target,
             'scoring_type' => $phase->scoring_type,
             'advantage_limit' => $phase->advantage_limit,
             'tiebreaker_points' => $phase->tiebreaker_points,
@@ -400,7 +400,7 @@ class MatchController extends Controller
         ];
 
         // Determine if we should enter tie-breaker mode
-        $tieScore = $config['best_of'] / 2 - 1; // For first to 4: 3-3, for first to 6: 5-5
+        $tieScore = $config['games_target'] - 1; // For first to 4: 3-3, for first to 6: 5-5
         $shouldEnterTiebreaker = !$match->is_tiebreaker && 
                                  $match->team1_score == $tieScore && 
                                  $match->team2_score == $tieScore;
@@ -448,13 +448,13 @@ class MatchController extends Controller
                     // Deuce situation
                     if ($config['scoring_type'] === 'no_ad') {
                         // Golden point - team 1 wins
-                        $this->teamWinsGame($match, 'team1', $config['best_of']);
+                        $this->teamWinsGame($match, 'team1', $config['games_target']);
                         $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
                         // Check if golden point (after 2 advantages)
                         if ($match->current_game_advantages >= 2) {
                             // Golden point - team 1 wins
-                            $this->teamWinsGame($match, 'team1', $config['best_of']);
+                            $this->teamWinsGame($match, 'team1', $config['games_target']);
                             $gameWon = true;
                         } else {
                             // Go to advantage
@@ -465,7 +465,7 @@ class MatchController extends Controller
                         // Check advantage limit (max 2)
                         if ($match->current_game_advantages >= 2) {
                             // Golden point - team 1 wins
-                            $this->teamWinsGame($match, 'team1', $config['best_of']);
+                            $this->teamWinsGame($match, 'team1', $config['games_target']);
                             $gameWon = true;
                         } else {
                             // Go to advantage
@@ -479,12 +479,12 @@ class MatchController extends Controller
                     $team2Points = '40';
                 } else {
                     // Team 1 wins game
-                    $this->teamWinsGame($match, 'team1', $config['best_of']);
+                    $this->teamWinsGame($match, 'team1', $config['games_target']);
                     $gameWon = true;
                 }
             } else if ($team1Points === 'AD') {
                 // Team 1 wins game
-                $this->teamWinsGame($match, 'team1', $config['best_of']);
+                $this->teamWinsGame($match, 'team1', $config['games_target']);
                 $gameWon = true;
             } else {
                 // Progress point
@@ -502,13 +502,13 @@ class MatchController extends Controller
                     // Deuce situation
                     if ($config['scoring_type'] === 'no_ad') {
                         // Golden point - team 2 wins
-                        $this->teamWinsGame($match, 'team2', $config['best_of']);
+                        $this->teamWinsGame($match, 'team2', $config['games_target']);
                         $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
                         // Check if golden point (after 2 advantages)
                         if ($match->current_game_advantages >= 2) {
                             // Golden point - team 2 wins
-                            $this->teamWinsGame($match, 'team2', $config['best_of']);
+                            $this->teamWinsGame($match, 'team2', $config['games_target']);
                             $gameWon = true;
                         } else {
                             // Go to advantage
@@ -519,7 +519,7 @@ class MatchController extends Controller
                         // Check advantage limit (max 2)
                         if ($match->current_game_advantages >= 2) {
                             // Golden point - team 2 wins
-                            $this->teamWinsGame($match, 'team2', $config['best_of']);
+                            $this->teamWinsGame($match, 'team2', $config['games_target']);
                             $gameWon = true;
                         } else {
                             // Go to advantage
@@ -533,12 +533,12 @@ class MatchController extends Controller
                     $team2Points = '40';
                 } else {
                     // Team 2 wins game
-                    $this->teamWinsGame($match, 'team2', $config['best_of']);
+                    $this->teamWinsGame($match, 'team2', $config['games_target']);
                     $gameWon = true;
                 }
             } else if ($team2Points === 'AD') {
                 // Team 2 wins game
-                $this->teamWinsGame($match, 'team2', $config['best_of']);
+                $this->teamWinsGame($match, 'team2', $config['games_target']);
                 $gameWon = true;
             } else {
                 // Progress point
@@ -626,7 +626,7 @@ class MatchController extends Controller
 
         if ($tiebreakerWon) {
             // Team wins the tie-breaker, which means they win the match
-            $this->teamWinsTiebreaker($match, $winner, $config['best_of']);
+            $this->teamWinsTiebreaker($match, $winner, $config['games_target']);
         } else {
             // Update tie-breaker points
             $match->update([
@@ -641,7 +641,7 @@ class MatchController extends Controller
     /**
      * Helper method to handle team winning a game
      */
-    private function teamWinsGame(GameMatch $match, string $team, int $bestOf)
+    private function teamWinsGame(GameMatch $match, string $team, int $gamesTarget)
     {
         $team1Score = $match->team1_score;
         $team2Score = $match->team2_score;
@@ -660,21 +660,19 @@ class MatchController extends Controller
             'team2' => $team2Score,
         ];
 
-        // Check if match is won - only auto-complete for best of 5
-        $gamesNeededToWin = ceil($bestOf / 2);
+        // Check if match is won - team reaches games_target
         $matchWon = false;
         $winnerId = null;
 
-        // Only auto-complete for best of 5 matches
-        if ($bestOf === 5) {
-            if ($team1Score >= $gamesNeededToWin && $team1Score > $team2Score) {
-                $matchWon = true;
-                $winnerId = $match->team1_id;
-            } else if ($team2Score >= $gamesNeededToWin && $team2Score > $team1Score) {
-                $matchWon = true;
-                $winnerId = $match->team2_id;
-            }
+        // Auto-complete match when a team reaches the target
+        if ($team1Score >= $gamesTarget && $team1Score > $team2Score) {
+            $matchWon = true;
+            $winnerId = $match->team1_id;
+        } else if ($team2Score >= $gamesTarget && $team2Score > $team1Score) {
+            $matchWon = true;
+            $winnerId = $match->team2_id;
         }
+
 
         if ($matchWon) {
             $match->update([
@@ -686,7 +684,7 @@ class MatchController extends Controller
                 'score_details' => $scoreDetails,
             ]);
         } else {
-            // Start new game or continue (for best of 3/4, referee will manually complete)
+            // Start new game or continue
             $match->update([
                 'team1_score' => $team1Score,
                 'team2_score' => $team2Score,
@@ -705,7 +703,7 @@ class MatchController extends Controller
     /**
      * Helper method to handle team winning a tie-breaker
      */
-    private function teamWinsTiebreaker(GameMatch $match, string $team, int $bestOf)
+    private function teamWinsTiebreaker(GameMatch $match, string $team, int $gamesTarget)
     {
         $team1Score = $match->team1_score;
         $team2Score = $match->team2_score;

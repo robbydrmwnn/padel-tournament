@@ -11,13 +11,13 @@ export default function Referee({ category, match }) {
     // Get scoring configuration from match's phase
     const phase = match.tournament_phase;
     const scoringConfig = phase ? {
-        bestOfGames: phase.games_target,
+        gamesTarget: phase.games_target,
         scoringType: phase.scoring_type,
         advantageLimit: phase.advantage_limit,
         tiebreakerPoints: phase.tiebreaker_points,
         tiebreakerTwoPointDiff: phase.tiebreaker_two_point_difference,
     } : {
-        bestOfGames: 4,
+        gamesTarget: 4,
         scoringType: 'no_ad',
         advantageLimit: null,
         tiebreakerPoints: 7,
@@ -153,7 +153,7 @@ export default function Referee({ category, match }) {
         const currentScore = team === 'team1' ? match.team1_score : match.team2_score;
         const newScore = Math.max(0, currentScore + adjustment);
         
-        if (confirm(`${adjustment > 0 ? 'Add' : 'Remove'} 1 game ${adjustment > 0 ? 'to' : 'from'} ${team === 'team1' ? 'Team 1' : 'Team 2'}?\n\nNew games score will be: ${newScore}`)) {
+        if (confirm(`${adjustment > 0 ? 'Add' : 'Remove'} 1 game ${adjustment > 0 ? 'to' : 'from'} ${team === 'team1' ? 'Team 1' : 'Team 2'}?\n\nNew score will be: ${newScore}`)) {
             router.post(route('categories.matches.adjust-game-score', [category.id, match.id]), {
                 team: team,
                 score: newScore,
@@ -193,7 +193,6 @@ export default function Referee({ category, match }) {
     const handleCompleteMatch = () => {
         const team1Score = match.team1_score || 0;
         const team2Score = match.team2_score || 0;
-        const bestOf = scoringConfig.bestOfGames;
         
         let winnerText = '';
         if (team1Score > team2Score) {
@@ -231,13 +230,13 @@ export default function Referee({ category, match }) {
     const getWinningTeam = () => {
         if (match.status === 'completed') return null;
         
-        const gamesNeededToWin = Math.ceil(scoringConfig.bestOfGames / 2);
+        const gamesTarget = scoringConfig.gamesTarget;
         const team1Score = match.team1_score || 0;
         const team2Score = match.team2_score || 0;
         
-        if (team1Score >= gamesNeededToWin && team1Score > team2Score) {
+        if (team1Score >= gamesTarget && team1Score > team2Score) {
             return 'team1';
-        } else if (team2Score >= gamesNeededToWin && team2Score > team1Score) {
+        } else if (team2Score >= gamesTarget && team2Score > team1Score) {
             return 'team2';
         }
         
@@ -416,12 +415,12 @@ export default function Referee({ category, match }) {
                                                 </div>
                                             ) : (
                                                 <div className="text-xs text-neutral-600">
-                                                    First to {scoringConfig.bestOfGames} • 
+                                                    First to {scoringConfig.gamesTarget} games • 
                                                     {scoringConfig.scoringType === 'no_ad' && ' No-Ad'}
                                                     {scoringConfig.scoringType === 'traditional' && ' Traditional'}
                                                     {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Adv`}
                                                     <div className="mt-1">
-                                                        Tie-breaker at {scoringConfig.bestOfGames / 2 - 1}-{scoringConfig.bestOfGames / 2 - 1}
+                                                        Tie-breaker at {scoringConfig.gamesTarget - 1}-{scoringConfig.gamesTarget - 1}
                                                     </div>
                                                 </div>
                                             )}
