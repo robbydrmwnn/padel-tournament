@@ -94,7 +94,14 @@ class CategoryController extends Controller
      */
     public function show(Event $event, Category $category): Response
     {
-        $category->load(['participants', 'groups.participants']);
+        $category->load([
+            'participants',
+            'phases' => function ($query) {
+                $query->orderBy('order');
+            },
+            'phases.groups.participants',
+            'phases.matches'
+        ]);
         
         return Inertia::render('Categories/Show', [
             'event' => $event,
