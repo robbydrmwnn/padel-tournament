@@ -11,7 +11,7 @@
     --color-dark: #222222;
 }
 
-/* Raverist Font */
+/* Raverist Font - Letters Only (Numbers use fallback) */
 @font-face {
     font-family: 'Raverist';
     src: url('/fonts/Raverist.woff2') format('woff2'),
@@ -19,9 +19,11 @@
     font-weight: 100 900;
     font-style: normal;
     font-display: block;
+    /* Only apply to letters, not numbers - this ensures numbers always display */
+    unicode-range: U+0041-005A, U+0061-007A, U+00C0-00FF, U+0100-017F, U+0180-024F;
 }
 
-/* Gotham Font */
+/* Gotham Font - Letters Only (Numbers use fallback) */
 @font-face {
     font-family: 'Gotham';
     src: url('/fonts/Gotham-Book.woff2') format('woff2'),
@@ -29,6 +31,8 @@
     font-weight: 400;
     font-style: normal;
     font-display: block;
+    /* Only apply to letters, not numbers - this ensures numbers always display */
+    unicode-range: U+0041-005A, U+0061-007A, U+00C0-00FF, U+0100-017F, U+0180-024F;
 }
 
 /* Base Typography */

@@ -14,8 +14,8 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Gotham', 'Figtree', ...defaultTheme.fontFamily.sans],
-                raverist: ['Raverist', 'sans-serif'],
-                gotham: ['Gotham', 'sans-serif'],
+                raverist: ['Raverist', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
+                gotham: ['Gotham', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
             },
             colors: {
                 primary: {
