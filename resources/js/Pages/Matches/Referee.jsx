@@ -434,7 +434,7 @@ export default function Referee({ category, match }) {
                                              match.current_game_team2_points === '40' && (
                                                 <div className="mt-1">
                                                     <span className="inline-block px-4 py-2 text-base font-bold text-white bg-red-600 rounded-lg animate-pulse">
-                                                        ⚡ GOLDEN POINT ⚡
+                                                        ⚡ STAR POINT ⚡
                                                     </span>
                                                 </div>
                                             )}

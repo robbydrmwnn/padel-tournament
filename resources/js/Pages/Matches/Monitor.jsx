@@ -262,7 +262,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                         <div className="text-center mt-2">
                             <div className="inline-block bg-red-600 px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
                                 <p className="text-4xl font-bold font-raverist text-white">
-                                    ⚡ GOLDEN POINT ⚡
+                                    ⚡ STAR POINT ⚡
                                 </p>
                             </div>
                         </div>
