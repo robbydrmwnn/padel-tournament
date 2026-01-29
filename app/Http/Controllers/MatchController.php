@@ -927,6 +927,13 @@ class MatchController extends Controller
      */
     public function startPrep(Category $category, GameMatch $match): \Illuminate\Http\JsonResponse
     {
+        // Prevent backward status transitions - only allow from 'scheduled'
+        if ($match->status !== 'scheduled') {
+            return response()->json([
+                'error' => 'Match has already been started (status: ' . $match->status . '). Please refresh the page to see current status.'
+            ], 422);
+        }
+
         // Check if match has a court assigned
         if (!$match->court_id) {
             return response()->json([
@@ -972,6 +979,16 @@ class MatchController extends Controller
      */
     public function warmupStart(Category $category, GameMatch $match): RedirectResponse
     {
+        // Prevent backward status transitions - only allow from 'scheduled' or 'upcoming'
+        if (!in_array($match->status, ['scheduled', 'upcoming'])) {
+            return back()->with('error', 'Cannot start warm-up - match status is already: ' . $match->status . '. Please refresh the page.');
+        }
+
+        // Prevent double warm-up start
+        if ($match->warmup_started_at !== null) {
+            return back()->with('error', 'Warm-up has already been started. Please refresh the page.');
+        }
+
         // Check if match has a court assigned
         if (!$match->court_id) {
             return back()->with('error', 'Please assign a court before starting warm-up.');
@@ -1001,10 +1018,21 @@ class MatchController extends Controller
      */
     public function warmupReset(Category $category, GameMatch $match): RedirectResponse
     {
+        // Don't allow resetting warmup if match has already started
+        if ($match->match_started_at !== null) {
+            return back()->with('error', 'Cannot reset warm-up - match has already started. Please refresh the page.');
+        }
+
+        // Only allow reset if warmup was actually started
+        if ($match->warmup_started_at === null) {
+            return back()->with('error', 'No warm-up to reset. Please refresh the page.');
+        }
+
         $match->update([
             'warmup_started_at' => null,
             'warmup_ended_at' => null,
             'warmup_skipped' => false,
+            'status' => 'upcoming', // Revert status back to upcoming (since warmupStart sets it to in_progress)
         ]);
 
         return back();
@@ -1015,6 +1043,15 @@ class MatchController extends Controller
      */
     public function warmupSkip(Category $category, GameMatch $match): RedirectResponse
     {
+        // Check if warm-up is already ended or skipped
+        if ($match->warmup_ended_at !== null) {
+            return back()->with('error', 'Warm-up has already ended. Please refresh the page.');
+        }
+
+        if ($match->warmup_skipped) {
+            return back()->with('error', 'Warm-up has already been skipped. Please refresh the page.');
+        }
+
         $match->update([
             'warmup_skipped' => true,
             'warmup_started_at' => $match->warmup_started_at ?? now(),
@@ -1029,6 +1066,16 @@ class MatchController extends Controller
      */
     public function warmupEnd(Category $category, GameMatch $match): RedirectResponse
     {
+        // Check if warm-up has been started
+        if ($match->warmup_started_at === null) {
+            return back()->with('error', 'Warm-up hasn\'t been started yet. Please refresh the page.');
+        }
+
+        // Check if warm-up is already ended
+        if ($match->warmup_ended_at !== null) {
+            return back()->with('error', 'Warm-up has already ended. Please refresh the page.');
+        }
+
         $match->update([
             'warmup_ended_at' => now(),
         ]);
@@ -1041,6 +1088,16 @@ class MatchController extends Controller
      */
     public function startMatch(Category $category, GameMatch $match): RedirectResponse
     {
+        // Prevent double match start
+        if ($match->match_started_at !== null) {
+            return back()->with('error', 'Match has already been started. Please refresh the page.');
+        }
+
+        // Only allow starting from 'upcoming' or 'in_progress' status
+        if (!in_array($match->status, ['upcoming', 'in_progress'])) {
+            return back()->with('error', 'Cannot start match from status: ' . $match->status . '. Please refresh the page.');
+        }
+
         // Check if match has a court assigned
         if (!$match->court_id) {
             return back()->with('error', 'Please assign a court before starting the match.');
@@ -1050,6 +1107,7 @@ class MatchController extends Controller
         $activeMatch = GameMatch::where('court_id', $match->court_id)
             ->where('id', '!=', $match->id)
             ->where('status', 'in_progress')
+            ->whereNotNull('match_started_at')
             ->first();
 
         if ($activeMatch) {
@@ -1077,6 +1135,15 @@ class MatchController extends Controller
      */
     public function scorePoint(Request $request, Category $category, GameMatch $match): RedirectResponse
     {
+        // Only allow scoring during active match
+        if ($match->status !== 'in_progress') {
+            return back()->with('error', 'Cannot score points - match status is: ' . $match->status . '. Please refresh the page.');
+        }
+
+        if (!$match->match_started_at) {
+            return back()->with('error', 'Cannot score points - match hasn\'t been started yet. Please refresh the page.');
+        }
+
         $team = $request->input('team'); // 'team1' or 'team2'
         
         // Get scoring configuration from the match's phase
@@ -1145,19 +1212,13 @@ class MatchController extends Controller
                         $this->teamWinsGame($match, 'team1', $config['games_target']);
                         $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
-                        // Check if golden point (after 2 advantages)
-                        if ($match->current_game_advantages >= 2) {
-                            // Golden point - team 1 wins
-                            $this->teamWinsGame($match, 'team1', $config['games_target']);
-                            $gameWon = true;
-                        } else {
-                            // Go to advantage
-                            $team1Points = 'AD';
-                            $team2Points = '40';
-                        }
+                        // Traditional scoring - unlimited advantages, no golden point
+                        // Go to advantage
+                        $team1Points = 'AD';
+                        $team2Points = '40';
                     } else if ($config['scoring_type'] === 'advantage_limit') {
-                        // Check advantage limit (max 2)
-                        if ($match->current_game_advantages >= 2) {
+                        // Check if we've reached the advantage limit
+                        if ($match->current_game_advantages >= $config['advantage_limit']) {
                             // Golden point - team 1 wins
                             $this->teamWinsGame($match, 'team1', $config['games_target']);
                             $gameWon = true;
@@ -1199,19 +1260,13 @@ class MatchController extends Controller
                         $this->teamWinsGame($match, 'team2', $config['games_target']);
                         $gameWon = true;
                     } else if ($config['scoring_type'] === 'traditional') {
-                        // Check if golden point (after 2 advantages)
-                        if ($match->current_game_advantages >= 2) {
-                            // Golden point - team 2 wins
-                            $this->teamWinsGame($match, 'team2', $config['games_target']);
-                            $gameWon = true;
-                        } else {
-                            // Go to advantage
-                            $team2Points = 'AD';
-                            $team1Points = '40';
-                        }
+                        // Traditional scoring - unlimited advantages, no golden point
+                        // Go to advantage
+                        $team2Points = 'AD';
+                        $team1Points = '40';
                     } else if ($config['scoring_type'] === 'advantage_limit') {
-                        // Check advantage limit (max 2)
-                        if ($match->current_game_advantages >= 2) {
+                        // Check if we've reached the advantage limit
+                        if ($match->current_game_advantages >= $config['advantage_limit']) {
                             // Golden point - team 2 wins
                             $this->teamWinsGame($match, 'team2', $config['games_target']);
                             $gameWon = true;
@@ -1580,12 +1635,16 @@ class MatchController extends Controller
     public function confirmGameWin(Category $category, GameMatch $match): RedirectResponse
     {
         if ($match->status !== 'in_progress') {
-            return back()->with('error', 'Can only confirm game wins during an active match.');
+            return back()->with('error', 'Can only confirm game wins during an active match. Please refresh the page.');
+        }
+
+        if (!$match->match_started_at) {
+            return back()->with('error', 'Cannot confirm game win - match hasn\'t been started yet. Please refresh the page.');
         }
 
         $pendingWinner = $match->pending_game_winner;
         if (!$pendingWinner) {
-            return back()->with('error', 'No pending game win to confirm.');
+            return back()->with('error', 'No pending game win to confirm. Please refresh the page.');
         }
 
         $team1Score = $match->team1_score;
@@ -1672,11 +1731,11 @@ class MatchController extends Controller
     public function nextSet(Category $category, GameMatch $match): RedirectResponse
     {
         if ($match->status !== 'in_progress') {
-            return back()->with('error', 'Can only start next set during an active match.');
+            return back()->with('error', 'Can only start next set during an active match. Please refresh the page.');
         }
 
         if (!$match->match_started_at) {
-            return back()->with('error', 'Match hasn\'t started yet.');
+            return back()->with('error', 'Match hasn\'t started yet. Please refresh the page.');
         }
 
         $team1Score = $match->team1_score ?? 0;
@@ -1730,12 +1789,18 @@ class MatchController extends Controller
      */
     public function completeMatch(Category $category, GameMatch $match): RedirectResponse
     {
+        // Prevent double completion
         if ($match->status === 'completed') {
-            return back()->with('error', 'Match is already completed.');
+            return back()->with('error', 'Match is already completed. Please refresh the page.');
         }
 
         if (!$match->match_started_at) {
             return back()->with('error', 'Cannot complete a match that hasn\'t started.');
+        }
+
+        // Only allow completing from 'in_progress' status
+        if ($match->status !== 'in_progress') {
+            return back()->with('error', 'Cannot complete match from status: ' . $match->status . '. Please refresh the page.');
         }
 
         // Determine winner based on current score (or sets won if multiple sets)
@@ -1808,6 +1873,23 @@ class MatchController extends Controller
             'winner_id' => $winnerId,
             'sets' => $scoreDetails['sets'] ?? [],
         ]);
+
+        // Find the next unstarted match on the same court
+        if ($match->court_id) {
+            $nextMatch = GameMatch::where('court_id', $match->court_id)
+                ->where('status', 'scheduled')
+                ->whereNull('match_started_at')
+                ->orderBy('scheduled_time')
+                ->orderBy('match_order')
+                ->first();
+
+            if ($nextMatch) {
+                return redirect()->route('categories.matches.referee', [
+                    'category' => $nextMatch->category_id,
+                    'match' => $nextMatch->id
+                ])->with('success', 'Match completed successfully. Redirected to next match on this court.');
+            }
+        }
 
         return back()->with('success', 'Match completed successfully.');
     }

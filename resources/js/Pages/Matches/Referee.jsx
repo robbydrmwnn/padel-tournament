@@ -488,12 +488,16 @@ export default function Referee({ category, match }) {
                                                     </div>
                                                 </div>
                                             )}
-                                            {!match.is_tiebreaker && match.current_game_advantages > 0 && !match.pending_game_winner && (
+                                            {!match.is_tiebreaker && match.current_game_advantages > 0 && !match.pending_game_winner && scoringConfig.scoringType !== 'no_ad' && (
                                                 <div className="mt-1 text-sm font-bold text-primary">
-                                                    Advantages: {match.current_game_advantages} / 2
+                                                    Advantages: {match.current_game_advantages}
+                                                    {scoringConfig.scoringType === 'advantage_limit' && ` / ${scoringConfig.advantageLimit}`}
+                                                    {scoringConfig.scoringType === 'traditional' && ' (Unlimited)'}
                                                 </div>
                                             )}
-                                            {!match.is_tiebreaker && match.current_game_advantages >= 2 && 
+                                            {!match.is_tiebreaker && 
+                                             scoringConfig.scoringType === 'advantage_limit' && 
+                                             match.current_game_advantages >= scoringConfig.advantageLimit && 
                                              match.current_game_team1_points === '40' && 
                                              match.current_game_team2_points === '40' && 
                                              !match.pending_game_winner && (
