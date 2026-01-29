@@ -102,6 +102,7 @@ export default function Index({ category, participants }) {
                                 <ol className="text-base font-gotham text-dark list-decimal list-inside space-y-2 mb-4">
                                     <li>Download the Excel template below</li>
                                     <li>Fill in participant details (player_1 and player_2 are required)</li>
+                                    <li>Optional: Specify a group name - groups will be created automatically if they don't exist</li>
                                     <li>Save and upload the file</li>
                                 </ol>
                                 <a

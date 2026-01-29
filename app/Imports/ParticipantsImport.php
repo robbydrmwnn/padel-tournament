@@ -3,6 +3,8 @@
 namespace App\Imports;
 
 use App\Models\Participant;
+use App\Models\Group;
+use App\Models\TournamentPhase;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -13,10 +15,15 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
 {
     protected $categoryId;
     protected $failures = [];
+    protected $firstPhase = null;
 
     public function __construct($categoryId)
     {
         $this->categoryId = $categoryId;
+        // Get the first phase (group stage) for this category
+        $this->firstPhase = TournamentPhase::where('category_id', $categoryId)
+            ->orderBy('order')
+            ->first();
     }
 
     /**
@@ -31,7 +38,7 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
             return null;
         }
 
-        return new Participant([
+        $participant = new Participant([
             'category_id' => $this->categoryId,
             'name' => $row['team_name'] ?? null,
             'player_1' => $row['player_1'],
@@ -40,6 +47,33 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
             'phone' => isset($row['phone']) ? (string)$row['phone'] : null,
             'notes' => $row['notes'] ?? null,
         ]);
+
+        // Save participant first to get the ID
+        $participant->save();
+
+        // Handle group assignment if provided
+        if (!empty($row['group'])) {
+            $groupName = trim($row['group']);
+            
+            // Find or create the group by name in this category with updateOrCreate
+            $group = Group::updateOrCreate(
+                [
+                    'category_id' => $this->categoryId,
+                    'name' => $groupName,
+                ],
+                [
+                    'phase_id' => $this->firstPhase ? $this->firstPhase->id : null,
+                    'order' => Group::where('category_id', $this->categoryId)
+                        ->where('name', $groupName)
+                        ->value('order') ?? (Group::where('category_id', $this->categoryId)->max('order') + 1)
+                ]
+            );
+
+            // Attach participant to the group (sync to avoid duplicates)
+            $participant->groups()->syncWithoutDetaching([$group->id]);
+        }
+
+        return $participant;
     }
 
     /**
@@ -54,6 +88,7 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable', // Accept both string and numeric
             'notes' => 'nullable',
+            'group' => 'nullable|max:255',
         ];
     }
 

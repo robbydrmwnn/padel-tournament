@@ -166,7 +166,7 @@ class ParticipantController extends Controller
             public function array(): array
             {
                 return [
-                    ['John Doe', 'Jane Smith', 'Team Alpha', 'john@example.com', '+1234567890', 'Sample team'],
+                    ['John Doe', 'Jane Smith', 'Team Alpha', 'john@example.com', '+1234567890', 'Group A', 'Sample team'],
                 ];
             }
             
@@ -178,6 +178,7 @@ class ParticipantController extends Controller
                     'team_name',
                     'email',
                     'phone',
+                    'group',
                     'notes',
                 ];
             }
