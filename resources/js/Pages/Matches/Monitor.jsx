@@ -25,13 +25,16 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
         }
     }, [match, warmupTime]);
 
-    // Auto-refresh every 2 seconds to get latest score
+    // Auto-refresh to get latest match state and score
     // Using Inertia's router.reload() to prevent font flickering
     useEffect(() => {
-        if (autoRefresh && match && match.status === 'in_progress') {
+        if (autoRefresh) {
+            // Poll more frequently during active match, less frequently when waiting for match
+            const pollInterval = match && match.status === 'in_progress' ? 200 : 1000;
+            
             const interval = setInterval(() => {
                 router.reload({ only: ['match', 'category', 'court'], preserveScroll: true, preserveState: true });
-            }, 200);
+            }, pollInterval);
             return () => clearInterval(interval);
         }
     }, [autoRefresh, match?.status]);
@@ -44,7 +47,11 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
         return () => clearInterval(interval);
     }, []);
 
-    const getPointDisplay = (points) => {
+    const getPointDisplay = (points, team) => {
+        // Check if this team won the game (pending confirmation)
+        if (match && match.pending_game_winner === team) {
+            return 'WIN';
+        }
         // If in tie-breaker mode, display numerical points
         if (match && match.is_tiebreaker) {
             return points || '0';
@@ -73,6 +80,10 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
             return 'Warm-up';
         }
         if (match.status === 'in_progress') {
+            // Check if a set has been won
+            if (winningTeam) {
+                return 'Set Complete';
+            }
             return ''; // Hide status text during match
         }
         if (match.status === 'completed') {
@@ -177,17 +188,24 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </div>
                                 <div className="flex items-center gap-5 flex-shrink-0">
                                     {/* Games Won */}
-                                    <div className={`text-center bg-dark rounded-lg ${isWarmup ? 'py-3' : 'py-5'} border-4 border-accent ${isWarmup ? 'w-[150px]' : 'w-[200px]'}`}>
+                                    <div className={`text-center bg-dark rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
                                         <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
                                             {match.team1_score || 0}
                                         </div>
                                     </div>
                                     {/* Current Game Points */}
                                     {isMatchStarted && !isWarmup ? (
-                                        <div className="text-center bg-dark rounded-lg py-5 border-4 border-accent w-[200px]">
-                                            <div className="text-9xl font-bold text-white leading-none">
-                                                {getPointDisplay(match.current_game_team1_points)}
-                                            </div>
+                                        <div className="text-center bg-dark rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
+                                            {(() => {
+                                                const displayValue = getPointDisplay(match.current_game_team1_points, 'team1');
+                                                const isNumeric = !isNaN(displayValue);
+                                                const isWin = displayValue === 'WIN';
+                                                return (
+                                                    <div className={`font-bold leading-none ${!isNumeric ? `text-7xl ${isWin ? 'text-accent animate-pulse' : 'text-white'}` : 'text-9xl text-white'}`}>
+                                                        {displayValue}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : isWarmup ? (
                                         <div className="w-[150px]"></div>
@@ -220,17 +238,24 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </div>
                                 <div className="flex items-center gap-5 flex-shrink-0">
                                     {/* Games Won */}
-                                    <div className={`text-center bg-dark rounded-lg ${isWarmup ? 'py-3' : 'py-5'} border-4 border-accent ${isWarmup ? 'w-[150px]' : 'w-[200px]'}`}>
+                                    <div className={`text-center bg-dark rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
                                         <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
                                             {match.team2_score || 0}
                                         </div>
                                     </div>
                                     {/* Current Game Points */}
                                     {isMatchStarted && !isWarmup ? (
-                                        <div className="text-center bg-dark rounded-lg py-5 border-4 border-accent w-[200px]">
-                                            <div className="text-9xl font-bold text-white leading-none">
-                                                {getPointDisplay(match.current_game_team2_points)}
-                                            </div>
+                                        <div className="text-center bg-dark rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
+                                            {(() => {
+                                                const displayValue = getPointDisplay(match.current_game_team2_points, 'team2');
+                                                const isNumeric = !isNaN(displayValue);
+                                                const isWin = displayValue === 'WIN';
+                                                return (
+                                                    <div className={`font-bold leading-none ${!isNumeric ? `text-7xl ${isWin ? 'text-accent animate-pulse' : 'text-white'}` : 'text-9xl text-white'}`}>
+                                                        {displayValue}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     ) : isWarmup ? (
                                         <div className="w-[150px]"></div>
@@ -267,7 +292,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </p>
                             </div>
                         </div>
-                    ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && (
+                    ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && !match.pending_game_winner && (
                         <div className="text-center mt-2">
                             <div className="inline-block bg-primary px-4 py-1 rounded-lg border-2 border-accent">
                                 <p className="text-2xl font-bold font-gotham text-white">

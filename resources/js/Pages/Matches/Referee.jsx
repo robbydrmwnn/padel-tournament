@@ -58,14 +58,15 @@ export default function Referee({ category, match }) {
     }, [isWarmupRunning, warmupTime]);
 
     // Auto-refresh match data during active play to ensure scores are current
+    // Pause auto-refresh when there's a pending game winner so referee can click confirm
     useEffect(() => {
-        if (match.status === 'in_progress' && match.match_started_at) {
+        if (match.status === 'in_progress' && match.match_started_at && !match.pending_game_winner) {
             const interval = setInterval(() => {
                 router.reload({ only: ['match', 'category'], preserveScroll: true, preserveState: true });
             }, 3000); // Refresh every 3 seconds
             return () => clearInterval(interval);
         }
-    }, [match.status, match.match_started_at]);
+    }, [match.status, match.match_started_at, match.pending_game_winner]);
 
     const handleStartWarmup = () => {
         router.post(route('categories.matches.warmup.start', [category.id, match.id]), {}, {
@@ -112,6 +113,18 @@ export default function Referee({ category, match }) {
     };
 
     const handleScorePoint = (team) => {
+        // Prevent scoring if a game has been won but not confirmed
+        if (match.pending_game_winner) {
+            alert('Game won! Please confirm the game win first.');
+            return;
+        }
+        
+        // Prevent scoring if a set has been won
+        if (winningTeam) {
+            alert('Set completed! Please proceed to next set or complete the match.');
+            return;
+        }
+        
         router.post(route('categories.matches.score', [category.id, match.id]), {
             team: team,
         }, {
@@ -201,13 +214,41 @@ export default function Referee({ category, match }) {
         }
     };
 
+    const handleNextSet = () => {
+        if (confirm('Start Next Set?\n\nCurrent scores will be recorded and a new set will begin.\n\nAre you sure?')) {
+            router.post(route('categories.matches.next-set', [category.id, match.id]), {}, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const handleConfirmGameWin = () => {
+        router.post(route('categories.matches.confirm-game-win', [category.id, match.id]), {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleUndoGameWin = () => {
+        if (confirm('Undo game win confirmation?\n\nThis will revert to the game-winning point state.')) {
+            router.post(route('categories.matches.undo', [category.id, match.id]), {
+                team: match.pending_game_winner,
+            }, {
+                preserveScroll: true,
+            });
+        }
+    };
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const getPointDisplay = (points) => {
+    const getPointDisplay = (points, team) => {
+        // Check if this team won the game (pending confirmation)
+        if (match.pending_game_winner === team) {
+            return 'WIN';
+        }
         // If in tie-breaker mode, display numerical points
         if (match.is_tiebreaker) {
             return points || '0';
@@ -380,8 +421,42 @@ export default function Referee({ category, match }) {
                                 </div>
                             ) : (
                                 <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+                                    {/* Set Won - Action Required */}
+                                    {winningTeam && (
+                                        <div className="bg-accent shadow-xl rounded-lg p-6 border-4 border-success animate-pulse">
+                                            <div className="text-center mb-4">
+                                                <p className="text-3xl font-bold text-dark mb-2">
+                                                    🏆 SET WON! 🏆
+                                                </p>
+                                                <p className="text-xl font-bold text-dark">
+                                                    {winningTeam === 'team1' 
+                                                        ? `${match.team1.player_1} - ${match.team1.player_2}`
+                                                        : `${match.team2.player_1} - ${match.team2.player_2}`
+                                                    }
+                                                </p>
+                                                <p className="text-2xl font-bold text-dark mt-2">
+                                                    Score: {match.team1_score || 0} - {match.team2_score || 0}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-4 justify-center">
+                                                <button
+                                                    onClick={handleNextSet}
+                                                    className="px-8 py-4 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg"
+                                                >
+                                                    ▶ Next Set
+                                                </button>
+                                                <button
+                                                    onClick={handleCompleteMatch}
+                                                    className="px-8 py-4 text-xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg"
+                                                >
+                                                    ✅ Complete Match
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Score Display & Controls - All in One */}
-                                    <div className="bg-white shadow-sm rounded-lg p-3 border-4 border-primary flex flex-col">
+                                    <div className={`bg-white shadow-sm rounded-lg p-3 border-4 border-primary flex flex-col ${winningTeam ? 'opacity-50 pointer-events-none' : ''}`}>
                                         {/* Scoring Info */}
                                         <div className="text-center mb-2">
                                             {match.is_tiebreaker ? (
@@ -402,18 +477,24 @@ export default function Referee({ category, match }) {
                                                     </div>
                                                 </div>
                                             )}
-                                            {!match.is_tiebreaker && match.current_game_advantages > 0 && (
+                                            {!match.is_tiebreaker && match.current_game_advantages > 0 && !match.pending_game_winner && (
                                                 <div className="mt-1 text-sm font-bold text-primary">
                                                     Advantages: {match.current_game_advantages} / 2
                                                 </div>
                                             )}
                                             {!match.is_tiebreaker && match.current_game_advantages >= 2 && 
                                              match.current_game_team1_points === '40' && 
-                                             match.current_game_team2_points === '40' && (
+                                             match.current_game_team2_points === '40' && 
+                                             !match.pending_game_winner && (
                                                 <div className="mt-1">
                                                     <span className="inline-block px-4 py-2 text-base font-bold text-white bg-red-600 rounded-lg animate-pulse">
                                                         ⚡ STAR POINT ⚡
                                                     </span>
+                                                </div>
+                                            )}
+                                            {match.pending_game_winner && (
+                                                <div className="mt-1 text-base font-bold text-success">
+                                                    🎾 Game Won - Confirm to Continue
                                                 </div>
                                             )}
                                         </div>
@@ -434,7 +515,7 @@ export default function Referee({ category, match }) {
                                                 </div>
                                                 <div className="text-center min-w-[140px]">
                                                     <p className="text-sm text-neutral-600 mb-1">Games</p>
-                                                    <div className="flex items-center justify-center gap-2">
+                                                    <div className="h-[120px] flex items-center justify-center gap-2">
                                                         <button
                                                             onClick={() => handleAdjustGameScore('team1', -1)}
                                                             className="px-2 py-1 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700"
@@ -462,21 +543,53 @@ export default function Referee({ category, match }) {
                                                             ✏️
                                                         </button>
                                                     </div>
-                                                    <p className="text-7xl font-bold text-primary leading-none">{getPointDisplay(match.current_game_team1_points)}</p>
+                                                    <div className="h-[120px] flex items-center justify-center">
+                                                        {(() => {
+                                                            const displayValue = getPointDisplay(match.current_game_team1_points, 'team1');
+                                                            const isNumeric = !isNaN(displayValue);
+                                                            const isWin = displayValue === 'WIN';
+                                                            return (
+                                                                <p className={`font-bold leading-none ${!isNumeric ? `text-6xl ${isWin ? 'text-accent animate-pulse' : 'text-primary'}` : 'text-7xl text-primary'}`}>
+                                                                    {displayValue}
+                                                                </p>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    <button
-                                                        onClick={() => handleScorePoint('team1')}
-                                                        className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
-                                                    >
-                                                        + POINT
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleUndoPoint('team1')}
-                                                        className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                                                    >
-                                                        ↶ Undo
-                                                    </button>
+                                                    {match.pending_game_winner === 'team1' ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleConfirmGameWin}
+                                                                className="px-6 py-6 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
+                                                            >
+                                                                ✅ Confirm
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleUndoGameWin}
+                                                                className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                            >
+                                                                ↶ Undo
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleScorePoint('team1')}
+                                                                className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
+                                                            >
+                                                                + POINT
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUndoPoint('team1')}
+                                                                className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                            >
+                                                                ↶ Undo
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -500,7 +613,7 @@ export default function Referee({ category, match }) {
                                                 </div>
                                                 <div className="text-center min-w-[140px]">
                                                     <p className="text-sm text-neutral-600 mb-1">Games</p>
-                                                    <div className="flex items-center justify-center gap-2">
+                                                    <div className="h-[120px] flex items-center justify-center gap-2">
                                                         <button
                                                             onClick={() => handleAdjustGameScore('team2', -1)}
                                                             className="px-2 py-1 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700"
@@ -528,21 +641,53 @@ export default function Referee({ category, match }) {
                                                             ✏️
                                                         </button>
                                                     </div>
-                                                    <p className="text-7xl font-bold text-primary leading-none">{getPointDisplay(match.current_game_team2_points)}</p>
+                                                    <div className="h-[120px] flex items-center justify-center">
+                                                        {(() => {
+                                                            const displayValue = getPointDisplay(match.current_game_team2_points, 'team2');
+                                                            const isNumeric = !isNaN(displayValue);
+                                                            const isWin = displayValue === 'WIN';
+                                                            return (
+                                                                <p className={`font-bold leading-none ${!isNumeric ? `text-6xl ${isWin ? 'text-accent animate-pulse' : 'text-primary'}` : 'text-7xl text-primary'}`}>
+                                                                    {displayValue}
+                                                                </p>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    <button
-                                                        onClick={() => handleScorePoint('team2')}
-                                                        className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
-                                                    >
-                                                        + POINT
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleUndoPoint('team2')}
-                                                        className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                                                    >
-                                                        ↶ Undo
-                                                    </button>
+                                                    {match.pending_game_winner === 'team2' ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleConfirmGameWin}
+                                                                className="px-6 py-6 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
+                                                            >
+                                                                ✅ Confirm
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleUndoGameWin}
+                                                                className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                            >
+                                                                ↶ Undo
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleScorePoint('team2')}
+                                                                className="px-10 py-8 text-3xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg min-w-[160px]"
+                                                            >
+                                                                + POINT
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUndoPoint('team2')}
+                                                                className="px-4 py-2 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                            >
+                                                                ↶ Undo
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

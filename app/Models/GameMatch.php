@@ -38,6 +38,7 @@ class GameMatch extends Model
         'current_game_advantages',
         'current_server_team_id',
         'is_tiebreaker',
+        'pending_game_winner',
     ];
 
     protected $casts = [

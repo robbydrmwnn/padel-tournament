@@ -129,6 +129,10 @@ Route::middleware('auth')->group(function () {
         ->name('categories.matches.adjust-game-score');
     Route::post('categories/{category}/matches/{match}/adjust-current-points', [MatchController::class, 'adjustCurrentPoints'])
         ->name('categories.matches.adjust-current-points');
+    Route::post('categories/{category}/matches/{match}/confirm-game-win', [MatchController::class, 'confirmGameWin'])
+        ->name('categories.matches.confirm-game-win');
+    Route::post('categories/{category}/matches/{match}/next-set', [MatchController::class, 'nextSet'])
+        ->name('categories.matches.next-set');
     Route::post('categories/{category}/matches/{match}/complete', [MatchController::class, 'completeMatch'])
         ->name('categories.matches.complete');
     Route::post('categories/{category}/matches/{match}/reset', [MatchController::class, 'resetMatch'])

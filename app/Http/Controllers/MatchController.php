@@ -1334,104 +1334,28 @@ class MatchController extends Controller
 
     /**
      * Helper method to handle team winning a game
+     * Now just marks the game as won, doesn't increment score (referee must confirm)
      */
     private function teamWinsGame(GameMatch $match, string $team, int $gamesTarget)
     {
-        $team1Score = $match->team1_score;
-        $team2Score = $match->team2_score;
-
-        // Increment game score
-        if ($team === 'team1') {
-            $team1Score++;
-        } else {
-            $team2Score++;
-        }
-
-        // Store game result in score_details
-        $scoreDetails = $match->score_details ?? ['games' => []];
-        $scoreDetails['games'][] = [
-            'team1' => $team1Score,
-            'team2' => $team2Score,
-        ];
-
-        // Check if match is won - team reaches games_target
-        $matchWon = false;
-        $winnerId = null;
-
-        // Auto-complete match when a team reaches the target
-        if ($team1Score >= $gamesTarget && $team1Score > $team2Score) {
-            $matchWon = true;
-            $winnerId = $match->team1_id;
-        } else if ($team2Score >= $gamesTarget && $team2Score > $team1Score) {
-            $matchWon = true;
-            $winnerId = $match->team2_id;
-        }
-
-
-        if ($matchWon) {
-            $match->update([
-                'team1_score' => $team1Score,
-                'team2_score' => $team2Score,
-                'winner_id' => $winnerId,
-                'status' => 'completed',
-                'match_ended_at' => now(),
-                'score_details' => $scoreDetails,
-            ]);
-        } else {
-            // Start new game or continue
-            $match->update([
-                'team1_score' => $team1Score,
-                'team2_score' => $team2Score,
-                'current_game_team1_points' => '0',
-                'current_game_team2_points' => '0',
-                'current_game_advantages' => 0,
-                'score_details' => $scoreDetails,
-                // Switch server
-                'current_server_team_id' => $match->current_server_team_id === $match->team1_id 
-                    ? $match->team2_id 
-                    : $match->team1_id,
-            ]);
-        }
+        // Don't increment score yet - mark as pending game winner
+        // Referee must manually confirm the game win
+        $match->update([
+            'pending_game_winner' => $team,
+        ]);
     }
 
     /**
      * Helper method to handle team winning a tie-breaker
+     * Now just marks the game as won, doesn't increment score (referee must confirm)
      */
     private function teamWinsTiebreaker(GameMatch $match, string $team, int $gamesTarget)
     {
-        $team1Score = $match->team1_score;
-        $team2Score = $match->team2_score;
-
-        // Increment game score (tie-breaker counts as one game)
-        if ($team === 'team1') {
-            $team1Score++;
-        } else {
-            $team2Score++;
-        }
-
-        // Store game result in score_details
-        $scoreDetails = $match->score_details ?? ['games' => []];
-        $scoreDetails['games'][] = [
-            'team1' => $team1Score,
-            'team2' => $team2Score,
-            'tiebreaker' => true,
-            'tiebreaker_score' => [
-                'team1' => $match->current_game_team1_points,
-                'team2' => $match->current_game_team2_points,
-            ],
-        ];
-
-        // Tie-breaker winner wins the match
-        $winnerId = $team === 'team1' ? $match->team1_id : $match->team2_id;
-
+        // Don't increment score yet - mark as pending game winner
+        // Referee must manually confirm the game win
+        // Keep the tiebreaker flag so we know the points should be preserved
         $match->update([
-            'team1_score' => $team1Score,
-            'team2_score' => $team2Score,
-            'winner_id' => $winnerId,
-            'status' => 'completed',
-            'match_ended_at' => now(),
-            'score_details' => $scoreDetails,
-            'is_tiebreaker' => false,
+            'pending_game_winner' => $team,
         ]);
     }
 
@@ -1445,12 +1369,33 @@ class MatchController extends Controller
         \Log::info('Undo point requested', [
             'team' => $team,
             'current_team1_points' => $match->current_game_team1_points,
-            'current_team2_points' => $match->current_game_team2_points,
+            'current_game_team2_points' => $match->current_game_team2_points,
             'team1_score' => $match->team1_score,
             'team2_score' => $match->team2_score,
+            'pending_game_winner' => $match->pending_game_winner,
         ]);
         
-        // Check if we need to undo a game win
+        // Check if there's a pending game win - just cancel it
+        // The database already has the correct points from BEFORE the winning point was scored
+        if ($match->pending_game_winner) {
+            \Log::info('Cancelling pending game win');
+            
+            $team1Points = $match->current_game_team1_points ?? '0';
+            $team2Points = $match->current_game_team2_points ?? '0';
+            
+            // Just clear the pending game winner - points are already at the correct state
+            $match->update([
+                'pending_game_winner' => null,
+            ]);
+            
+            \Log::info('Pending game win cancelled', [
+                'restored_points' => "$team1Points-$team2Points",
+            ]);
+            
+            return back()->with('success', 'Game win cancelled. Points: ' . $team1Points . '-' . $team2Points);
+        }
+        
+        // Check if we need to undo a confirmed game win
         // A new game just started if both points are 0 or null, AND at least one team has games
         $isNewGame = (empty($match->current_game_team1_points) || $match->current_game_team1_points === '0') && 
                      (empty($match->current_game_team2_points) || $match->current_game_team2_points === '0');
@@ -1618,6 +1563,7 @@ class MatchController extends Controller
             'current_game_advantages' => 0,
             'current_server_team_id' => null,
             'is_tiebreaker' => false,
+            'pending_game_winner' => null,
         ]);
 
         $message = $wasUpcoming && !$wasStarted
@@ -1626,6 +1572,157 @@ class MatchController extends Controller
 
         return redirect()->route('categories.matches.index', $category)
             ->with('success', $message);
+    }
+
+    /**
+     * Confirm game win and increment game score
+     */
+    public function confirmGameWin(Category $category, GameMatch $match): RedirectResponse
+    {
+        if ($match->status !== 'in_progress') {
+            return back()->with('error', 'Can only confirm game wins during an active match.');
+        }
+
+        $pendingWinner = $match->pending_game_winner;
+        if (!$pendingWinner) {
+            return back()->with('error', 'No pending game win to confirm.');
+        }
+
+        $team1Score = $match->team1_score;
+        $team2Score = $match->team2_score;
+
+        // Increment game score
+        if ($pendingWinner === 'team1') {
+            $team1Score++;
+        } else {
+            $team2Score++;
+        }
+
+        // Store game result in score_details
+        $scoreDetails = $match->score_details ?? ['games' => []];
+        
+        // If it was a tiebreaker, record the tiebreaker points
+        if ($match->is_tiebreaker) {
+            $scoreDetails['games'][] = [
+                'team1' => $team1Score,
+                'team2' => $team2Score,
+                'tiebreaker' => true,
+                'tiebreaker_score' => [
+                    'team1' => $match->current_game_team1_points,
+                    'team2' => $match->current_game_team2_points,
+                ],
+            ];
+        } else {
+            $scoreDetails['games'][] = [
+                'team1' => $team1Score,
+                'team2' => $team2Score,
+            ];
+        }
+
+        // Check if set is won
+        $phase = $match->tournament_phase;
+        $gamesTarget = $phase ? $phase->games_target : 4;
+        
+        $setWon = ($team1Score >= $gamesTarget && $team1Score > $team2Score) ||
+                  ($team2Score >= $gamesTarget && $team2Score > $team1Score);
+
+        if ($setWon) {
+            // Set is won - keep scores but reset current game
+            $match->update([
+                'team1_score' => $team1Score,
+                'team2_score' => $team2Score,
+                'current_game_team1_points' => '0',
+                'current_game_team2_points' => '0',
+                'current_game_advantages' => 0,
+                'score_details' => $scoreDetails,
+                'pending_game_winner' => null,
+                'is_tiebreaker' => false,
+            ]);
+        } else {
+            // Start new game
+            $match->update([
+                'team1_score' => $team1Score,
+                'team2_score' => $team2Score,
+                'current_game_team1_points' => '0',
+                'current_game_team2_points' => '0',
+                'current_game_advantages' => 0,
+                'score_details' => $scoreDetails,
+                'pending_game_winner' => null,
+                'is_tiebreaker' => false,
+                // Switch server
+                'current_server_team_id' => $match->current_server_team_id === $match->team1_id 
+                    ? $match->team2_id 
+                    : $match->team1_id,
+            ]);
+        }
+
+        \Log::info('Game win confirmed', [
+            'match_id' => $match->id,
+            'winner' => $pendingWinner,
+            'new_score' => ['team1' => $team1Score, 'team2' => $team2Score],
+            'set_won' => $setWon,
+        ]);
+
+        return back()->with('success', 'Game confirmed! Score: ' . $team1Score . '-' . $team2Score);
+    }
+
+    /**
+     * Start next set after current set is won
+     */
+    public function nextSet(Category $category, GameMatch $match): RedirectResponse
+    {
+        if ($match->status !== 'in_progress') {
+            return back()->with('error', 'Can only start next set during an active match.');
+        }
+
+        if (!$match->match_started_at) {
+            return back()->with('error', 'Match hasn\'t started yet.');
+        }
+
+        $team1Score = $match->team1_score ?? 0;
+        $team2Score = $match->team2_score ?? 0;
+
+        // Verify that a set has actually been won
+        $phase = $match->tournament_phase;
+        $gamesTarget = $phase ? $phase->games_target : 4;
+        
+        $setWon = ($team1Score >= $gamesTarget && $team1Score > $team2Score) ||
+                  ($team2Score >= $gamesTarget && $team2Score > $team1Score);
+
+        if (!$setWon) {
+            return back()->with('error', 'No set has been won yet. Cannot start next set.');
+        }
+
+        // Record the set result in score_details
+        $scoreDetails = $match->score_details ?? ['sets' => [], 'games' => []];
+        if (!isset($scoreDetails['sets'])) {
+            $scoreDetails['sets'] = [];
+        }
+        
+        $scoreDetails['sets'][] = [
+            'team1' => $team1Score,
+            'team2' => $team2Score,
+            'completed_at' => now()->toDateTimeString(),
+        ];
+
+        // Reset for new set
+        $match->update([
+            'team1_score' => 0,
+            'team2_score' => 0,
+            'current_game_team1_points' => '0',
+            'current_game_team2_points' => '0',
+            'current_game_advantages' => 0,
+            'score_details' => $scoreDetails,
+            'is_tiebreaker' => false,
+        ]);
+
+        \Log::info('Next set started', [
+            'match_id' => $match->id,
+            'previous_set' => ['team1' => $team1Score, 'team2' => $team2Score],
+            'sets_completed' => count($scoreDetails['sets']),
+        ]);
+
+        return back()->with('success', 'New set started! Previous set recorded: ' . $team1Score . '-' . $team2Score);
     }
 
     /**
@@ -1641,15 +1738,59 @@ class MatchController extends Controller
             return back()->with('error', 'Cannot complete a match that hasn\'t started.');
         }
 
-        // Determine winner based on current score
+        // Determine winner based on current score (or sets won if multiple sets)
         $winnerId = null;
         $team1Score = $match->team1_score ?? 0;
         $team2Score = $match->team2_score ?? 0;
 
-        if ($team1Score > $team2Score) {
-            $winnerId = $match->team1_id;
-        } else if ($team2Score > $team1Score) {
-            $winnerId = $match->team2_id;
+        // If there are completed sets, determine winner by sets won
+        $scoreDetails = $match->score_details ?? ['sets' => []];
+        if (!empty($scoreDetails['sets'])) {
+            $team1SetsWon = 0;
+            $team2SetsWon = 0;
+            
+            foreach ($scoreDetails['sets'] as $set) {
+                if ($set['team1'] > $set['team2']) {
+                    $team1SetsWon++;
+                } else if ($set['team2'] > $set['team1']) {
+                    $team2SetsWon++;
+                }
+            }
+            
+            // Add current set if it's completed
+            $phase = $match->tournament_phase;
+            $gamesTarget = $phase ? $phase->games_target : 4;
+            $currentSetWon = ($team1Score >= $gamesTarget && $team1Score > $team2Score) ||
+                            ($team2Score >= $gamesTarget && $team2Score > $team1Score);
+            
+            if ($currentSetWon) {
+                if ($team1Score > $team2Score) {
+                    $team1SetsWon++;
+                } else if ($team2Score > $team1Score) {
+                    $team2SetsWon++;
+                }
+                
+                // Record final set
+                $scoreDetails['sets'][] = [
+                    'team1' => $team1Score,
+                    'team2' => $team2Score,
+                    'completed_at' => now()->toDateTimeString(),
+                ];
+            }
+            
+            // Determine winner by sets
+            if ($team1SetsWon > $team2SetsWon) {
+                $winnerId = $match->team1_id;
+            } else if ($team2SetsWon > $team1SetsWon) {
+                $winnerId = $match->team2_id;
+            }
+        } else {
+            // Single set match - determine by games
+            if ($team1Score > $team2Score) {
+                $winnerId = $match->team1_id;
+            } else if ($team2Score > $team1Score) {
+                $winnerId = $match->team2_id;
+            }
         }
         // else it's a draw (winnerId remains null)
 
@@ -1657,6 +1798,7 @@ class MatchController extends Controller
             'status' => 'completed',
             'match_ended_at' => now(),
             'winner_id' => $winnerId,
+            'score_details' => $scoreDetails,
         ]);
 
         \Log::info('Match manually completed', [
@@ -1664,6 +1806,7 @@ class MatchController extends Controller
             'team1_score' => $team1Score,
             'team2_score' => $team2Score,
             'winner_id' => $winnerId,
+            'sets' => $scoreDetails['sets'] ?? [],
         ]);
 
         return back()->with('success', 'Match completed successfully.');
