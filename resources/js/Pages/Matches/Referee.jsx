@@ -340,13 +340,30 @@ export default function Referee({ category, match }) {
                     {/* Match Info - Compact */}
                     <div className="flex-shrink-0 bg-white shadow-sm rounded-lg p-2 border-2 border-primary">
                         <div className="flex justify-between items-center">
-                            <div className="grid grid-cols-2 gap-3 flex-1">
-                                <div>
-                                    <p className="text-xs text-neutral-600">Team 1: {match.team1.player_1} - {match.team1.player_2}</p>
+                            <div className="flex-1">
+                                <div className="grid grid-cols-2 gap-3 mb-2">
+                                    <div>
+                                        <p className="text-xl font-semibold text-primary">Team 1: {match.team1.player_1} - {match.team1.player_2}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xl font-semibold text-primary">Team 2: {match.team2.player_1} - {match.team2.player_2}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-neutral-600">Team 2: {match.team2.player_1} - {match.team2.player_2}</p>
-                                </div>
+                                {(match.scheduled_time) && (
+                                    <div className="flex items-center gap-2 text-xl">
+                                        <span className="font-semibold text-primary">📅 Schedule:</span>
+                                            <span className="text-neutral-700">
+                                                {(() => {
+                                                    // Parse the datetime string directly without timezone conversion
+                                                    const dateTimeStr = match.scheduled_time.replace('T', ' ').split('.')[0];
+                                                    const [datePart, timePart] = dateTimeStr.split(' ');
+                                                    const [year, month, day] = datePart.split('-');
+                                                    const [hours, minutes] = timePart.split(':');
+                                                    return `${day}-${month}-${year} ${hours}:${minutes}`;
+                                                })()}
+                                            </span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 {match.status === 'in_progress' && match.match_started_at && (
@@ -439,12 +456,6 @@ export default function Referee({ category, match }) {
                                                 </p>
                                             </div>
                                             <div className="flex gap-4 justify-center">
-                                                <button
-                                                    onClick={handleNextSet}
-                                                    className="px-8 py-4 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg"
-                                                >
-                                                    ▶ Next Set
-                                                </button>
                                                 <button
                                                     onClick={handleCompleteMatch}
                                                     className="px-8 py-4 text-xl font-bold text-white bg-success rounded-lg hover:bg-success-700 shadow-lg"
@@ -562,7 +573,7 @@ export default function Referee({ category, match }) {
                                                             <button
                                                                 type="button"
                                                                 onClick={handleConfirmGameWin}
-                                                                className="px-6 py-6 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
+                                                                className="px-5 py-6 text-3xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
                                                             >
                                                                 ✅ Confirm
                                                             </button>
@@ -660,7 +671,7 @@ export default function Referee({ category, match }) {
                                                             <button
                                                                 type="button"
                                                                 onClick={handleConfirmGameWin}
-                                                                className="px-6 py-6 text-xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
+                                                                className="px-5 py-6 text-3xl font-bold text-white bg-primary rounded-lg hover:bg-primary-600 shadow-lg min-w-[160px]"
                                                             >
                                                                 ✅ Confirm
                                                             </button>

@@ -82,7 +82,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
         if (match.status === 'in_progress') {
             // Check if a set has been won
             if (winningTeam) {
-                return 'Set Complete';
+                return '';
             }
             return ''; // Hide status text during match
         }
@@ -138,7 +138,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 overflow-hidden flex flex-col justify-center max-w-7xl mx-auto w-full px-6 py-2">
+                <div className="flex-1 overflow-hidden flex flex-col justify-center max-w-7xl mx-auto w-full px-2 py-2">
                     {/* Status Badge */}
                     {getMatchStatus() && (
                         <div className="text-center mb-2">
@@ -174,10 +174,11 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                         {/* Team 1 */}
                         <div className={`bg-success rounded-xl ${isWarmup ? 'p-3 mb-2' : 'p-5 mb-3'} border-4 border-accent`}>
                             <div className="flex items-center gap-6">
-                                <div className="flex-1">
-                                    <h2 className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
-                                        {match.team1.player_1} <br/> {match.team1.player_2}
-                                    </h2>
+                                <div className="flex-1 min-w-0">
+                                    <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
+                                        <div className="truncate">{match.team1.player_1}</div>
+                                        <div className="truncate">{match.team1.player_2}</div>
+                                    </div>
                                     {winningTeam === 'team1' && (
                                         <div className="mt-2">
                                             <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
@@ -224,10 +225,11 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                         {/* Team 2 */}
                         <div className={`bg-primary rounded-xl ${isWarmup ? 'p-3' : 'p-5'} border-4 border-accent`}>
                             <div className="flex items-center gap-6">
-                                <div className="flex-1">
-                                    <h2 className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
-                                        {match.team2.player_1} <br/> {match.team2.player_2}
-                                    </h2>
+                                <div className="flex-1 min-w-0">
+                                    <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
+                                        <div className="truncate">{match.team2.player_1}</div>
+                                        <div className="truncate">{match.team2.player_2}</div>
+                                    </div>
                                     {winningTeam === 'team2' && (
                                         <div className="mt-2">
                                             <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
@@ -348,7 +350,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                 </div>
 
                 {/* Footer */}
-                <div className="bg-primary py-3 px-6 border-t-4 border-accent flex-shrink-0">
+                <div className="bg-primary py-3 px-2 border-t-4 border-accent flex-shrink-0">
                     <div className="max-w-7xl mx-auto">
                         {match && category && (
                             <div className="flex justify-between items-center">
