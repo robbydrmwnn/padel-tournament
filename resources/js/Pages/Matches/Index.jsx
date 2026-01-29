@@ -11,7 +11,12 @@ export default function Index({ category, phases, currentPhase, courts }) {
     
     const selectedPhase = phases.find(p => p.id === selectedPhaseId);
     const matches = selectedPhase?.matches || [];
-    const previousPhase = phases.find(p => p.order === selectedPhase?.order - 1);
+    // Find the previous phase (highest order less than current phase's order)
+    const previousPhase = selectedPhase 
+        ? phases
+            .filter(p => p.order < selectedPhase.order)
+            .sort((a, b) => b.order - a.order)[0]
+        : null;
 
     // Knockout match setup form
     const { data: knockoutData, setData: setKnockoutData, post: postKnockout, processing: knockoutProcessing } = useForm({
@@ -62,7 +67,13 @@ export default function Index({ category, phases, currentPhase, courts }) {
 
     const handleResolveMatches = () => {
         if (confirm(`Resolve match participants for ${selectedPhase.name} based on ${previousPhase.name} results?`)) {
-            router.post(route('phases.resolve-matches', [category.id, selectedPhaseId]));
+            router.post(route('phases.resolve-matches', { category: category.id, phase: selectedPhaseId }), {}, {
+                preserveScroll: true,
+                onError: (errors) => {
+                    console.error('Resolve matches error:', errors);
+                    alert('Error resolving matches. Check console for details.');
+                },
+            });
         }
     };
 

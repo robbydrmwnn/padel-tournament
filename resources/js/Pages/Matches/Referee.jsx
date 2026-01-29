@@ -4,9 +4,24 @@ import { useState, useEffect } from 'react';
 
 export default function Referee({ category, match }) {
     const { flash } = usePage().props;
-    const [warmupTime, setWarmupTime] = useState(0);
-    const [isWarmupRunning, setIsWarmupRunning] = useState(false);
-    const [warmupCompleted, setWarmupCompleted] = useState(false);
+    
+    // Initialize warmup state based on match props - this ensures state resets when match changes
+    const [warmupTime, setWarmupTime] = useState(() => {
+        if (match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped) {
+            const elapsed = Math.floor((Date.now() - new Date(match.warmup_started_at).getTime()) / 1000);
+            return Math.max(0, (category.warmup_minutes * 60) - elapsed);
+        }
+        return category.warmup_minutes * 60;
+    });
+    const [isWarmupRunning, setIsWarmupRunning] = useState(() => 
+        Boolean(match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped)
+    );
+    const [warmupCompleted, setWarmupCompleted] = useState(() => 
+        Boolean(match.warmup_ended_at || match.warmup_skipped)
+    );
+    
+    // Track match ID to detect when we navigate to a different match
+    const [currentMatchId, setCurrentMatchId] = useState(match.id);
     
     // Get scoring configuration from match's phase
     const phase = match.tournament_phase;
@@ -24,19 +39,40 @@ export default function Referee({ category, match }) {
         tiebreakerTwoPointDiff: true,
     };
 
-    // Initialize warmup state
+    // Reset warmup state when navigating to a different match
     useEffect(() => {
-        if (match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped) {
-            const elapsed = Math.floor((Date.now() - new Date(match.warmup_started_at).getTime()) / 1000);
-            const remaining = Math.max(0, (category.warmup_minutes * 60) - elapsed);
-            setWarmupTime(remaining);
-            setIsWarmupRunning(true);
-        } else if (match.warmup_ended_at || match.warmup_skipped) {
-            setWarmupCompleted(true);
+        if (match.id !== currentMatchId) {
+            // Match changed - reset all warmup state
+            setCurrentMatchId(match.id);
+            
+            if (match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped) {
+                const elapsed = Math.floor((Date.now() - new Date(match.warmup_started_at).getTime()) / 1000);
+                const remaining = Math.max(0, (category.warmup_minutes * 60) - elapsed);
+                setWarmupTime(remaining);
+                setIsWarmupRunning(true);
+                setWarmupCompleted(false);
+            } else if (match.warmup_ended_at || match.warmup_skipped) {
+                setWarmupCompleted(true);
+                setIsWarmupRunning(false);
+                setWarmupTime(0);
+            } else {
+                // New match with no warmup started
+                setWarmupTime(category.warmup_minutes * 60);
+                setIsWarmupRunning(false);
+                setWarmupCompleted(false);
+            }
         } else {
-            setWarmupTime(category.warmup_minutes * 60);
+            // Same match - just sync state from props (e.g., after page refresh)
+            if (match.warmup_started_at && !match.warmup_ended_at && !match.warmup_skipped) {
+                const elapsed = Math.floor((Date.now() - new Date(match.warmup_started_at).getTime()) / 1000);
+                const remaining = Math.max(0, (category.warmup_minutes * 60) - elapsed);
+                setWarmupTime(remaining);
+                setIsWarmupRunning(true);
+            } else if (match.warmup_ended_at || match.warmup_skipped) {
+                setWarmupCompleted(true);
+            }
         }
-    }, [match, category.warmup_minutes]);
+    }, [match.id, match.warmup_started_at, match.warmup_ended_at, match.warmup_skipped, category.warmup_minutes]);
 
     // Warmup timer countdown
     useEffect(() => {
