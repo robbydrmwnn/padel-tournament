@@ -119,20 +119,32 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
         <>
             <Head title={`Match Monitor - Court ${match?.court?.name || court?.name || ''}`} />
 
-            <div className="h-screen overflow-hidden bg-dark text-white flex flex-col">
+            <div className="h-screen overflow-hidden text-white flex flex-col relative" 
+                 style={{
+                     backgroundImage: 'url(/images/blue.png)',
+                     backgroundSize: 'cover',
+                     backgroundPosition: 'center',
+                     backgroundRepeat: 'no-repeat'
+                 }}>
                 {/* Header */}
-                <div className="bg-primary py-2 px-4 shadow-2xl border-b-4 border-accent flex-shrink-0">
-                    <div className="max-w-7xl mx-auto text-center">
-                        <h1 className="text-4xl font-bold font-raverist text-white leading-tight">{category?.event?.name || court?.event?.name || 'Tournament'}</h1>
-                        {match && (
-                            <div>
-                                <p className="text-2xl text-white font-gotham font-bold mt-1 leading-tight">{category?.name}</p>
+                <div className="bg-primary/90 backdrop-blur-sm py-4 px-6 shadow-2xl border-b-4 border-accent flex-shrink-0">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                        {match ? (
+                            <>
                                 {match.tournament_phase && (
-                                    <p className="text-3xl text-accent font-gotham font-bold mt-2 leading-tight">
+                                    <p className="text-5xl text-white font-gotham font-bold leading-tight">
                                         {match.tournament_phase.name}
                                     </p>
                                 )}
-                            </div>
+                                <div className="flex items-center gap-6">
+                                    <p className="text-6xl text-accent font-gotham font-bold leading-tight">{category?.name}</p>
+                                    <img src="/logo/logo.jpeg" alt="MBSport" className="h-20 object-contain" />
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-6xl text-white font-gotham font-bold leading-tight mx-auto">
+                                {court?.event?.name || 'Court Ready'}
+                            </p>
                         )}
                     </div>
                 </div>
@@ -142,7 +154,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     {/* Status Badge */}
                     {getMatchStatus() && (
                         <div className="text-center mb-2">
-                            <span className="inline-block px-8 py-2 text-4xl font-bold font-raverist bg-primary text-white rounded-xl shadow-2xl border-4 border-accent">
+                            <span className="inline-block px-8 py-2 text-4xl font-bold font-raverist bg-primary/90 backdrop-blur-sm text-white rounded-xl shadow-2xl border-4 border-accent">
                                 {getMatchStatus()}
                             </span>
                         </div>
@@ -151,7 +163,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     {!match ? (
                         /* No Match Display */
                         <div className="space-y-4">
-                            <div className="bg-neutral-900 rounded-2xl p-10 shadow-2xl border-4 border-accent text-center">
+                            <div className="bg-neutral-900/80 backdrop-blur-sm rounded-2xl p-10 shadow-2xl border-4 border-accent text-center">
                                 <div className="text-8xl mb-6">🎾</div>
                                 <h2 className="text-7xl font-bold font-raverist text-white mb-6">COURT {court?.name || 'AVAILABLE'}</h2>
                                 <p className="text-5xl font-gotham text-accent font-bold mb-8">Ready for Action</p>
@@ -161,7 +173,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </div>
                             </div>
                             {court?.event && (
-                                <div className="bg-primary rounded-xl p-5 shadow-xl border-4 border-accent text-center">
+                                <div className="bg-primary/90 backdrop-blur-sm rounded-xl p-5 shadow-xl border-4 border-accent text-center">
                                     <p className="text-4xl font-bold font-raverist text-white mb-2">{court.event.name}</p>
                                     {court.event.location && <p className="text-2xl font-gotham text-white font-bold">{court.event.location}</p>}
                                 </div>
@@ -170,9 +182,9 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     ) : (
                     <>
                     {/* Scoreboard - Vertical Layout */}
-                    <div className={`bg-neutral-900 rounded-2xl ${isWarmup ? 'p-3' : 'p-4'} shadow-2xl border-4 border-accent`}>
+                    <div className={`bg-neutral-900/80 backdrop-blur-sm rounded-2xl ${isWarmup ? 'p-3' : 'p-4'} shadow-2xl border-4 border-accent`}>
                         {/* Team 1 */}
-                        <div className={`bg-success rounded-xl ${isWarmup ? 'p-3 mb-2' : 'p-5 mb-3'} border-4 border-accent`}>
+                        <div className={`bg-success/85 backdrop-blur-sm rounded-xl ${isWarmup ? 'p-3 mb-2' : 'p-5 mb-3'} border-4 border-accent`}>
                             <div className="flex items-center gap-6">
                                 <div className="flex-1 min-w-0">
                                     <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
@@ -181,7 +193,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                     </div>
                                     {winningTeam === 'team1' && (
                                         <div className="mt-2">
-                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
+                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent/95 backdrop-blur-sm text-dark rounded-lg border-2 border-dark animate-pulse shadow-2xl">
                                                 🏆 WINNER
                                             </span>
                                         </div>
@@ -189,14 +201,14 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </div>
                                 <div className="flex items-center gap-5 flex-shrink-0">
                                     {/* Games Won */}
-                                    <div className={`text-center bg-dark rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
+                                    <div className={`text-center bg-dark/90 backdrop-blur-sm rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
                                         <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
                                             {match.team1_score || 0}
                                         </div>
                                     </div>
                                     {/* Current Game Points */}
                                     {isMatchStarted && !isWarmup ? (
-                                        <div className="text-center bg-dark rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
+                                        <div className="text-center bg-dark/90 backdrop-blur-sm rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
                                             {(() => {
                                                 const displayValue = getPointDisplay(match.current_game_team1_points, 'team1');
                                                 const isNumeric = !isNaN(displayValue);
@@ -223,7 +235,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                         </div>
 
                         {/* Team 2 */}
-                        <div className={`bg-primary rounded-xl ${isWarmup ? 'p-3' : 'p-5'} border-4 border-accent`}>
+                        <div className={`bg-primary/85 backdrop-blur-sm rounded-xl ${isWarmup ? 'p-3' : 'p-5'} border-4 border-accent`}>
                             <div className="flex items-center gap-6">
                                 <div className="flex-1 min-w-0">
                                     <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
@@ -232,7 +244,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                     </div>
                                     {winningTeam === 'team2' && (
                                         <div className="mt-2">
-                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent text-dark rounded-lg border-2 border-dark animate-pulse">
+                                            <span className="inline-block px-4 py-2 text-3xl font-bold font-raverist bg-accent/95 backdrop-blur-sm text-dark rounded-lg border-2 border-dark animate-pulse shadow-2xl">
                                                 🏆 WINNER
                                             </span>
                                         </div>
@@ -240,14 +252,14 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </div>
                                 <div className="flex items-center gap-5 flex-shrink-0">
                                     {/* Games Won */}
-                                    <div className={`text-center bg-dark rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
+                                    <div className={`text-center bg-dark/90 backdrop-blur-sm rounded-lg border-4 border-accent flex items-center justify-center ${isWarmup ? 'w-[150px] h-[120px]' : 'w-[200px] h-[180px]'}`}>
                                         <div className={`${isWarmup ? 'text-7xl' : 'text-9xl'} font-bold leading-none text-white`}>
                                             {match.team2_score || 0}
                                         </div>
                                     </div>
                                     {/* Current Game Points */}
                                     {isMatchStarted && !isWarmup ? (
-                                        <div className="text-center bg-dark rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
+                                        <div className="text-center bg-dark/90 backdrop-blur-sm rounded-lg border-4 border-accent w-[200px] h-[180px] flex items-center justify-center">
                                             {(() => {
                                                 const displayValue = getPointDisplay(match.current_game_team2_points, 'team2');
                                                 const isNumeric = !isNaN(displayValue);
@@ -272,7 +284,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                     {/* AD Counter and Golden Point Status */}
                     {isMatchStarted && !isWarmup && match.is_tiebreaker ? (
                         <div className="text-center mt-2">
-                            <div className="inline-block bg-red-600 px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
+                            <div className="inline-block bg-red-600/95 backdrop-blur-sm px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
                                 <p className="text-4xl font-bold font-raverist text-white">
                                     🔥 TIE-BREAKER 🔥
                                 </p>
@@ -288,7 +300,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                      match.current_game_team1_points === '40' && 
                      match.current_game_team2_points === '40' ? (
                         <div className="text-center mt-2">
-                            <div className="inline-block bg-red-600 px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
+                            <div className="inline-block bg-red-600/95 backdrop-blur-sm px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
                                 <p className="text-4xl font-bold font-raverist text-white">
                                     ⚡ STAR POINT ⚡
                                 </p>
@@ -296,7 +308,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                         </div>
                     ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && !match.pending_game_winner && (
                         <div className="text-center mt-2">
-                            <div className="inline-block bg-primary px-4 py-1 rounded-lg border-2 border-accent">
+                            <div className="inline-block bg-primary/90 backdrop-blur-sm px-4 py-1 rounded-lg border-2 border-accent">
                                 <p className="text-2xl font-bold font-gotham text-white">
                                     AD: {match.current_game_advantages}/2
                                 </p>
@@ -306,7 +318,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
 
                     {/* Warm-up Message */}
                     {isWarmup && (
-                        <div className="bg-primary rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
+                        <div className="bg-primary/90 backdrop-blur-sm rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
                             <p className="text-4xl font-bold font-raverist text-white mb-2">⏱️ WARM-UP IN PROGRESS</p>
                             <div className="text-7xl font-bold font-gotham text-accent">
                                 {formatWarmupTime(warmupTime)}
@@ -316,7 +328,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
 
                     {/* Match Complete */}
                     {match.status === 'completed' && (
-                        <div className={`${match.winner_id ? 'bg-success' : 'bg-primary'} rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent`}>
+                        <div className={`${match.winner_id ? 'bg-success/90' : 'bg-primary/90'} backdrop-blur-sm rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent`}>
                             <p className="text-3xl font-bold font-raverist mb-2 text-white">
                                 {match.winner_id ? '🏆 WINNER 🏆' : '🤝 MATCH DRAW 🤝'}
                             </p>
@@ -336,7 +348,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
 
                     {/* Scheduled Message */}
                     {match.status === 'scheduled' && !match.warmup_started_at && (
-                        <div className="bg-neutral-900 rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
+                        <div className="bg-neutral-900/80 backdrop-blur-sm rounded-xl p-4 shadow-2xl text-center mt-2 border-4 border-accent">
                             <p className="text-3xl font-bold font-raverist mb-2 text-accent">📅 UPCOMING MATCH</p>
                             {match.scheduled_time && (
                                 <p className="text-2xl text-white font-gotham font-bold">
@@ -350,7 +362,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                 </div>
 
                 {/* Footer */}
-                <div className="bg-primary py-3 px-2 border-t-4 border-accent flex-shrink-0">
+                <div className="bg-primary/90 backdrop-blur-sm py-3 px-2 border-t-4 border-accent flex-shrink-0">
                     <div className="max-w-7xl mx-auto">
                         {match && category && (
                             <div className="flex justify-between items-center">
