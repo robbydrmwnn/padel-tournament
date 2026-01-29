@@ -48,6 +48,13 @@ export default function Matches({ event, court, matches = [] }) {
             return;
         }
         
+        // If match is already started (in_progress or upcoming), just open it
+        if (match.status === 'in_progress' || match.status === 'upcoming') {
+            router.visit(route('categories.matches.referee', [categoryId, matchId]));
+            return;
+        }
+        
+        // Otherwise, start the match prep
         try {
             const response = await axios.post(route('categories.matches.startPrep', [categoryId, matchId]));
             

@@ -22,6 +22,10 @@ Route::get('/', function () {
 Route::get('courts/{court}/monitor', [MatchController::class, 'courtMonitor'])
     ->name('courts.monitor');
 
+// Public leaderboard screensaver for an event (no authentication required)
+Route::get('events/{event}/leaderboard', [EventController::class, 'leaderboardScreensaver'])
+    ->name('events.leaderboard');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
