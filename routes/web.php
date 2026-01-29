@@ -79,6 +79,10 @@ Route::middleware('auth')->group(function () {
         ->name('categories.matches.generate');
     Route::post('categories/{category}/matches/create-knockout', [MatchController::class, 'createKnockoutMatches'])
         ->name('categories.matches.create-knockout');
+    Route::post('categories/{category}/matches/import-schedule', [MatchController::class, 'importSchedule'])
+        ->name('categories.matches.import-schedule');
+    Route::get('categories/{category}/matches/schedule-template', [MatchController::class, 'downloadScheduleTemplate'])
+        ->name('categories.matches.schedule-template');
     Route::patch('categories/{category}/matches/{match}', [MatchController::class, 'update'])
         ->name('categories.matches.update');
     Route::delete('categories/{category}/matches/{match}', [MatchController::class, 'destroy'])

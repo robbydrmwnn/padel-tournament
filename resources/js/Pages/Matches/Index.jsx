@@ -7,6 +7,7 @@ export default function Index({ category, phases, currentPhase, courts }) {
     const { flash } = usePage().props;
     const [selectedPhaseId, setSelectedPhaseId] = useState(currentPhase?.id || phases[0]?.id);
     const [showKnockoutModal, setShowKnockoutModal] = useState(false);
+    const [importingSchedule, setImportingSchedule] = useState(false);
     
     const selectedPhase = phases.find(p => p.id === selectedPhaseId);
     const matches = selectedPhase?.matches || [];
@@ -103,6 +104,81 @@ export default function Index({ category, phases, currentPhase, courts }) {
     const handleDeleteMatch = (matchId) => {
         if (confirm('Are you sure you want to delete this match?')) {
             router.delete(route('categories.matches.destroy', [category.id, matchId]));
+        }
+    };
+
+    const handleImportSchedule = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const validTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+        if (!validTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+            alert('❌ Please upload a valid Excel file (.xlsx or .xls)');
+            event.target.value = '';
+            return;
+        }
+
+        if (confirm(`Import match schedule from "${file.name}"?\n\nThis will update match schedules based on team names, court assignments, and times in the Excel file.`)) {
+            setImportingSchedule(true);
+            
+            const formData = new FormData();
+            formData.append('schedule_file', file);
+            formData.append('phase_id', selectedPhaseId);
+
+            try {
+                const response = await axios.post(
+                    route('categories.matches.import-schedule', category.id),
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+
+                if (response.data.success) {
+                    // Show success message with details
+                    const parts = [];
+                    if (response.data.created > 0) {
+                        parts.push(`Created ${response.data.created} new match(es)`);
+                    }
+                    if (response.data.updated > 0) {
+                        parts.push(`Updated ${response.data.updated} match(es)`);
+                    }
+                    
+                    const message = parts.length > 0 ? parts.join(' and ') : (response.data.message || 'Import completed');
+                    
+                    if (response.data.errors && response.data.errors.length > 0) {
+                        // Show partial success with errors
+                        const errorList = response.data.errors.slice(0, 5).join('\n');
+                        const moreErrors = response.data.errors.length > 5 ? `\n... and ${response.data.errors.length - 5} more errors` : '';
+                        alert(`✅ ${message}\n\n⚠️ Some rows had errors:\n${errorList}${moreErrors}`);
+                    }
+                    
+                    router.reload({
+                        only: ['phases'],
+                        onFinish: () => {
+                            setImportingSchedule(false);
+                            event.target.value = '';
+                        }
+                    });
+                }
+            } catch (error) {
+                setImportingSchedule(false);
+                event.target.value = '';
+                
+                if (error.response && error.response.data && error.response.data.error) {
+                    alert('❌ Import Failed\n\n' + error.response.data.error);
+                } else if (error.response && error.response.data && error.response.data.message) {
+                    alert('❌ Import Failed\n\n' + error.response.data.message);
+                } else {
+                    alert('❌ An error occurred while importing the schedule.\n\nPlease check:\n• File format (.xlsx or .xls)\n• Column headers: Team 1, Team 2, Court, Date, Time\n• Team names match exactly\n• Court names exist\n• Date format: DD-MM-YYYY or YYYY-MM-DD\n• Time format: HH:MM (24-hour)');
+                }
+                console.error('Import error:', error);
+            }
+        } else {
+            event.target.value = '';
         }
     };
 
@@ -269,6 +345,36 @@ export default function Index({ category, phases, currentPhase, courts }) {
                                         Resolve Participants
                                     </button>
                                 )}
+                                {selectedPhase && selectedPhase.type === 'group' && (
+                                    <>
+                                        <a
+                                            href={route('categories.matches.schedule-template', {
+                                                category: category.id,
+                                                phase_id: selectedPhaseId
+                                            })}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-neutral-200 px-6 py-3 text-lg font-gotham font-bold text-dark shadow-lg hover:bg-neutral-300 transition-all border-2 border-neutral-400 hover:scale-105"
+                                            title="Download Excel template with current matches"
+                                        >
+                                            <span className="text-2xl">📄</span>
+                                            {matches.length > 0 ? 'Export Schedule' : 'Template'}
+                                        </a>
+                                        <label className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-lg font-gotham font-bold shadow-lg transition-all border-2 ${
+                                            importingSchedule
+                                                ? 'bg-neutral-300 text-neutral-500 border-neutral-400 cursor-not-allowed'
+                                                : 'bg-accent text-dark border-dark hover:bg-accent-600 hover:scale-105 cursor-pointer'
+                                        }`}>
+                                            <span className="text-2xl">📁</span>
+                                            {importingSchedule ? 'Importing...' : 'Import Schedule'}
+                                            <input
+                                                type="file"
+                                                accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                                onChange={handleImportSchedule}
+                                                disabled={importingSchedule}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </>
+                                )}
                                 {selectedPhase && (
                                     <button
                                         onClick={handleGenerateMatches}
@@ -296,6 +402,46 @@ export default function Index({ category, phases, currentPhase, courts }) {
                     {flash?.info && (
                         <div className="bg-primary rounded-xl border-4 border-primary-700 text-white px-6 py-4 font-gotham font-bold shadow-lg">
                             ℹ️ {flash.info}
+                        </div>
+                    )}
+
+                    {/* Import Schedule Info */}
+                    {selectedPhase && selectedPhase.type === 'group' && (
+                        <div className="bg-primary-50 rounded-2xl p-6 shadow-lg border-2 border-primary">
+                            <h3 className="text-lg font-bold font-raverist text-primary mb-3">📊 Schedule Import Guide</h3>
+                            <div className="font-gotham text-sm text-dark space-y-2">
+                                <div>
+                                    <p className="font-bold mb-1">Two Ways to Use Import:</p>
+                                    <div className="ml-2 space-y-2">
+                                        <div>
+                                            <p className="font-semibold text-success">Option 1: Update Existing Matches</p>
+                                            <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                                <li>Click "Generate Matches" to create round-robin matches</li>
+                                                <li>Click "Export Schedule" to download</li>
+                                                <li>Edit court, date, and time in Excel</li>
+                                                <li>Click "Import Schedule" to update</li>
+                                            </ol>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-primary">Option 2: Create Custom Matches</p>
+                                            <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                                <li>Download the template (or create your own Excel)</li>
+                                                <li>Add rows with team pairs, court, date, and time</li>
+                                                <li>Click "Import Schedule" - new matches will be created automatically!</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-neutral-600 bg-white rounded p-2 border border-neutral-300">
+                                    <p className="font-bold mb-1">Format Requirements:</p>
+                                    <ul className="space-y-0.5">
+                                        <li>• <strong>Team names:</strong> Team name OR "Player1 / Player2" (case-insensitive)</li>
+                                        <li>• <strong>Court:</strong> Court name or number (e.g., "Court 1" or "1")</li>
+                                        <li>• <strong>Date:</strong> DD-MM-YYYY or YYYY-MM-DD (e.g., "31-01-2026")</li>
+                                        <li>• <strong>Time:</strong> HH:MM in 24-hour format (e.g., "09:00", "14:30")</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -470,11 +616,14 @@ export default function Index({ category, phases, currentPhase, courts }) {
                         </div>
                     ) : selectedPhase.type === 'group' ? (
                         // Group phase matches - organized by group
-                        Object.entries(matchesByGroup).map(([groupName, groupMatches]) => (
+                        Object.entries(matchesByGroup).sort((a, b) => {
+                            // Sort by group name (handles both letter and number formats)
+                            return a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
+                        }).map(([groupName, groupMatches]) => (
                             <div key={groupName} className="bg-white rounded-2xl p-8 shadow-lg border-4 border-success">
                                 <h3 className="text-2xl font-bold font-raverist text-success mb-6 flex items-center gap-3">
                                     <span className="text-3xl">🏆</span>
-                                    {groupName}
+                                    Group {groupName}
                                 </h3>
                                 
                                 <div className="space-y-1.5">

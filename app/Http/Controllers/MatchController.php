@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\GameMatch;
 use App\Models\Group;
+use App\Models\Participant;
+use App\Models\Court;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class MatchController extends Controller
 {
@@ -143,6 +147,419 @@ class MatchController extends Controller
 
         return redirect()->route('categories.matches.index', $category)
             ->with('success', "$created match(es) created for {$phase->name}. Participants will be assigned after previous phase completes.");
+    }
+
+    /**
+     * Import match schedule from Excel file
+     */
+    public function importSchedule(Request $request, Category $category): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'schedule_file' => 'required|file|mimes:xlsx,xls',
+            'phase_id' => 'required|exists:tournament_phases,id',
+        ]);
+
+        $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
+
+        if ($phase->type !== 'group') {
+            return response()->json([
+                'error' => 'Schedule import is only available for group phases.'
+            ], 422);
+        }
+
+        try {
+            $file = $request->file('schedule_file');
+            $data = Excel::toArray([], $file)[0]; // Get first sheet
+
+            if (empty($data)) {
+                return response()->json([
+                    'error' => 'The Excel file is empty.'
+                ], 422);
+            }
+
+            // Note: We no longer require matches to exist - we'll create them if needed
+
+            // Expect header row: Team 1, Team 2, Court, Date, Time
+            // Skip first row (header)
+            $headerRow = array_shift($data);
+            
+            // Normalize header to find column indices
+            $headerMap = [];
+            foreach ($headerRow as $index => $header) {
+                $normalized = strtolower(trim($header));
+                $headerMap[$normalized] = $index;
+            }
+
+            // Required columns
+            $requiredColumns = ['team 1', 'team 2', 'court', 'date', 'time'];
+            foreach ($requiredColumns as $col) {
+                if (!isset($headerMap[$col]) && !isset($headerMap[str_replace(' ', '', $col)])) {
+                    return response()->json([
+                        'error' => "Missing required column: {$col}. Expected columns: Team 1, Team 2, Court, Date, Time"
+                    ], 422);
+                }
+            }
+
+            // Get column indices
+            $team1Col = $headerMap['team 1'] ?? $headerMap['team1'] ?? null;
+            $team2Col = $headerMap['team 2'] ?? $headerMap['team2'] ?? null;
+            $courtCol = $headerMap['court'] ?? null;
+            $dateCol = $headerMap['date'] ?? null;
+            $timeCol = $headerMap['time'] ?? null;
+
+            if (is_null($team1Col) || is_null($team2Col) || is_null($courtCol) || is_null($dateCol) || is_null($timeCol)) {
+                return response()->json([
+                    'error' => 'Could not identify all required columns. Please ensure columns are named: Team 1, Team 2, Court, Date, Time'
+                ], 422);
+            }
+
+            // Get all participants for this category
+            $participants = Participant::where('category_id', $category->id)->get();
+            
+            // Get all courts for this event
+            $courts = Court::where('event_id', $category->event_id)->get();
+
+            $updated = 0;
+            $created = 0;
+            $errors = [];
+
+            DB::beginTransaction();
+
+            // Get the highest match_order for this phase
+            $maxMatchOrder = GameMatch::where('phase_id', $phase->id)->max('match_order') ?? 0;
+
+            foreach ($data as $rowIndex => $row) {
+                $rowNumber = $rowIndex + 2; // +2 because we removed header and Excel is 1-indexed
+                
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+
+                $team1Name = trim($row[$team1Col] ?? '');
+                $team2Name = trim($row[$team2Col] ?? '');
+                $courtName = trim($row[$courtCol] ?? '');
+                $date = $row[$dateCol] ?? '';
+                $time = $row[$timeCol] ?? '';
+
+                if (empty($team1Name) || empty($team2Name)) {
+                    $errors[] = "Row {$rowNumber}: Missing team names";
+                    continue;
+                }
+
+                // Find teams by name - flexible matching
+                // Supports: team name, "Player1 / Player2", "Player1/Player2", "Player1 - Player2"
+                $team1 = $participants->first(function ($p) use ($team1Name) {
+                    // Check team name field first
+                    if (!empty($p->name) && strcasecmp(trim($p->name), $team1Name) === 0) {
+                        return true;
+                    }
+                    
+                    // Check player name combinations
+                    $fullName1 = trim($p->player_1 . ' / ' . $p->player_2);
+                    $fullName2 = trim($p->player_1 . '/' . $p->player_2);
+                    $fullName3 = trim($p->player_1 . ' - ' . $p->player_2);
+                    
+                    return strcasecmp($fullName1, $team1Name) === 0 ||
+                           strcasecmp($fullName2, $team1Name) === 0 ||
+                           strcasecmp($fullName3, $team1Name) === 0;
+                });
+
+                $team2 = $participants->first(function ($p) use ($team2Name) {
+                    // Check team name field first
+                    if (!empty($p->name) && strcasecmp(trim($p->name), $team2Name) === 0) {
+                        return true;
+                    }
+                    
+                    // Check player name combinations
+                    $fullName1 = trim($p->player_1 . ' / ' . $p->player_2);
+                    $fullName2 = trim($p->player_1 . '/' . $p->player_2);
+                    $fullName3 = trim($p->player_1 . ' - ' . $p->player_2);
+                    
+                    return strcasecmp($fullName1, $team2Name) === 0 ||
+                           strcasecmp($fullName2, $team2Name) === 0 ||
+                           strcasecmp($fullName3, $team2Name) === 0;
+                });
+
+                if (!$team1) {
+                    // Show available team names for first 3 errors
+                    if (count($errors) < 3) {
+                        $availableTeams = $participants->take(3)->map(function ($p) {
+                            $teamName = !empty($p->name) ? $p->name : ($p->player_1 . ' / ' . $p->player_2);
+                            return $teamName;
+                        })->implode(', ');
+                        $errors[] = "Row {$rowNumber}: Team not found: '{$team1Name}'. Examples: {$availableTeams}";
+                    } else {
+                        $errors[] = "Row {$rowNumber}: Team not found: '{$team1Name}'";
+                    }
+                    continue;
+                }
+
+                if (!$team2) {
+                    if (count($errors) < 3) {
+                        $availableTeams = $participants->take(3)->map(function ($p) {
+                            $teamName = !empty($p->name) ? $p->name : ($p->player_1 . ' / ' . $p->player_2);
+                            return $teamName;
+                        })->implode(', ');
+                        $errors[] = "Row {$rowNumber}: Team not found: '{$team2Name}'. Examples: {$availableTeams}";
+                    } else {
+                        $errors[] = "Row {$rowNumber}: Team not found: '{$team2Name}'";
+                    }
+                    continue;
+                }
+
+                // Find the match
+                $match = GameMatch::where('phase_id', $phase->id)
+                    ->where(function ($query) use ($team1, $team2) {
+                        $query->where(function ($q) use ($team1, $team2) {
+                            $q->where('team1_id', $team1->id)
+                              ->where('team2_id', $team2->id);
+                        })->orWhere(function ($q) use ($team1, $team2) {
+                            $q->where('team1_id', $team2->id)
+                              ->where('team2_id', $team1->id);
+                        });
+                    })
+                    ->first();
+
+                if (!$match) {
+                    // Match doesn't exist - create it
+                    try {
+                        $maxMatchOrder++;
+                        
+                        // Determine which group this match belongs to
+                        // Try to find the group for team1 first
+                        $group = $phase->groups()
+                            ->whereHas('participants', function ($query) use ($team1) {
+                                $query->where('participant_id', $team1->id);
+                            })
+                            ->first();
+                        
+                        $match = GameMatch::create([
+                            'category_id' => $category->id,
+                            'phase_id' => $phase->id,
+                            'group_id' => $group ? $group->id : null,
+                            'team1_id' => $team1->id,
+                            'team2_id' => $team2->id,
+                            'phase' => 'group',
+                            'status' => 'scheduled',
+                            'match_order' => $maxMatchOrder,
+                        ]);
+                        
+                        $created++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Row {$rowNumber}: Failed to create match between '{$team1Name}' and '{$team2Name}': " . $e->getMessage();
+                        continue;
+                    }
+                }
+
+                // Find court (if provided)
+                $court = null;
+                if (!empty($courtName)) {
+                    $court = $courts->first(function ($c) use ($courtName) {
+                        // Exact match
+                        if (strcasecmp(trim($c->name), $courtName) === 0) {
+                            return true;
+                        }
+                        // Try matching "1" to "Court 1", "2" to "Court 2", etc.
+                        if (is_numeric($courtName)) {
+                            if (strcasecmp(trim($c->name), "Court {$courtName}") === 0) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
+
+                    if (!$court) {
+                        $availableCourts = $courts->pluck('name')->take(5)->implode(', ');
+                        $errors[] = "Row {$rowNumber}: Court not found: '{$courtName}'. Available courts: {$availableCourts}";
+                    }
+                }
+
+                // Parse date and time
+                $scheduledTime = null;
+                if (!empty($date) && !empty($time)) {
+                    try {
+                        // Handle Excel date/time formats
+                        if (is_numeric($date)) {
+                            // Excel serial date
+                            $dateObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date);
+                            $dateStr = $dateObj->format('Y-m-d');
+                        } else {
+                            // Try to parse date string
+                            // Support formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, YYYY/MM/DD
+                            $dateStr = null;
+                            
+                            // Try DD-MM-YYYY or DD/MM/YYYY format first
+                            if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $date, $matches)) {
+                                $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                                $year = $matches[3];
+                                $dateStr = "{$year}-{$month}-{$day}";
+                            } 
+                            // Try YYYY-MM-DD or YYYY/MM/DD format
+                            else if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $date, $matches)) {
+                                $year = $matches[1];
+                                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                                $day = str_pad($matches[3], 2, '0', STR_PAD_LEFT);
+                                $dateStr = "{$year}-{$month}-{$day}";
+                            } else {
+                                // Fallback to strtotime
+                                $timestamp = strtotime($date);
+                                if ($timestamp !== false) {
+                                    $dateStr = date('Y-m-d', $timestamp);
+                                }
+                            }
+                            
+                            if (!$dateStr) {
+                                $errors[] = "Row {$rowNumber}: Invalid date format: '{$date}'. Use DD-MM-YYYY or YYYY-MM-DD";
+                                continue;
+                            }
+                        }
+
+                        if (is_numeric($time)) {
+                            // Excel serial time
+                            $timeObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($time);
+                            $timeStr = $timeObj->format('H:i:s');
+                        } else {
+                            // Parse time string (HH:MM or HH:MM:SS)
+                            if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $time, $matches)) {
+                                $hour = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                                $minute = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                                $second = isset($matches[3]) ? str_pad($matches[3], 2, '0', STR_PAD_LEFT) : '00';
+                                $timeStr = "{$hour}:{$minute}:{$second}";
+                            } else {
+                                $errors[] = "Row {$rowNumber}: Invalid time format: '{$time}'. Use HH:MM (e.g., 09:00, 14:30)";
+                                continue;
+                            }
+                        }
+
+                        $scheduledTime = $dateStr . ' ' . $timeStr;
+                    } catch (\Exception $e) {
+                        $errors[] = "Row {$rowNumber}: Error parsing date/time: " . $e->getMessage();
+                    }
+                }
+
+                // Update match
+                $updateData = [];
+                if ($court) {
+                    $updateData['court_id'] = $court->id;
+                }
+                if ($scheduledTime) {
+                    $updateData['scheduled_time'] = $scheduledTime;
+                }
+
+                if (!empty($updateData)) {
+                    $match->update($updateData);
+                    $updated++;
+                }
+            }
+
+            DB::commit();
+
+            // Build success message
+            $messageParts = [];
+            if ($created > 0) {
+                $messageParts[] = "Created {$created} new match(es)";
+            }
+            if ($updated > 0) {
+                $messageParts[] = "Updated {$updated} existing match(es)";
+            }
+            
+            $message = !empty($messageParts) ? implode(' and ', $messageParts) : "No changes made";
+            
+            if (!empty($errors)) {
+                $message .= ". Errors: " . implode('; ', array_slice($errors, 0, 5));
+                if (count($errors) > 5) {
+                    $message .= " (and " . (count($errors) - 5) . " more)";
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'created' => $created,
+                'updated' => $updated,
+                'errors' => $errors,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Schedule import error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Error processing file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download schedule template Excel file
+     */
+    public function downloadScheduleTemplate(Request $request, Category $category)
+    {
+        // Get phase_id from request if provided
+        $phaseId = $request->query('phase_id');
+        
+        $data = [
+            ['Team 1', 'Team 2', 'Court', 'Date', 'Time'],
+        ];
+
+        if ($phaseId) {
+            // Export existing matches if phase is specified
+            $phase = \App\Models\TournamentPhase::findOrFail($phaseId);
+            
+            if ($phase->type === 'group') {
+                $matches = GameMatch::where('phase_id', $phaseId)
+                    ->with(['team1', 'team2', 'court'])
+                    ->orderBy('scheduled_time')
+                    ->orderBy('match_order')
+                    ->get();
+
+                foreach ($matches as $match) {
+                    if ($match->team1 && $match->team2) {
+                        // Use team name if available, otherwise use player names
+                        $team1Name = !empty($match->team1->name) 
+                            ? $match->team1->name 
+                            : $match->team1->player_1 . ' / ' . $match->team1->player_2;
+                        
+                        $team2Name = !empty($match->team2->name) 
+                            ? $match->team2->name 
+                            : $match->team2->player_1 . ' / ' . $match->team2->player_2;
+                        
+                        $courtName = $match->court ? $match->court->name : '';
+                        
+                        $date = '';
+                        $time = '';
+                        if ($match->scheduled_time) {
+                            $scheduledTime = \Carbon\Carbon::parse($match->scheduled_time);
+                            $date = $scheduledTime->format('Y-m-d');
+                            $time = $scheduledTime->format('H:i');
+                        }
+                        
+                        $data[] = [$team1Name, $team2Name, $courtName, $date, $time];
+                    }
+                }
+            }
+        } else {
+            // Add example rows if no phase specified
+            $data[] = ['Player A / Player B', 'Player C / Player D', 'Court 1', '2026-01-30', '09:00'];
+            $data[] = ['Player E / Player F', 'Player G / Player H', 'Court 2', '2026-01-30', '10:00'];
+        }
+
+        return Excel::download(new class($data) implements \Maatwebsite\Excel\Concerns\FromArray {
+            private $data;
+            
+            public function __construct($data) {
+                $this->data = $data;
+            }
+            
+            public function array(): array {
+                return $this->data;
+            }
+        }, 'match-schedule-template.xlsx');
     }
 
     /**

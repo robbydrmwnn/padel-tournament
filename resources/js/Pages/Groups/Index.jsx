@@ -307,7 +307,7 @@ export default function Index({ category, phases, currentPhase, participants }) 
                                                                 setEditData('name', group.name);
                                                             }}
                                                         >
-                                                            🏆 {group.name}
+                                                            🏆 Group {group.name}
                                                         </h3>
                                                     )}
                                                     <button
