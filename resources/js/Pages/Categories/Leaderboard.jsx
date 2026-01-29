@@ -71,13 +71,7 @@ export default function Leaderboard({ event, category, leaderboardData }) {
                                                             Team
                                                         </th>
                                                         <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
-                                                            Played
-                                                        </th>
-                                                        <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
                                                             Won
-                                                        </th>
-                                                        <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
-                                                            Draw
                                                         </th>
                                                         <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
                                                             Lost
@@ -91,67 +85,70 @@ export default function Leaderboard({ event, category, leaderboardData }) {
                                                         <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
                                                             Game Diff
                                                         </th>
+                                                        <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
+                                                            Points
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-neutral-200">
-                                                    {groupData.standings.map((standing, standingIndex) => (
-                                                        <tr 
-                                                            key={standing.participant.id}
-                                                            className={`${
-                                                                standingIndex === 0 ? 'bg-accent bg-opacity-20' : 
-                                                                standingIndex === 1 ? 'bg-success bg-opacity-10' : 
-                                                                'hover:bg-neutral-50'
-                                                            } transition-colors`}
-                                                        >
-                                                            <td className="py-4 px-6 whitespace-nowrap">
-                                                                <div className="flex items-center">
-                                                                    <span className={`text-2xl font-bold font-raverist ${
-                                                                        standingIndex === 0 ? 'text-accent' : 
-                                                                        standingIndex === 1 ? 'text-success' : 
-                                                                        standingIndex === 2 ? 'text-primary' : 
+                                                    {groupData.standings.map((standing, standingIndex) => {
+                                                        const points = standing.won * 2;
+                                                        return (
+                                                            <tr 
+                                                                key={standing.participant.id}
+                                                                className={`${
+                                                                    standingIndex === 0 ? 'bg-accent bg-opacity-20' : 
+                                                                    standingIndex === 1 ? 'bg-success bg-opacity-10' : 
+                                                                    'hover:bg-neutral-50'
+                                                                } transition-colors`}
+                                                            >
+                                                                <td className="py-4 px-6 whitespace-nowrap">
+                                                                    <div className="flex items-center">
+                                                                        <span className={`text-2xl font-bold font-raverist ${
+                                                                            standingIndex === 0 ? 'text-accent' : 
+                                                                            standingIndex === 1 ? 'text-success' : 
+                                                                            standingIndex === 2 ? 'text-primary' : 
+                                                                            'text-neutral-600'
+                                                                        }`}>
+                                                                            {standingIndex === 0 ? '🥇' : standingIndex === 1 ? '🥈' : standingIndex === 2 ? '🥉' : `#${standingIndex + 1}`}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-4 px-6">
+                                                                    <div className="text-sm font-gotham font-bold text-dark">
+                                                                        {standing.participant.player_1} / {standing.participant.player_2}
+                                                                    </div>
+                                                                    <div className="text-xs font-gotham text-neutral-500">
+                                                                        {standing.participant.name}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className="text-sm font-gotham font-bold text-success">{standing.won}</span>
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className="text-sm font-gotham font-bold text-red-600">{standing.lost}</span>
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className="text-sm font-gotham font-bold text-primary">{standing.games_won}</span>
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className="text-sm font-gotham font-bold text-red-500">{standing.games_lost}</span>
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className={`text-sm font-gotham font-bold ${
+                                                                        standing.game_diff > 0 ? 'text-success' : 
+                                                                        standing.game_diff < 0 ? 'text-red-600' : 
                                                                         'text-neutral-600'
                                                                     }`}>
-                                                                        {standingIndex === 0 ? '🥇' : standingIndex === 1 ? '🥈' : standingIndex === 2 ? '🥉' : `#${standingIndex + 1}`}
+                                                                        {standing.game_diff > 0 ? '+' : ''}{standing.game_diff}
                                                                     </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 px-6">
-                                                                <div className="text-sm font-gotham font-bold text-dark">
-                                                                    {standing.participant.player_1} / {standing.participant.player_2}
-                                                                </div>
-                                                                <div className="text-xs font-gotham text-neutral-500">
-                                                                    {standing.participant.name}
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-dark">{standing.played}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-success">{standing.won}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-neutral-600">{standing.draw}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-red-600">{standing.lost}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-primary">{standing.games_won}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className="text-sm font-gotham font-bold text-red-500">{standing.games_lost}</span>
-                                                            </td>
-                                                            <td className="py-4 px-6 text-center">
-                                                                <span className={`text-sm font-gotham font-bold ${
-                                                                    standing.game_diff > 0 ? 'text-success' : 
-                                                                    standing.game_diff < 0 ? 'text-red-600' : 
-                                                                    'text-neutral-600'
-                                                                }`}>
-                                                                    {standing.game_diff > 0 ? '+' : ''}{standing.game_diff}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                </td>
+                                                                <td className="py-4 px-6 text-center">
+                                                                    <span className="text-lg font-gotham font-bold text-primary">{points}</span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -165,12 +162,12 @@ export default function Leaderboard({ event, category, leaderboardData }) {
                     <div className="mt-8 bg-white rounded-xl p-6 shadow-lg border-2 border-neutral-300">
                         <h3 className="text-lg font-bold font-raverist text-dark mb-4">📖 Ranking System</h3>
                         <div className="text-sm font-gotham">
-                            <p className="text-neutral-700 mb-2"><strong>Ranking Order:</strong></p>
+                            <p className="text-neutral-700 mb-2"><strong>Points Calculation:</strong> Win × 2</p>
+                            <p className="text-neutral-700 mb-2 mt-4"><strong>Ranking Order:</strong></p>
                             <ol className="list-decimal list-inside text-neutral-700 ml-2 space-y-1">
-                                <li>Matches won</li>
-                                <li>Games (sets) won</li>
-                                <li>Game difference</li>
-                                <li>Games lost (fewer is better)</li>
+                                <li>Points (highest wins)</li>
+                                <li>Game difference (highest wins)</li>
+                                <li>Games won (highest wins)</li>
                             </ol>
                         </div>
                     </div>
