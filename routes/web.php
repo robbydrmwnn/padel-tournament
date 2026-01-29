@@ -33,6 +33,8 @@ Route::middleware('auth')->group(function () {
     // Courts management
     Route::get('events/{event}/courts', [CourtController::class, 'index'])
         ->name('events.courts.index');
+    Route::get('events/{event}/courts/{court}/matches', [CourtController::class, 'showMatches'])
+        ->name('events.courts.matches');
     Route::post('events/{event}/courts/setup', [CourtController::class, 'setup'])
         ->name('events.courts.setup');
     Route::patch('events/{event}/courts/{court}', [CourtController::class, 'update'])

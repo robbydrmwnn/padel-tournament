@@ -76,13 +76,6 @@ export default function Referee({ category, match }) {
         });
     };
 
-    const handlePauseWarmup = () => {
-        setIsWarmupRunning(false);
-    };
-
-    const handleResumeWarmup = () => {
-        setIsWarmupRunning(true);
-    };
 
     const handleResetWarmup = () => {
         if (confirm('Reset warm-up timer?')) {
@@ -354,26 +347,11 @@ export default function Referee({ category, match }) {
                                         </button>
                                     ) : (
                                         <>
-                                            {isWarmupRunning ? (
-                                                <button
-                                                    onClick={handlePauseWarmup}
-                                                    className="px-2 py-1 text-sm font-medium text-dark bg-accent rounded-lg hover:bg-accent-700"
-                                                >
-                                                    ⏸
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={handleResumeWarmup}
-                                                    className="px-2 py-1 text-sm font-medium text-white bg-success rounded-lg hover:bg-success-700"
-                                                >
-                                                    ▶
-                                                </button>
-                                            )}
                                             <button
                                                 onClick={handleResetWarmup}
                                                 className="px-2 py-1 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700"
                                             >
-                                                🔄
+                                                Restart 🔄
                                             </button>
                                         </>
                                     )}

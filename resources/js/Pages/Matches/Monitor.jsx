@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import { formatDateTime } from '@/Utils/dateFormatter';
 
 export default function Monitor({ category, match, court, autoRefresh = true }) {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -312,7 +313,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                             <p className="text-3xl font-bold font-raverist mb-2 text-accent">📅 UPCOMING MATCH</p>
                             {match.scheduled_time && (
                                 <p className="text-2xl text-white font-gotham font-bold">
-                                    Scheduled: {new Date(match.scheduled_time).toLocaleString()}
+                                    Scheduled: {formatDateTime(match.scheduled_time)}
                                 </p>
                             )}
                         </div>

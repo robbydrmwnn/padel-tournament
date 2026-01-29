@@ -64,6 +64,29 @@ class CourtController extends Controller
     }
 
     /**
+     * Show all matches for a specific court
+     */
+    public function showMatches(Event $event, Court $court): Response
+    {
+        $event->load('courts');
+        
+        // Load all matches for this court from all categories in this event
+        $matches = \App\Models\GameMatch::where('court_id', $court->id)
+            ->whereHas('category', function ($query) use ($event) {
+                $query->where('event_id', $event->id);
+            })
+            ->with(['team1', 'team2', 'court', 'group', 'category', 'tournamentPhase'])
+            ->orderBy('scheduled_time', 'asc')
+            ->get();
+        
+        return Inertia::render('Courts/Matches', [
+            'event' => $event,
+            'court' => $court,
+            'matches' => $matches,
+        ]);
+    }
+
+    /**
      * Delete a court
      */
     public function destroy(Event $event, Court $court): RedirectResponse

@@ -1,8 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { formatDate } from '@/Utils/dateFormatter';
+import { useState } from 'react';
 
 export default function Show({ event }) {
+    const [showRefereeModal, setShowRefereeModal] = useState(false);
     const getStatusColor = (status) => {
         const colors = {
             draft: 'bg-neutral-400 text-white border-neutral-600',
@@ -21,6 +23,10 @@ export default function Show({ event }) {
             cancelled: '❌',
         };
         return icons[status] || '📋';
+    };
+
+    const handleCourtSelect = (courtId) => {
+        router.visit(route('events.courts.matches', [event.id, courtId]));
     };
 
     return (
@@ -42,6 +48,13 @@ export default function Show({ event }) {
                                 <p className="text-xl font-gotham text-neutral-200">{event.description || 'Tournament Event'}</p>
                             </div>
                             <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowRefereeModal(true)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-gotham font-bold text-dark shadow-lg hover:bg-accent-600 transition-all border-2 border-dark"
+                                >
+                                    <span className="text-xl">👨‍⚖️</span>
+                                    Referee
+                                </button>
                                 <Link
                                     href={route('events.courts.index', event.id)}
                                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-neutral-600"
@@ -167,6 +180,58 @@ export default function Show({ event }) {
                             </div>
                         )}
                     </div>
+
+                    {/* Referee Modal */}
+                    {showRefereeModal && (
+                        <div className="fixed inset-0 bg-dark bg-opacity-90 flex items-center justify-center z-50 overflow-y-auto">
+                            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full my-8 shadow-2xl border-4 border-accent">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-3xl font-bold font-raverist text-accent-900">
+                                        👨‍⚖️ Referee Menu
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowRefereeModal(false)}
+                                        className="px-4 py-2 text-sm font-gotham font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all"
+                                    >
+                                        ✕ Close
+                                    </button>
+                                </div>
+
+                                {/* Court Selection */}
+                                {event.courts && event.courts.length > 0 ? (
+                                    <div>
+                                        <h4 className="text-lg font-bold font-raverist text-dark mb-3">Select Court</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                            {event.courts.map((court) => (
+                                                <button
+                                                    key={court.id}
+                                                    onClick={() => handleCourtSelect(court.id)}
+                                                    className="px-4 py-4 rounded-xl font-gotham font-bold transition-all border-2 bg-neutral-100 text-dark border-neutral-300 hover:bg-accent hover:text-dark hover:border-dark hover:scale-105"
+                                                >
+                                                    <div className="text-3xl mb-2">🎾</div>
+                                                    <div className="text-base">Court {court.name}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-neutral-50 rounded-xl">
+                                        <div className="text-6xl mb-4">🏟️</div>
+                                        <p className="text-lg font-gotham text-neutral-600 mb-4">
+                                            No courts configured for this event yet.
+                                        </p>
+                                        <Link
+                                            href={route('events.courts.index', event.id)}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-dark"
+                                        >
+                                            <span className="text-xl">🏟️</span>
+                                            Set up Courts
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
