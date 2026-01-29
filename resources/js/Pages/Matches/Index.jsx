@@ -345,7 +345,7 @@ export default function Index({ category, phases, currentPhase, courts }) {
                                         Resolve Participants
                                     </button>
                                 )}
-                                {selectedPhase && selectedPhase.type === 'group' && (
+                                {selectedPhase && (
                                     <>
                                         <a
                                             href={route('categories.matches.schedule-template', {
@@ -406,41 +406,72 @@ export default function Index({ category, phases, currentPhase, courts }) {
                     )}
 
                     {/* Import Schedule Info */}
-                    {selectedPhase && selectedPhase.type === 'group' && (
+                    {selectedPhase && (
                         <div className="bg-primary-50 rounded-2xl p-6 shadow-lg border-2 border-primary">
                             <h3 className="text-lg font-bold font-raverist text-primary mb-3">📊 Schedule Import Guide</h3>
                             <div className="font-gotham text-sm text-dark space-y-2">
-                                <div>
-                                    <p className="font-bold mb-1">Two Ways to Use Import:</p>
-                                    <div className="ml-2 space-y-2">
+                                {selectedPhase.type === 'group' ? (
+                                    <>
                                         <div>
-                                            <p className="font-semibold text-success">Option 1: Update Existing Matches</p>
-                                            <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
-                                                <li>Click "Generate Matches" to create round-robin matches</li>
-                                                <li>Click "Export Schedule" to download</li>
-                                                <li>Edit court, date, and time in Excel</li>
-                                                <li>Click "Import Schedule" to update</li>
-                                            </ol>
+                                            <p className="font-bold mb-1">Two Ways to Use Import:</p>
+                                            <div className="ml-2 space-y-2">
+                                                <div>
+                                                    <p className="font-semibold text-success">Option 1: Update Existing Matches</p>
+                                                    <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                                        <li>Click "Generate Matches" to create round-robin matches</li>
+                                                        <li>Click "Export Schedule" to download</li>
+                                                        <li>Edit court, date, and time in Excel</li>
+                                                        <li>Click "Import Schedule" to update</li>
+                                                    </ol>
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-primary">Option 2: Create Custom Matches</p>
+                                                    <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                                        <li>Download the template (or create your own Excel)</li>
+                                                        <li>Add rows with team pairs, court, date, and time</li>
+                                                        <li>Click "Import Schedule" - new matches will be created automatically!</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
                                         </div>
+                                        <div className="text-xs text-neutral-600 bg-white rounded p-2 border border-neutral-300">
+                                            <p className="font-bold mb-1">Format Requirements:</p>
+                                            <ul className="space-y-0.5">
+                                                <li>• <strong>Team names:</strong> Team name OR "Player1 / Player2" (case-insensitive)</li>
+                                                <li>• <strong>Court:</strong> Court name or number (e.g., "Court 1" or "1")</li>
+                                                <li>• <strong>Date:</strong> DD-MM-YYYY or YYYY-MM-DD (e.g., "31-01-2026")</li>
+                                                <li>• <strong>Time:</strong> HH:MM in 24-hour format (e.g., "09:00", "14:30")</li>
+                                            </ul>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
                                         <div>
-                                            <p className="font-semibold text-primary">Option 2: Create Custom Matches</p>
-                                            <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
-                                                <li>Download the template (or create your own Excel)</li>
-                                                <li>Add rows with team pairs, court, date, and time</li>
-                                                <li>Click "Import Schedule" - new matches will be created automatically!</li>
-                                            </ol>
+                                            <p className="font-bold mb-1">Knockout Stage Import:</p>
+                                            <div className="ml-2 space-y-1 text-xs">
+                                                <p>Create matches using templates that auto-resolve based on previous results:</p>
+                                                <div className="bg-success-50 rounded p-2 mt-2 border border-success-200">
+                                                    <p className="font-semibold text-success-800 mb-1">Quarter Finals (from Group Stage):</p>
+                                                    <p className="font-mono text-xs">1st Group A, 2nd Group B, Court 1, 31-01-2026, 09:00</p>
+                                                    <p className="font-mono text-xs">2nd Group A, 1st Group B, Court 2, 31-01-2026, 10:00</p>
+                                                </div>
+                                                <div className="bg-primary-50 rounded p-2 mt-2 border border-primary-200">
+                                                    <p className="font-semibold text-primary-800 mb-1">Semi Finals (from Quarter Finals):</p>
+                                                    <p className="font-mono text-xs">Winner Match 1, Winner Match 2, Court 1, 01-02-2026, 14:00</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="text-xs text-neutral-600 bg-white rounded p-2 border border-neutral-300">
-                                    <p className="font-bold mb-1">Format Requirements:</p>
-                                    <ul className="space-y-0.5">
-                                        <li>• <strong>Team names:</strong> Team name OR "Player1 / Player2" (case-insensitive)</li>
-                                        <li>• <strong>Court:</strong> Court name or number (e.g., "Court 1" or "1")</li>
-                                        <li>• <strong>Date:</strong> DD-MM-YYYY or YYYY-MM-DD (e.g., "31-01-2026")</li>
-                                        <li>• <strong>Time:</strong> HH:MM in 24-hour format (e.g., "09:00", "14:30")</li>
-                                    </ul>
-                                </div>
+                                        <div className="text-xs text-neutral-600 bg-white rounded p-2 border border-neutral-300">
+                                            <p className="font-bold mb-1">Template Formats:</p>
+                                            <ul className="space-y-0.5">
+                                                <li>• <strong>Group rankings:</strong> "1st Group A", "Group B 2nd"</li>
+                                                <li>• <strong>Match winners:</strong> "Winner Match 1", "Winner QF1"</li>
+                                                <li>• <strong>Court:</strong> Court name or number (e.g., "Court 1" or "1")</li>
+                                                <li>• <strong>Date/Time:</strong> Same as group phase format</li>
+                                            </ul>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

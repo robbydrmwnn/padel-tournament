@@ -161,12 +161,6 @@ class MatchController extends Controller
 
         $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
 
-        if ($phase->type !== 'group') {
-            return response()->json([
-                'error' => 'Schedule import is only available for group phases.'
-            ], 422);
-        }
-
         try {
             $file = $request->file('schedule_file');
             $data = Excel::toArray([], $file)[0]; // Get first sheet
@@ -244,6 +238,43 @@ class MatchController extends Controller
 
                 if (empty($team1Name) || empty($team2Name)) {
                     $errors[] = "Row {$rowNumber}: Missing team names";
+                    continue;
+                }
+
+                // Check if this is a knockout phase with templates
+                if ($phase->type === 'knockout') {
+                    // Handle knockout phase import with templates
+                    $team1Template = $this->parseTeamTemplate($team1Name);
+                    $team2Template = $this->parseTeamTemplate($team2Name);
+                    
+                    if (!$team1Template) {
+                        $errors[] = "Row {$rowNumber}: Invalid team template: '{$team1Name}'. Use format like '1st Group A', 'Winner Match 1', or team name";
+                        continue;
+                    }
+                    
+                    if (!$team2Template) {
+                        $errors[] = "Row {$rowNumber}: Invalid team template: '{$team2Name}'. Use format like '2nd Group B', 'Winner Match 2', or team name";
+                        continue;
+                    }
+                    
+                    // Find or create knockout match
+                    $match = $this->findOrCreateKnockoutMatch($phase, $category, $team1Name, $team2Name, $team1Template, $team2Template, $maxMatchOrder, $created);
+                    
+                    if (!$match) {
+                        $errors[] = "Row {$rowNumber}: Failed to create knockout match";
+                        continue;
+                    }
+                    
+                    // Parse and update schedule info
+                    $updateData = $this->parseScheduleData($courtName, $courts, $date, $time, $rowNumber, $errors);
+                    
+                    if (!empty($updateData)) {
+                        $match->update($updateData);
+                        if (!$match->wasRecentlyCreated) {
+                            $updated++;
+                        }
+                    }
+                    
                     continue;
                 }
 
@@ -511,13 +542,13 @@ class MatchController extends Controller
             // Export existing matches if phase is specified
             $phase = \App\Models\TournamentPhase::findOrFail($phaseId);
             
-            if ($phase->type === 'group') {
-                $matches = GameMatch::where('phase_id', $phaseId)
-                    ->with(['team1', 'team2', 'court'])
-                    ->orderBy('scheduled_time')
-                    ->orderBy('match_order')
-                    ->get();
+            $matches = GameMatch::where('phase_id', $phaseId)
+                ->with(['team1', 'team2', 'court'])
+                ->orderBy('scheduled_time')
+                ->orderBy('match_order')
+                ->get();
 
+            if ($phase->type === 'group') {
                 foreach ($matches as $match) {
                     if ($match->team1 && $match->team2) {
                         // Use team name if available, otherwise use player names
@@ -542,11 +573,53 @@ class MatchController extends Controller
                         $data[] = [$team1Name, $team2Name, $courtName, $date, $time];
                     }
                 }
+            } else {
+                // Knockout phase - export with templates or actual teams
+                foreach ($matches as $match) {
+                    // Show template or actual team name
+                    $team1Name = '';
+                    if ($match->team1_id && $match->team1) {
+                        $team1Name = !empty($match->team1->name) 
+                            ? $match->team1->name 
+                            : $match->team1->player_1 . ' / ' . $match->team1->player_2;
+                    } elseif ($match->team1_template) {
+                        $team1Name = $this->formatTemplateForExport($match->team1_template);
+                    }
+                    
+                    $team2Name = '';
+                    if ($match->team2_id && $match->team2) {
+                        $team2Name = !empty($match->team2->name) 
+                            ? $match->team2->name 
+                            : $match->team2->player_1 . ' / ' . $match->team2->player_2;
+                    } elseif ($match->team2_template) {
+                        $team2Name = $this->formatTemplateForExport($match->team2_template);
+                    }
+                    
+                    $courtName = $match->court ? $match->court->name : '';
+                    
+                    $date = '';
+                    $time = '';
+                    if ($match->scheduled_time) {
+                        $scheduledTime = \Carbon\Carbon::parse($match->scheduled_time);
+                        $date = $scheduledTime->format('Y-m-d');
+                        $time = $scheduledTime->format('H:i');
+                    }
+                    
+                    $data[] = [$team1Name, $team2Name, $courtName, $date, $time];
+                }
+                
+                // Add example rows if no matches exist
+                if (count($data) === 1) {
+                    $data[] = ['1st Group A', '2nd Group B', 'Court 1', '2026-02-01', '09:00'];
+                    $data[] = ['2nd Group A', '1st Group B', 'Court 2', '2026-02-01', '10:00'];
+                    $data[] = ['Winner Match 1', 'Winner Match 2', 'Court 1', '2026-02-02', '14:00'];
+                }
             }
         } else {
             // Add example rows if no phase specified
-            $data[] = ['Player A / Player B', 'Player C / Player D', 'Court 1', '2026-01-30', '09:00'];
-            $data[] = ['Player E / Player F', 'Player G / Player H', 'Court 2', '2026-01-30', '10:00'];
+            $data[] = ['Team A', 'Team B', 'Court 1', '2026-01-30', '09:00'];
+            $data[] = ['1st Group A', '2nd Group B', 'Court 1', '2026-02-01', '09:00'];
+            $data[] = ['Winner Match 1', 'Winner Match 2', 'Court 1', '2026-02-02', '14:00'];
         }
 
         return Excel::download(new class($data) implements \Maatwebsite\Excel\Concerns\FromArray {
@@ -560,6 +633,210 @@ class MatchController extends Controller
                 return $this->data;
             }
         }, 'match-schedule-template.xlsx');
+    }
+    
+    /**
+     * Format template for Excel export (human-readable)
+     */
+    private function formatTemplateForExport(string $template): string
+    {
+        // "1st_group_A" -> "1st Group A"
+        if (preg_match('/^(\d+)(st|nd|rd|th)_group_([a-z])/i', $template, $matches)) {
+            $rank = $matches[1];
+            $suffix = $matches[2];
+            $group = strtoupper($matches[3]);
+            return "{$rank}{$suffix} Group {$group}";
+        }
+        
+        // "winner_match_1" or similar -> "Winner Match 1"
+        if (preg_match('/^winner_match_(.+)/i', $template, $matches)) {
+            $matchRef = strtoupper($matches[1]);
+            return "Winner Match {$matchRef}";
+        }
+        
+        return $template;
+    }
+
+    /**
+     * Parse team name into a template format
+     * Supports: "1st Group A", "Group A 1st", "2nd Group B", "Winner Match 1", "Winner QF1", team names
+     */
+    private function parseTeamTemplate(string $teamName): ?string
+    {
+        $teamName = trim($teamName);
+        
+        // Check if it's a ranking + group format: "1st Group A", "2nd Group B", etc.
+        if (preg_match('/^(\d+)(st|nd|rd|th)?\s+group\s+([a-z])/i', $teamName, $matches)) {
+            $rank = $matches[1];
+            $group = strtoupper($matches[3]);
+            $suffix = $rank === '1' ? 'st' : ($rank === '2' ? 'nd' : ($rank === '3' ? 'rd' : 'th'));
+            return "{$rank}{$suffix}_group_{$group}";
+        }
+        
+        // Check if it's group + ranking format: "Group A 1st", "Group B 2nd", etc.
+        if (preg_match('/^group\s+([a-z])\s+(\d+)(st|nd|rd|th)?/i', $teamName, $matches)) {
+            $group = strtoupper($matches[1]);
+            $rank = $matches[2];
+            $suffix = $rank === '1' ? 'st' : ($rank === '2' ? 'nd' : ($rank === '3' ? 'rd' : 'th'));
+            return "{$rank}{$suffix}_group_{$group}";
+        }
+        
+        // Check if it's already in template format: "1st_group_A", "2nd_group_B"
+        if (preg_match('/^(\d+)(st|nd|rd|th)_group_([a-z])/i', $teamName, $matches)) {
+            return strtolower($teamName);
+        }
+        
+        // Check if it's a winner format: "Winner Match 1", "Winner QF1", "Winner SF1", etc.
+        if (preg_match('/^winner\s+(match\s+)?(\d+|qf\d+|sf\d+|f\d+)/i', $teamName, $matches)) {
+            $matchRef = strtolower($matches[2]);
+            return "winner_match_{$matchRef}";
+        }
+        
+        // Check if it's a winner of specific teams: "Winner (A1 vs B2)"
+        if (preg_match('/^winner\s+\((.+)\s+vs\s+(.+)\)/i', $teamName)) {
+            // Return as-is, will be handled differently
+            return "winner_teams_{$teamName}";
+        }
+        
+        // Otherwise, treat as a team name
+        return "team_{$teamName}";
+    }
+    
+    /**
+     * Find or create a knockout match based on templates
+     */
+    private function findOrCreateKnockoutMatch($phase, $category, $team1Name, $team2Name, $team1Template, $team2Template, &$maxMatchOrder, &$created)
+    {
+        // Try to find existing match by templates
+        $match = GameMatch::where('phase_id', $phase->id)
+            ->where(function ($query) use ($team1Template, $team2Template) {
+                $query->where(function ($q) use ($team1Template, $team2Template) {
+                    $q->where('team1_template', $team1Template)
+                      ->where('team2_template', $team2Template);
+                })->orWhere(function ($q) use ($team1Template, $team2Template) {
+                    $q->where('team1_template', $team2Template)
+                      ->where('team2_template', $team1Template);
+                });
+            })
+            ->first();
+        
+        if ($match) {
+            return $match;
+        }
+        
+        // Create new knockout match
+        $maxMatchOrder++;
+        
+        $match = GameMatch::create([
+            'category_id' => $category->id,
+            'phase_id' => $phase->id,
+            'team1_template' => $team1Template,
+            'team2_template' => $team2Template,
+            'phase' => 'knockout',
+            'status' => 'scheduled',
+            'match_order' => $maxMatchOrder,
+        ]);
+        
+        $match->wasRecentlyCreated = true;
+        $created++;
+        
+        return $match;
+    }
+    
+    /**
+     * Parse schedule data (court, date, time) from row
+     */
+    private function parseScheduleData($courtName, $courts, $date, $time, $rowNumber, &$errors): array
+    {
+        $updateData = [];
+        
+        // Find court (if provided)
+        if (!empty($courtName)) {
+            $court = $courts->first(function ($c) use ($courtName) {
+                // Exact match
+                if (strcasecmp(trim($c->name), $courtName) === 0) {
+                    return true;
+                }
+                // Try matching "1" to "Court 1", "2" to "Court 2", etc.
+                if (is_numeric($courtName)) {
+                    if (strcasecmp(trim($c->name), "Court {$courtName}") === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if ($court) {
+                $updateData['court_id'] = $court->id;
+            } else {
+                $availableCourts = $courts->pluck('name')->take(5)->implode(', ');
+                $errors[] = "Row {$rowNumber}: Court not found: '{$courtName}'. Available courts: {$availableCourts}";
+            }
+        }
+        
+        // Parse date and time
+        if (!empty($date) && !empty($time)) {
+            try {
+                // Handle Excel date/time formats
+                if (is_numeric($date)) {
+                    // Excel serial date
+                    $dateObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date);
+                    $dateStr = $dateObj->format('Y-m-d');
+                } else {
+                    // Try to parse date string
+                    $dateStr = null;
+                    
+                    // Try DD-MM-YYYY or DD/MM/YYYY format first
+                    if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $date, $matches)) {
+                        $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                        $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                        $year = $matches[3];
+                        $dateStr = "{$year}-{$month}-{$day}";
+                    } 
+                    // Try YYYY-MM-DD or YYYY/MM/DD format
+                    else if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $date, $matches)) {
+                        $year = $matches[1];
+                        $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                        $day = str_pad($matches[3], 2, '0', STR_PAD_LEFT);
+                        $dateStr = "{$year}-{$month}-{$day}";
+                    } else {
+                        // Fallback to strtotime
+                        $timestamp = strtotime($date);
+                        if ($timestamp !== false) {
+                            $dateStr = date('Y-m-d', $timestamp);
+                        }
+                    }
+                    
+                    if (!$dateStr) {
+                        $errors[] = "Row {$rowNumber}: Invalid date format: '{$date}'. Use DD-MM-YYYY or YYYY-MM-DD";
+                        return $updateData;
+                    }
+                }
+
+                if (is_numeric($time)) {
+                    // Excel serial time
+                    $timeObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($time);
+                    $timeStr = $timeObj->format('H:i:s');
+                } else {
+                    // Parse time string (HH:MM or HH:MM:SS)
+                    if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $time, $matches)) {
+                        $hour = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                        $minute = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                        $second = isset($matches[3]) ? str_pad($matches[3], 2, '0', STR_PAD_LEFT) : '00';
+                        $timeStr = "{$hour}:{$minute}:{$second}";
+                    } else {
+                        $errors[] = "Row {$rowNumber}: Invalid time format: '{$time}'. Use HH:MM (e.g., 09:00, 14:30)";
+                        return $updateData;
+                    }
+                }
+
+                $updateData['scheduled_time'] = $dateStr . ' ' . $timeStr;
+            } catch (\Exception $e) {
+                $errors[] = "Row {$rowNumber}: Error parsing date/time: " . $e->getMessage();
+            }
+        }
+        
+        return $updateData;
     }
 
     /**
