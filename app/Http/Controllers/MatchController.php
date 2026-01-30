@@ -683,7 +683,10 @@ class MatchController extends Controller
         
         // Check if it's already in template format: "1st_group_A", "2nd_group_B"
         if (preg_match('/^(\d+)(st|nd|rd|th)_group_([a-z])/i', $teamName, $matches)) {
-            return strtolower($teamName);
+            $rank = $matches[1];
+            $suffix = $matches[2];
+            $group = strtoupper($matches[3]);
+            return "{$rank}{$suffix}_group_{$group}";
         }
         
         // Check if it's a winner format: "Winner Match 1", "Winner QF1", "Winner SF1", etc.
@@ -1884,6 +1887,18 @@ class MatchController extends Controller
                 ->first();
 
             if ($nextMatch) {
+                // If the next match is in a different phase, redirect to list page
+                // (e.g., moving from group stage to quarter-finals requires generating matches first)
+                if ($nextMatch->phase_id !== $match->phase_id) {
+                    return redirect()->route('categories.matches.index', $category)
+                        ->with('success', 'Match completed. Next match is in a different phase - please generate matches for that phase first.');
+                }
+                
+                // Set the next match to 'upcoming' status directly
+                $nextMatch->update([
+                    'status' => 'upcoming',
+                ]);
+                
                 return redirect()->route('categories.matches.referee', [
                     'category' => $nextMatch->category_id,
                     'match' => $nextMatch->id

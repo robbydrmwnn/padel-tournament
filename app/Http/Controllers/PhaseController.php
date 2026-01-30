@@ -142,6 +142,15 @@ class PhaseController extends Controller
     {
         $standings = [];
         
+        // Ensure participants are loaded
+        $group->load('participants');
+        
+        \Log::info('calculateGroupStandings', [
+            'group_id' => $group->id,
+            'group_name' => $group->name,
+            'participants_count' => $group->participants->count(),
+        ]);
+        
         foreach ($group->participants as $participant) {
             $matches = GameMatch::where('group_id', $group->id)
                 ->where('status', 'completed')
@@ -272,37 +281,145 @@ class PhaseController extends Controller
     }
 
     /**
-     * Resolve a match template (e.g., "1st_group_A") to an actual participant
+     * Resolve a match template (e.g., "1st_group_A" or "winner_match_1") to an actual participant
      */
     public function resolveMatchTemplate(string $template, TournamentPhase $previousPhase): ?Participant
     {
-        // Parse template: format is "Nth_group_X" where N is rank (1st, 2nd) and X is group letter
-        // Example: "1st_group_A", "2nd_group_B"
+        \Log::info('resolveMatchTemplate called', ['template' => $template, 'phase_id' => $previousPhase->id]);
         
-        if (!preg_match('/^(\d+)(st|nd|rd|th)_group_([A-Z])$/', $template, $matches)) {
+        // Check if it's a "winner_match_X" template
+        if (preg_match('/^winner_match_(.+)$/i', $template, $matches)) {
+            return $this->resolveWinnerTemplate($matches[1], $previousPhase);
+        }
+        
+        // Parse template: format is "Nth_group_X" where N is rank (1st, 2nd) and X is group letter
+        // Example: "1st_group_A", "2nd_group_B", "1st_group_a"
+        
+        if (!preg_match('/^(\d+)(st|nd|rd|th)_group_([A-Za-z])$/i', $template, $matches)) {
+            \Log::warning('Template regex did not match', ['template' => $template]);
             return null;
         }
 
         $rank = (int)$matches[1];
-        $groupLetter = $matches[3];
-        $groupName = 'Group ' . $groupLetter;
+        $groupLetter = strtoupper($matches[3]);  // Normalize to uppercase
 
-        // Find the group
-        $group = $previousPhase->groups()->where('name', $groupName)->first();
+        \Log::info('Template parsed', ['rank' => $rank, 'groupLetter' => $groupLetter]);
+
+        // Find the group - try multiple naming conventions
+        $possibleNames = [
+            $groupLetter,                    // "A"
+            'Group ' . $groupLetter,         // "Group A"
+            'Group' . $groupLetter,          // "GroupA"
+            strtolower($groupLetter),        // "a"
+            'group ' . strtolower($groupLetter), // "group a"
+        ];
+        
+        $group = null;
+        foreach ($possibleNames as $name) {
+            $group = $previousPhase->groups()->whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+            if ($group) {
+                \Log::info('Group found with name pattern', ['pattern' => $name, 'actual_name' => $group->name]);
+                break;
+            }
+        }
         
         if (!$group) {
+            $availableGroups = $previousPhase->groups()->pluck('name')->toArray();
+            \Log::warning('Group not found', [
+                'groupLetter' => $groupLetter,
+                'triedNames' => $possibleNames,
+                'availableGroups' => $availableGroups,
+            ]);
             return null;
         }
+
+        \Log::info('Group found', ['group_id' => $group->id, 'group_name' => $group->name]);
 
         // Calculate standings for this group
         $standings = $this->calculateGroupStandings($group);
 
+        \Log::info('Standings calculated', [
+            'count' => count($standings),
+            'standings' => array_map(fn($s) => [
+                'participant_id' => $s['participant']->id ?? null,
+                'participant_name' => $s['participant']->name ?? null,
+                'wins' => $s['wins'] ?? 0,
+                'points' => $s['points'] ?? 0,
+            ], $standings),
+        ]);
+
         // Get participant at the specified rank
         if (isset($standings[$rank - 1])) {
+            \Log::info('Participant found at rank', ['rank' => $rank, 'participant_id' => $standings[$rank - 1]['participant']->id]);
             return $standings[$rank - 1]['participant'];
         }
 
+        \Log::warning('No participant at rank', ['rank' => $rank, 'standings_count' => count($standings)]);
         return null;
+    }
+
+    /**
+     * Resolve a winner template (e.g., "winner_match_1") to an actual participant
+     */
+    private function resolveWinnerTemplate(string $matchRef, TournamentPhase $previousPhase): ?Participant
+    {
+        \Log::info('resolveWinnerTemplate called', ['matchRef' => $matchRef, 'phase_id' => $previousPhase->id]);
+        
+        // Try to find the match by match_order number
+        if (is_numeric($matchRef)) {
+            $match = $previousPhase->matches()
+                ->where('match_order', (int)$matchRef)
+                ->where('status', 'completed')
+                ->first();
+        } else {
+            // Try to match by pattern like "qf1", "sf1", etc.
+            // First try exact match_order if it looks like a number with prefix
+            if (preg_match('/^(qf|sf|f)?(\d+)$/i', $matchRef, $matches)) {
+                $matchNumber = (int)$matches[2];
+                $match = $previousPhase->matches()
+                    ->where('match_order', $matchNumber)
+                    ->where('status', 'completed')
+                    ->first();
+            } else {
+                $match = null;
+            }
+        }
+        
+        if (!$match) {
+            // Log available matches for debugging
+            $availableMatches = $previousPhase->matches()
+                ->where('status', 'completed')
+                ->get(['id', 'match_order', 'winner_id'])
+                ->toArray();
+            
+            \Log::warning('Match not found for winner template', [
+                'matchRef' => $matchRef,
+                'availableMatches' => $availableMatches,
+            ]);
+            return null;
+        }
+        
+        if (!$match->winner_id) {
+            \Log::warning('Match found but no winner set', [
+                'matchRef' => $matchRef,
+                'match_id' => $match->id,
+                'status' => $match->status,
+            ]);
+            return null;
+        }
+        
+        $winner = Participant::find($match->winner_id);
+        
+        if ($winner) {
+            \Log::info('Winner resolved', [
+                'matchRef' => $matchRef,
+                'match_id' => $match->id,
+                'winner_id' => $winner->id,
+                'winner_name' => $winner->name,
+            ]);
+        }
+        
+        return $winner;
     }
 
     /**
@@ -310,38 +427,76 @@ class PhaseController extends Controller
      */
     public function resolvePhaseMatches(Request $request, Category $category, TournamentPhase $phase): RedirectResponse
     {
+        \Log::info('resolvePhaseMatches called', [
+            'category_id' => $category->id,
+            'phase_id' => $phase->id,
+            'phase_name' => $phase->name,
+            'phase_order' => $phase->order,
+        ]);
+
         $previousPhase = $category->phases()
             ->where('order', '<', $phase->order)
             ->orderBy('order', 'desc')
             ->first();
 
         if (!$previousPhase) {
+            \Log::warning('No previous phase found');
             return back()->with('error', 'No previous phase to resolve from');
         }
 
+        \Log::info('Previous phase found', [
+            'previous_phase_id' => $previousPhase->id,
+            'previous_phase_name' => $previousPhase->name,
+        ]);
+
         // Get all matches in this phase with templates
         $matches = $phase->matches()
-            ->whereNotNull('team1_template')
-            ->orWhereNotNull('team2_template')
+            ->where(function($query) {
+                $query->whereNotNull('team1_template')
+                      ->orWhereNotNull('team2_template');
+            })
             ->get();
 
+        \Log::info('Matches with templates found', [
+            'count' => $matches->count(),
+            'matches' => $matches->map(fn($m) => [
+                'id' => $m->id,
+                'team1_template' => $m->team1_template,
+                'team2_template' => $m->team2_template,
+                'team1_id' => $m->team1_id,
+                'team2_id' => $m->team2_id,
+            ])->toArray(),
+        ]);
+
         $resolved = 0;
+        $errors = [];
+        
         foreach ($matches as $match) {
             $updated = false;
 
             if ($match->team1_template && !$match->team1_id) {
+                \Log::info('Resolving team1_template', ['template' => $match->team1_template]);
                 $participant = $this->resolveMatchTemplate($match->team1_template, $previousPhase);
                 if ($participant) {
                     $match->team1_id = $participant->id;
                     $updated = true;
+                    \Log::info('Team1 resolved', ['participant_id' => $participant->id, 'name' => $participant->name]);
+                } else {
+                    $errors[] = "Could not resolve: {$match->team1_template}";
+                    \Log::warning('Failed to resolve team1_template', ['template' => $match->team1_template]);
                 }
             }
 
             if ($match->team2_template && !$match->team2_id) {
+                \Log::info('Resolving team2_template', ['template' => $match->team2_template]);
                 $participant = $this->resolveMatchTemplate($match->team2_template, $previousPhase);
                 if ($participant) {
                     $match->team2_id = $participant->id;
                     $updated = true;
+                    \Log::info('Team2 resolved', ['participant_id' => $participant->id, 'name' => $participant->name]);
+                } else {
+                    $errors[] = "Could not resolve: {$match->team2_template}";
+                    \Log::warning('Failed to resolve team2_template', ['template' => $match->team2_template]);
                 }
             }
 
@@ -351,6 +506,13 @@ class PhaseController extends Controller
             }
         }
 
-        return back()->with('success', "Resolved $resolved matches for {$phase->name}");
+        $message = "Resolved $resolved matches for {$phase->name}";
+        if (!empty($errors)) {
+            $message .= ". Errors: " . implode(', ', array_slice($errors, 0, 3));
+        }
+
+        \Log::info('Resolution complete', ['resolved' => $resolved, 'errors' => $errors]);
+
+        return back()->with($resolved > 0 || empty($errors) ? 'success' : 'error', $message);
     }
 }
