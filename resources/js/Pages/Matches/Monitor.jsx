@@ -115,6 +115,39 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
 
     const winningTeam = getWinningTeam();
 
+    // Get advantage limit from tournament phase settings
+    const getAdvantageLimit = () => {
+        if (!match?.tournament_phase) return null;
+        
+        const scoringType = match.tournament_phase.scoring_type;
+        
+        // Traditional scoring: unlimited advantages
+        if (scoringType === 'traditional') return null;
+        
+        // No-Ad scoring: no advantages at all
+        if (scoringType === 'no_ad') return 0;
+        
+        // Advantage limit scoring: use configured limit
+        if (scoringType === 'advantage_limit') {
+            return match.tournament_phase.advantage_limit || 2;
+        }
+        
+        return null;
+    };
+
+    const advantageLimit = getAdvantageLimit();
+    
+    // Check if we should show "Star Point" (when advantage limit is reached)
+    const isStarPoint = () => {
+        if (!match || !isMatchStarted || isWarmup) return false;
+        if (advantageLimit === null) return false; // No limit (traditional scoring)
+        if (advantageLimit === 0) return false; // No-Ad scoring
+        
+        return match.current_game_advantages >= advantageLimit && 
+               match.current_game_team1_points === '40' && 
+               match.current_game_team2_points === '40';
+    };
+
     return (
         <>
             <Head title={`Match Monitor - Court ${match?.court?.name || court?.name || ''}`} />
@@ -296,9 +329,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </p>
                             </div>
                         </div>
-                    ) : isMatchStarted && !isWarmup && match.current_game_advantages >= 2 && 
-                     match.current_game_team1_points === '40' && 
-                     match.current_game_team2_points === '40' ? (
+                    ) : isStarPoint() ? (
                         <div className="text-center mt-2">
                             <div className="inline-block bg-red-600/95 backdrop-blur-sm px-6 py-2 rounded-xl border-4 border-accent shadow-2xl animate-pulse">
                                 <p className="text-4xl font-bold font-raverist text-white">
@@ -306,11 +337,11 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 </p>
                             </div>
                         </div>
-                    ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && !match.pending_game_winner && (
+                    ) : isMatchStarted && !isWarmup && match.current_game_advantages > 0 && !match.pending_game_winner && advantageLimit !== null && advantageLimit !== 0 && (
                         <div className="text-center mt-2">
                             <div className="inline-block bg-primary/90 backdrop-blur-sm px-4 py-1 rounded-lg border-2 border-accent">
                                 <p className="text-2xl font-bold font-gotham text-white">
-                                    AD: {match.current_game_advantages}/2
+                                    AD: {match.current_game_advantages}/{advantageLimit}
                                 </p>
                             </div>
                         </div>
