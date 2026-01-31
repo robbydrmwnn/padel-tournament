@@ -81,7 +81,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                     setCurrentView('monitors');
                     setCurrentCategoryIndex(0);
                 }
-            }, 60000);
+            }, 30000);
         } else if (currentView === 'monitors') {
             // Show monitors for 5 seconds
             timer = setTimeout(() => {
@@ -408,7 +408,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                     {/* Time & Court */}
                                     <div className="flex-shrink-0" style={{ width: '140px' }}>
                                         <p className="text-sm font-gotham font-bold text-white leading-tight">
-                                            {match.scheduled_time ? new Date(match.scheduled_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : 'TBA'} • Court {match.court?.name || '?'}
+                                            {match.scheduled_time ? match.scheduled_time.substring(11, 16) : 'TBA'} • Court {match.court?.name || '?'}
                                         </p>
                                     </div>
 
