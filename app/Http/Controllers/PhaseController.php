@@ -229,6 +229,7 @@ class PhaseController extends Controller
     public function assignFromPreviousPhase(Request $request, Category $category, TournamentPhase $phase): RedirectResponse
     {
         $previousPhase = $category->phases()
+            ->reorder()  // Clear default ordering from relationship
             ->where('order', '<', $phase->order)
             ->orderBy('order', 'desc')
             ->first();
@@ -363,39 +364,64 @@ class PhaseController extends Controller
      */
     private function resolveWinnerTemplate(string $matchRef, TournamentPhase $previousPhase): ?Participant
     {
-        \Log::info('resolveWinnerTemplate called', ['matchRef' => $matchRef, 'phase_id' => $previousPhase->id]);
+        \Log::info('resolveWinnerTemplate called', [
+            'matchRef' => $matchRef, 
+            'phase_id' => $previousPhase->id,
+            'phase_name' => $previousPhase->name,
+        ]);
         
-        // Try to find the match by match_order number
+        // Parse the match number from the reference
+        $matchNumber = null;
         if (is_numeric($matchRef)) {
-            $match = $previousPhase->matches()
-                ->where('match_order', (int)$matchRef)
-                ->where('status', 'completed')
-                ->first();
-        } else {
-            // Try to match by pattern like "qf1", "sf1", etc.
-            // First try exact match_order if it looks like a number with prefix
-            if (preg_match('/^(qf|sf|f)?(\d+)$/i', $matchRef, $matches)) {
-                $matchNumber = (int)$matches[2];
-                $match = $previousPhase->matches()
-                    ->where('match_order', $matchNumber)
-                    ->where('status', 'completed')
-                    ->first();
-            } else {
-                $match = null;
-            }
+            $matchNumber = (int)$matchRef;
+        } elseif (preg_match('/^(qf|sf|f)?(\d+)$/i', $matchRef, $matches)) {
+            $matchNumber = (int)$matches[2];
         }
         
+        if ($matchNumber === null) {
+            \Log::warning('Invalid match reference format', ['matchRef' => $matchRef]);
+            return null;
+        }
+        
+        // Get all completed matches from the previous phase for diagnostics
+        $allCompletedMatches = $previousPhase->matches()
+            ->where('status', 'completed')
+            ->orderBy('match_order')
+            ->get();
+        
+        \Log::info('Available completed matches in previous phase', [
+            'phase_name' => $previousPhase->name,
+            'match_count' => $allCompletedMatches->count(),
+            'match_orders' => $allCompletedMatches->pluck('match_order')->toArray(),
+        ]);
+        
+        // First, try to find match by exact match_order
+        $match = $allCompletedMatches->firstWhere('match_order', $matchNumber);
+        
+        // If not found by exact match_order, log detailed info for debugging
         if (!$match) {
-            // Log available matches for debugging
-            $availableMatches = $previousPhase->matches()
-                ->where('status', 'completed')
-                ->get(['id', 'match_order', 'winner_id'])
-                ->toArray();
+            $availableOrders = $allCompletedMatches->pluck('match_order')->filter()->unique()->sort()->values()->toArray();
             
-            \Log::warning('Match not found for winner template', [
-                'matchRef' => $matchRef,
-                'availableMatches' => $availableMatches,
+            \Log::warning('Match not found by exact match_order', [
+                'requested_match_order' => $matchNumber,
+                'previous_phase' => $previousPhase->name,
+                'available_match_orders' => $availableOrders,
+                'total_completed_matches' => $allCompletedMatches->count(),
             ]);
+            
+            // Also check if there's a match without completed status
+            $pendingMatch = $previousPhase->matches()
+                ->where('match_order', $matchNumber)
+                ->first();
+            
+            if ($pendingMatch) {
+                \Log::warning('Match exists but is not completed', [
+                    'match_id' => $pendingMatch->id,
+                    'match_order' => $pendingMatch->match_order,
+                    'status' => $pendingMatch->status,
+                ]);
+            }
+            
             return null;
         }
         
@@ -403,7 +429,10 @@ class PhaseController extends Controller
             \Log::warning('Match found but no winner set', [
                 'matchRef' => $matchRef,
                 'match_id' => $match->id,
+                'match_order' => $match->match_order,
                 'status' => $match->status,
+                'team1_score' => $match->team1_score,
+                'team2_score' => $match->team2_score,
             ]);
             return null;
         }
@@ -411,11 +440,12 @@ class PhaseController extends Controller
         $winner = Participant::find($match->winner_id);
         
         if ($winner) {
-            \Log::info('Winner resolved', [
+            \Log::info('Winner resolved successfully', [
                 'matchRef' => $matchRef,
                 'match_id' => $match->id,
+                'match_order' => $match->match_order,
                 'winner_id' => $winner->id,
-                'winner_name' => $winner->name,
+                'winner_name' => $winner->name ?? ($winner->player_1 . ' / ' . $winner->player_2),
             ]);
         }
         
@@ -427,6 +457,16 @@ class PhaseController extends Controller
      */
     public function resolvePhaseMatches(Request $request, Category $category, TournamentPhase $phase): RedirectResponse
     {
+        // Reload the phase to get fresh data from database
+        $phase->refresh();
+        
+        // Log all phases for debugging
+        $allPhases = $category->phases()->orderBy('order')->get(['id', 'name', 'order', 'type']);
+        \Log::info('All phases in category (from DB)', [
+            'category_id' => $category->id,
+            'phases' => $allPhases->toArray(),
+        ]);
+        
         \Log::info('resolvePhaseMatches called', [
             'category_id' => $category->id,
             'phase_id' => $phase->id,
@@ -434,19 +474,41 @@ class PhaseController extends Controller
             'phase_order' => $phase->order,
         ]);
 
-        $previousPhase = $category->phases()
+        // Use reorder() to clear the default orderBy('order') ASC from the relationship
+        // Then apply our own orderBy('order', 'desc') to get the highest order first
+        $phasesLessThanCurrent = $category->phases()
+            ->reorder()  // Clear default ordering
             ->where('order', '<', $phase->order)
             ->orderBy('order', 'desc')
-            ->first();
+            ->get(['id', 'name', 'order']);
+        
+        \Log::info('Phases with order less than current', [
+            'current_phase_order' => $phase->order,
+            'candidates' => $phasesLessThanCurrent->toArray(),
+        ]);
+
+        $previousPhase = $phasesLessThanCurrent->first();
 
         if (!$previousPhase) {
             \Log::warning('No previous phase found');
-            return back()->with('error', 'No previous phase to resolve from');
+            return back()->with('error', 'No previous phase to resolve from. Current phase order: ' . $phase->order);
         }
 
         \Log::info('Previous phase found', [
             'previous_phase_id' => $previousPhase->id,
             'previous_phase_name' => $previousPhase->name,
+            'previous_phase_order' => $previousPhase->order,
+            'previous_phase_type' => $previousPhase->type,
+        ]);
+        
+        // Log the matches in the previous phase
+        $previousPhaseMatches = $previousPhase->matches()
+            ->select('id', 'match_order', 'status', 'winner_id', 'team1_id', 'team2_id')
+            ->orderBy('match_order')
+            ->get();
+        \Log::info('Matches in previous phase', [
+            'phase_name' => $previousPhase->name,
+            'matches' => $previousPhaseMatches->toArray(),
         ]);
 
         // Get all matches in this phase with templates
@@ -468,32 +530,48 @@ class PhaseController extends Controller
             ])->toArray(),
         ]);
 
+        // Check if force re-resolve is requested
+        $force = $request->boolean('force', false);
+        
         $resolved = 0;
         $errors = [];
+        $resolvedDetails = [];
         
         foreach ($matches as $match) {
             $updated = false;
 
-            if ($match->team1_template && !$match->team1_id) {
-                \Log::info('Resolving team1_template', ['template' => $match->team1_template]);
+            // Resolve team1 if template exists and (no team assigned OR force mode)
+            if ($match->team1_template && (!$match->team1_id || $force)) {
+                \Log::info('Resolving team1_template', [
+                    'template' => $match->team1_template, 
+                    'force' => $force,
+                    'previous_phase' => $previousPhase->name,
+                ]);
                 $participant = $this->resolveMatchTemplate($match->team1_template, $previousPhase);
                 if ($participant) {
                     $match->team1_id = $participant->id;
                     $updated = true;
-                    \Log::info('Team1 resolved', ['participant_id' => $participant->id, 'name' => $participant->name]);
+                    $resolvedDetails[] = "{$match->team1_template} → {$participant->player_1}/{$participant->player_2}";
+                    \Log::info('Team1 resolved', ['participant_id' => $participant->id, 'name' => $participant->name ?? $participant->player_1]);
                 } else {
                     $errors[] = "Could not resolve: {$match->team1_template}";
                     \Log::warning('Failed to resolve team1_template', ['template' => $match->team1_template]);
                 }
             }
 
-            if ($match->team2_template && !$match->team2_id) {
-                \Log::info('Resolving team2_template', ['template' => $match->team2_template]);
+            // Resolve team2 if template exists and (no team assigned OR force mode)
+            if ($match->team2_template && (!$match->team2_id || $force)) {
+                \Log::info('Resolving team2_template', [
+                    'template' => $match->team2_template, 
+                    'force' => $force,
+                    'previous_phase' => $previousPhase->name,
+                ]);
                 $participant = $this->resolveMatchTemplate($match->team2_template, $previousPhase);
                 if ($participant) {
                     $match->team2_id = $participant->id;
                     $updated = true;
-                    \Log::info('Team2 resolved', ['participant_id' => $participant->id, 'name' => $participant->name]);
+                    $resolvedDetails[] = "{$match->team2_template} → {$participant->player_1}/{$participant->player_2}";
+                    \Log::info('Team2 resolved', ['participant_id' => $participant->id, 'name' => $participant->name ?? $participant->player_1]);
                 } else {
                     $errors[] = "Could not resolve: {$match->team2_template}";
                     \Log::warning('Failed to resolve team2_template', ['template' => $match->team2_template]);
@@ -505,14 +583,78 @@ class PhaseController extends Controller
                 $resolved++;
             }
         }
+        
+        \Log::info('Resolved details', ['details' => $resolvedDetails]);
 
-        $message = "Resolved $resolved matches for {$phase->name}";
+        // Get available match_orders for message
+        $availableOrders = $previousPhase->matches()
+            ->where('status', 'completed')
+            ->orderBy('match_order')
+            ->pluck('match_order')
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+        
+        // Build debug info for message
+        $allPhasesDebug = $allPhases->map(fn($p) => "{$p->name}=#{$p->order}")->implode(' → ');
+        
+        $message = "Resolved $resolved matches for {$phase->name} (order #{$phase->order}) using {$previousPhase->name} (order #{$previousPhase->order}). All phases: {$allPhasesDebug}";
+        
+        if (!empty($resolvedDetails)) {
+            $message .= ". Details: " . implode(', ', array_slice($resolvedDetails, 0, 4));
+        }
+        
         if (!empty($errors)) {
             $message .= ". Errors: " . implode(', ', array_slice($errors, 0, 3));
         }
+        
+        if (!empty($availableOrders)) {
+            $message .= ". Available match #s in {$previousPhase->name}: " . implode(', ', $availableOrders);
+        } else {
+            $message .= ". WARNING: No completed matches found in {$previousPhase->name}!";
+        }
 
-        \Log::info('Resolution complete', ['resolved' => $resolved, 'errors' => $errors]);
+        \Log::info('Resolution complete', ['resolved' => $resolved, 'errors' => $errors, 'details' => $resolvedDetails]);
 
         return back()->with($resolved > 0 || empty($errors) ? 'success' : 'error', $message);
+    }
+
+    /**
+     * Update phase order
+     */
+    public function updateOrder(Request $request, Category $category, TournamentPhase $phase): RedirectResponse
+    {
+        $validated = $request->validate([
+            'order' => 'required|integer|min:1',
+        ]);
+
+        $phase->order = $validated['order'];
+        $phase->save();
+
+        return back()->with('success', "Updated {$phase->name} order to #{$validated['order']}");
+    }
+
+    /**
+     * Renumber matches in a phase to ensure sequential match_order starting from 1
+     */
+    public function renumberMatches(Request $request, Category $category, TournamentPhase $phase): RedirectResponse
+    {
+        $matches = $phase->matches()
+            ->orderBy('match_order')
+            ->orderBy('scheduled_time')
+            ->orderBy('id')
+            ->get();
+
+        $order = 1;
+        foreach ($matches as $match) {
+            if ($match->match_order !== $order) {
+                $match->match_order = $order;
+                $match->save();
+            }
+            $order++;
+        }
+
+        return back()->with('success', "Renumbered {$matches->count()} matches in {$phase->name}. Match orders are now 1 through {$matches->count()}.");
     }
 }

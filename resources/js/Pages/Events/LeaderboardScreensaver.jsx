@@ -86,14 +86,14 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             // Show monitors for 5 seconds
             timer = setTimeout(() => {
                 setCurrentView('schedule');
-            }, 10000);
+            }, 2000);
         } else if (currentView === 'schedule') {
             // Show schedule for 10 seconds
             timer = setTimeout(() => {
                 // Go back to leaderboard
                 setCurrentView('leaderboard');
                 setCurrentCategoryIndex(0);
-            }, 60000);
+            }, 30000);
         }
 
         return () => clearTimeout(timer);
@@ -139,7 +139,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             );
         }
 
-        const { category, currentPhase, leaderboardData } = categoriesData[currentCategoryIndex];
+        const { category, currentPhase, leaderboardData, scheduleData } = categoriesData[currentCategoryIndex];
 
         if (!currentPhase) {
             return (
@@ -149,47 +149,74 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             );
         }
 
-        // Check if knockout phase
-        // if (leaderboardData.type === 'knockout') {
-        //     return (
-        //         <div>
-        //             <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-        //                 {leaderboardData.matches && leaderboardData.matches.length > 0 ? (
-        //                     leaderboardData.matches.map((match) => (
-        //                         <div key={match.id} className="bg-neutral-900/80 backdrop-blur-sm rounded-xl p-6 border-4 border-accent">
-        //                             <div className="flex justify-between items-center">
-        //                                 <div className="flex-1">
-        //                                     <p className="text-3xl font-bold font-raverist text-white">
-        //                                         {match.team1.player_1} / {match.team1.player_2}
-        //                                     </p>
-        //                                 </div>
-        //                                 <div className="text-5xl font-bold text-white mx-8">
-        //                                     {match.team1_score || 0}
-        //                                 </div>
-        //                                 <div className="text-3xl font-bold text-accent mx-4">VS</div>
-        //                                 <div className="text-5xl font-bold text-white mx-8">
-        //                                     {match.team2_score || 0}
-        //                                 </div>
-        //                                 <div className="flex-1 text-right">
-        //                                     <p className="text-3xl font-bold font-raverist text-white">
-        //                                         {match.team2.player_1} / {match.team2.player_2}
-        //                                     </p>
-        //                                 </div>
-        //                             </div>
-        //                         </div>
-        //                     ))
-        //                 ) : (
-        //                     <p className="text-3xl font-gotham text-neutral-300 text-center">No completed matches yet</p>
-        //                 )}
-        //             </div>
-        //         </div>
-        //     );
-        // }
+        // Check if knockout phase (leaderboardData is an object with type property)
+        if (leaderboardData && leaderboardData.type === 'knockout') {
+            // Use scheduleData to show all matches (scheduled, in_progress, completed)
+            const knockoutMatches = scheduleData || [];
+            
+            return (
+                <div className="h-full flex items-center justify-center">
+                    <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto w-full">
+                        {knockoutMatches.length > 0 ? (
+                            knockoutMatches.map((match) => (
+                                <div key={match.id} className={`backdrop-blur-sm rounded-xl p-6 border-4 ${
+                                    match.status === 'completed' 
+                                        ? 'bg-neutral-800/60 border-neutral-600' 
+                                        : match.status === 'in_progress'
+                                        ? 'bg-success/30 border-success'
+                                        : 'bg-neutral-900/80 border-accent'
+                                }`}>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1">
+                                            <p className={`text-3xl font-bold font-raverist ${
+                                                match.status === 'completed' && match.winner_id === match.team1_id 
+                                                    ? 'text-accent' 
+                                                    : 'text-white'
+                                            }`}>
+                                                {match.team1?.player_1 || match.team1_template || 'TBD'} / {match.team1?.player_2 || ''}
+                                            </p>
+                                        </div>
+                                        <div className={`text-5xl font-bold mx-8 ${
+                                            match.status === 'completed' && match.winner_id === match.team1_id 
+                                                ? 'text-accent' 
+                                                : 'text-white'
+                                        }`}>
+                                            {match.status === 'scheduled' ? '-' : match.team1_score || 0}
+                                        </div>
+                                        <div className="text-3xl font-bold text-accent mx-4">
+                                            {match.status === 'in_progress' ? '🔴 LIVE' : 'VS'}
+                                        </div>
+                                        <div className={`text-5xl font-bold mx-8 ${
+                                            match.status === 'completed' && match.winner_id === match.team2_id 
+                                                ? 'text-accent' 
+                                                : 'text-white'
+                                        }`}>
+                                            {match.status === 'scheduled' ? '-' : match.team2_score || 0}
+                                        </div>
+                                        <div className="flex-1 text-right">
+                                            <p className={`text-3xl font-bold font-raverist ${
+                                                match.status === 'completed' && match.winner_id === match.team2_id 
+                                                    ? 'text-accent' 
+                                                    : 'text-white'
+                                            }`}>
+                                                {match.team2?.player_1 || match.team2_template || 'TBD'} / {match.team2?.player_2 || ''}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-3xl font-gotham text-neutral-300 text-center">No matches scheduled</p>
+                        )}
+                    </div>
+                </div>
+            );
+        }
 
-        // Group phase leaderboard
+        // Group phase leaderboard (leaderboardData is an array)
         return (
             <div>
-                {leaderboardData.length === 0 ? (
+                {!Array.isArray(leaderboardData) || leaderboardData.length === 0 ? (
                     <p className="text-4xl font-gotham text-neutral-300 text-center">No groups available</p>
                 ) : (
                     <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr">
@@ -258,7 +285,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
     // Render monitors view (Court 1 and Court 2)
     const renderMonitorsView = () => {
         const renderCourtMonitor = (court, match) => {
-            if (!match) {
+            if (!match || !match.team1 || !match.team2) {
                 return (
                     <div className="bg-neutral-900/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border-4 border-accent text-center">
                         <div className="text-6xl mb-4">🎾</div>

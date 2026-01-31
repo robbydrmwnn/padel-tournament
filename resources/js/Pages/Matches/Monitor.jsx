@@ -30,7 +30,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
     useEffect(() => {
         if (autoRefresh) {
             // Poll more frequently during active match, less frequently when waiting for match
-            const pollInterval = match && match.status === 'in_progress' ? 200 : 1000;
+            const pollInterval = 1000;
             
             const interval = setInterval(() => {
                 router.reload({ only: ['match', 'category', 'court'], preserveScroll: true, preserveState: true });
