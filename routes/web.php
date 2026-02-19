@@ -103,6 +103,10 @@ Route::middleware('auth')->group(function () {
         ->name('phases.assign-from-previous');
     Route::post('categories/{category}/phases/{phase}/resolve-matches', [\App\Http\Controllers\PhaseController::class, 'resolvePhaseMatches'])
         ->name('phases.resolve-matches');
+    Route::post('categories/{category}/phases/{phase}/renumber-matches', [\App\Http\Controllers\PhaseController::class, 'renumberMatches'])
+        ->name('phases.renumber-matches');
+    Route::post('categories/{category}/phases/{phase}/update-order', [\App\Http\Controllers\PhaseController::class, 'updateOrder'])
+        ->name('phases.update-order');
     
     // Match control - Referee
     Route::get('categories/{category}/matches/{match}/referee', [MatchController::class, 'referee'])

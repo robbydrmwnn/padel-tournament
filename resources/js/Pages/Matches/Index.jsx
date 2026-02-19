@@ -65,14 +65,26 @@ export default function Index({ category, phases, currentPhase, courts }) {
         }
     };
 
-    const handleResolveMatches = () => {
-        if (confirm(`Resolve match participants for ${selectedPhase.name} based on ${previousPhase.name} results?`)) {
-            router.post(route('phases.resolve-matches', { category: category.id, phase: selectedPhaseId }), {}, {
+    const handleResolveMatches = (force = false) => {
+        const message = force 
+            ? `RE-RESOLVE and OVERRIDE participants for ${selectedPhase.name}?\n\nThis will replace any currently assigned teams with fresh results from ${previousPhase.name}.\n\nContinue?`
+            : `Resolve match participants for ${selectedPhase.name} based on ${previousPhase.name} results?`;
+        
+        if (confirm(message)) {
+            router.post(route('phases.resolve-matches', { category: category.id, phase: selectedPhaseId }), { force }, {
                 preserveScroll: true,
                 onError: (errors) => {
                     console.error('Resolve matches error:', errors);
                     alert('Error resolving matches. Check console for details.');
                 },
+            });
+        }
+    };
+
+    const handleRenumberMatches = () => {
+        if (confirm(`Renumber all matches in ${selectedPhase.name}?\n\nThis will reset match numbers to 1, 2, 3... based on current order.\nUse this if "Winner Match X" templates aren't finding the right matches.`)) {
+            router.post(route('phases.renumber-matches', { category: category.id, phase: selectedPhaseId }), {}, {
+                preserveScroll: true,
             });
         }
     };
@@ -356,11 +368,21 @@ export default function Index({ category, phases, currentPhase, courts }) {
                             <div className="flex gap-3">
                                 {selectedPhase && hasUnresolvedMatches && previousPhase && (
                                     <button
-                                        onClick={handleResolveMatches}
+                                        onClick={() => handleResolveMatches(false)}
                                         className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-accent hover:scale-105"
                                     >
                                         <span className="text-2xl">🔄</span>
                                         Resolve Participants
+                                    </button>
+                                )}
+                                {selectedPhase && previousPhase && matches.some(m => m.team1_id || m.team2_id) && matches.some(m => m.team1_template || m.team2_template) && (
+                                    <button
+                                        onClick={() => handleResolveMatches(true)}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-orange-600 transition-all border-2 border-orange-700 hover:scale-105"
+                                        title="Re-resolve and override existing team assignments"
+                                    >
+                                        <span className="text-2xl">🔃</span>
+                                        Re-resolve
                                     </button>
                                 )}
                                 {selectedPhase && (
@@ -394,13 +416,25 @@ export default function Index({ category, phases, currentPhase, courts }) {
                                     </>
                                 )}
                                 {selectedPhase && (
-                                    <button
-                                        onClick={handleGenerateMatches}
-                                        className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-white-600 transition-all border-2 border-accent hover:scale-105"
-                                    >
-                                        <span className="text-2xl">⚙️</span>
-                                        {selectedPhase.type === 'group' ? 'Generate Matches' : 'Setup Matches'}
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={handleGenerateMatches}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-white-600 transition-all border-2 border-accent hover:scale-105"
+                                        >
+                                            <span className="text-2xl">⚙️</span>
+                                            {selectedPhase.type === 'group' ? 'Generate Matches' : 'Setup Matches'}
+                                        </button>
+                                        {selectedPhase.type === 'knockout' && matches.length > 0 && (
+                                            <button
+                                                onClick={handleRenumberMatches}
+                                                className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 px-4 py-3 text-sm font-gotham font-bold text-neutral-700 shadow hover:bg-neutral-200 transition-all border border-neutral-400 hover:scale-105"
+                                                title="Fix match numbering if 'Winner Match X' templates aren't working correctly"
+                                            >
+                                                <span className="text-lg">#️⃣</span>
+                                                Renumber
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -420,6 +454,67 @@ export default function Index({ category, phases, currentPhase, courts }) {
                     {flash?.info && (
                         <div className="bg-primary rounded-xl border-4 border-primary-700 text-white px-6 py-4 font-gotham font-bold shadow-lg">
                             ℹ️ {flash.info}
+                        </div>
+                    )}
+
+                    {/* Phase Resolution Debug Info */}
+                    {selectedPhase && selectedPhase.type === 'knockout' && (
+                        <div className="bg-yellow-50 rounded-xl border-2 border-yellow-400 px-6 py-4 font-gotham text-sm">
+                            <div className="font-bold text-yellow-800 mb-2">🔍 Resolution Debug Info:</div>
+                            <div className="text-yellow-900 space-y-1">
+                                <p><strong>Current Phase:</strong> {selectedPhase.name} (order: {selectedPhase.order})</p>
+                                <p><strong>Previous Phase (for Winner Match X):</strong> {previousPhase ? `${previousPhase.name} (order: ${previousPhase.order}, type: ${previousPhase.type})` : 'None'}</p>
+                                
+                                {/* Phase Order Editor */}
+                                <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-400">
+                                    <p className="font-bold text-red-800 mb-2">🚨 FIX PHASE ORDER:</p>
+                                    <p className="text-xs text-red-700 mb-2">
+                                        Current: {phases.sort((a,b) => a.order - b.order).map(p => `${p.name}=#${p.order}`).join(' → ')}
+                                    </p>
+                                    <p className="text-xs text-green-700 mb-3 font-bold">
+                                        Should be: Group Phase=#1 → Quarter Finals=#2 → Semi Finals=#3 → Finals=#4
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {phases.map(p => (
+                                            <div key={p.id} className={`flex items-center gap-1 px-2 py-1 rounded border ${p.id === selectedPhase.id ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-gray-300'}`}>
+                                                <span className="text-xs font-bold">{p.name}:</span>
+                                                <select
+                                                    value={p.order}
+                                                    onChange={(e) => {
+                                                        router.post(route('phases.update-order', { category: category.id, phase: p.id }), { order: parseInt(e.target.value) }, { preserveScroll: true });
+                                                    }}
+                                                    className="text-xs border-2 border-red-400 rounded px-1 py-0.5 font-bold"
+                                                >
+                                                    {[1, 2, 3, 4, 5, 6].map(n => (
+                                                        <option key={n} value={n}>#{n}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {previousPhase && previousPhase.type === 'group' && (
+                                    <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-800">
+                                        <strong>⚠️ WARNING:</strong> Previous phase is a Group phase! For "Winner Match X" templates, 
+                                        the previous phase should be a knockout phase (like Quarter Finals).
+                                        <br/>Fix the phase order above!
+                                    </div>
+                                )}
+
+                                {matches.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-yellow-300">
+                                        <p className="font-bold text-yellow-800">Stored Templates in {selectedPhase.name}:</p>
+                                        <ul className="text-xs mt-1 space-y-0.5">
+                                            {matches.slice(0, 4).map((m, i) => (
+                                                <li key={m.id}>
+                                                    Match #{m.match_order}: <code className="bg-yellow-100 px-1">{m.team1_template || '(no template)'}</code> vs <code className="bg-yellow-100 px-1">{m.team2_template || '(no template)'}</code>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -768,9 +863,9 @@ export default function Index({ category, phases, currentPhase, courts }) {
                                 {matches.map((match, index) => (
                                     <div key={match.id} className="bg-neutral-100 rounded-lg p-2.5 border border-neutral-300 hover:border-primary transition-all">
                                         <div className="flex items-center gap-2">
-                                            {/* Match Number */}
-                                            <span className="font-gotham font-bold text-sm text-dark bg-primary-100 px-3 py-1.5 rounded border border-primary">
-                                                #{index + 1}
+                                            {/* Match Number - Use match_order for template reference */}
+                                            <span className="font-gotham font-bold text-sm text-dark bg-primary-100 px-3 py-1.5 rounded border border-primary" title={`Use "Winner Match ${match.match_order}" in next phase`}>
+                                                #{match.match_order || index + 1}
                                             </span>
                                             
                                             {/* Teams */}

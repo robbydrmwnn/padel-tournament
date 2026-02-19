@@ -139,7 +139,8 @@ class EventController extends Controller
         $categoriesData = [];
         foreach ($event->categories as $category) {
             // Find the current active phase
-            // Priority: 1) Phase with in_progress matches, 2) Earliest phase with scheduled matches, 3) First phase
+            // Priority: 1) Phase with in_progress matches, 2) Earliest phase with scheduled matches (that have teams assigned), 
+            // 3) Most recent phase with completed matches, 4) First phase
             $currentPhase = null;
             
             // First, check for any phase with in_progress matches
@@ -154,16 +155,32 @@ class EventController extends Controller
                 }
             }
 
-            // If no in_progress matches, find the earliest phase (by order) with scheduled matches
+            // If no in_progress matches, find the earliest phase (by order) with scheduled matches that have teams assigned
             if (!$currentPhase) {
                 foreach ($category->phases as $phase) {
                     $scheduledMatch = $phase->matches()
                         ->where('status', 'scheduled')
+                        ->whereNotNull('team1_id')
+                        ->whereNotNull('team2_id')
                         ->first();
                     
                     if ($scheduledMatch) {
                         $currentPhase = $phase;
                         break; // Take the first phase (lowest order) with scheduled matches
+                    }
+                }
+            }
+
+            // If still no current phase, find the most recent phase with completed matches (to show its leaderboard)
+            if (!$currentPhase) {
+                foreach ($category->phases->reverse() as $phase) {
+                    $completedMatch = $phase->matches()
+                        ->where('status', 'completed')
+                        ->first();
+                    
+                    if ($completedMatch) {
+                        $currentPhase = $phase;
+                        break;
                     }
                 }
             }
@@ -180,10 +197,19 @@ class EventController extends Controller
                 // Get leaderboard data based on phase type
                 if ($currentPhase->type === 'group') {
                     // Group phase leaderboard
+                    // First try to get groups by phase_id, if empty fall back to groups by category_id (for legacy data)
                     $groups = $currentPhase->groups()
                         ->with(['participants'])
                         ->orderBy('order')
                         ->get();
+                    
+                    // Fallback: if no groups found by phase_id, try getting groups by category_id
+                    if ($groups->isEmpty()) {
+                        $groups = \App\Models\Group::where('category_id', $category->id)
+                            ->with(['participants'])
+                            ->orderBy('order')
+                            ->get();
+                    }
 
                     foreach ($groups as $group) {
                         $standings = [];
