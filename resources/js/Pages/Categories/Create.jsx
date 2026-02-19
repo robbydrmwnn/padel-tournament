@@ -7,6 +7,7 @@ export default function Create({ event }) {
         name: '',
         description: '',
         max_participants: '',
+        participant_mode: 'team',
         warmup_minutes: 5,
         phases: [
             {
@@ -174,6 +175,43 @@ export default function Create({ event }) {
                                 </div>
                             </div>
 
+                            {/* Participant Mode */}
+                            <div className="border-t-2 border-neutral-200 pt-6">
+                                <label htmlFor="participant_mode" className="block text-base font-gotham font-bold text-dark mb-2">
+                                    👥 Participant Mode *
+                                </label>
+                                <select
+                                    id="participant_mode"
+                                    value={data.participant_mode}
+                                    onChange={(e) => {
+                                        const mode = e.target.value;
+                                        setData('participant_mode', mode);
+                                        if (mode === 'individual') {
+                                            // Individuals mode: force group-only phases (no knockout)
+                                            setData('phases', data.phases.map(p => ({
+                                                ...p,
+                                                type: 'group',
+                                                number_of_groups: p.number_of_groups ?? 4,
+                                                teams_advance_per_group: null,
+                                            })));
+                                        }
+                                    }}
+                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                    required
+                                >
+                                    <option value="team">Teams (fixed pairs)</option>
+                                    <option value="individual">Individuals (dynamic pairs per match)</option>
+                                </select>
+                                {errors.participant_mode && (
+                                    <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.participant_mode}</p>
+                                )}
+                                {data.participant_mode === 'individual' && (
+                                    <p className="mt-2 text-sm font-gotham text-neutral-700">
+                                        In Individuals mode, you’ll import or manually set 2 players vs 2 players per match, and standings are calculated per player.
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Tournament Phases */}
                             <div className="border-t-2 border-neutral-200 pt-6">
                                 <div className="flex justify-between items-center mb-4">
@@ -259,7 +297,9 @@ export default function Create({ event }) {
                                                         required
                                                     >
                                                         <option value="group">Group Phase</option>
-                                                        <option value="knockout">Knockout Phase</option>
+                                                        {data.participant_mode !== 'individual' && (
+                                                            <option value="knockout">Knockout Phase</option>
+                                                        )}
                                                     </select>
                                                 </div>
 

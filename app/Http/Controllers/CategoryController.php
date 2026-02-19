@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Event;
+use App\Services\StandingsCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -45,6 +46,7 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'max_participants' => 'nullable|integer|min:1',
+            'participant_mode' => 'required|in:team,individual',
             'warmup_minutes' => 'required|integer|min:0|max:30',
             'phases' => 'required|array|min:1',
             'phases.*.name' => 'required|string|max:255',
@@ -58,10 +60,20 @@ class CategoryController extends Controller
             'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
         ]);
 
+        if ($validated['participant_mode'] === 'individual') {
+            $hasKnockout = collect($validated['phases'])->contains(fn ($p) => ($p['type'] ?? null) === 'knockout');
+            if ($hasKnockout) {
+                return back()->withErrors([
+                    'phases' => 'Individuals mode does not support knockout phases. Use group/rounds only.',
+                ])->withInput();
+            }
+        }
+
         $category = $event->categories()->create([
             'name' => $validated['name'],
             'description' => $validated['description'],
             'max_participants' => $validated['max_participants'],
+            'participant_mode' => $validated['participant_mode'],
             'warmup_minutes' => $validated['warmup_minutes'],
         ]);
 
@@ -131,6 +143,7 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'max_participants' => 'nullable|integer|min:1',
+            'participant_mode' => 'required|in:team,individual',
             'warmup_minutes' => 'required|integer|min:0|max:30',
             'phases' => 'required|array|min:1',
             'phases.*.id' => 'nullable|integer|exists:tournament_phases,id',
@@ -145,10 +158,20 @@ class CategoryController extends Controller
             'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
         ]);
 
+        if ($validated['participant_mode'] === 'individual') {
+            $hasKnockout = collect($validated['phases'])->contains(fn ($p) => ($p['type'] ?? null) === 'knockout');
+            if ($hasKnockout) {
+                return back()->withErrors([
+                    'phases' => 'Individuals mode does not support knockout phases. Use group/rounds only.',
+                ])->withInput();
+            }
+        }
+
         $category->update([
             'name' => $validated['name'],
             'description' => $validated['description'],
             'max_participants' => $validated['max_participants'],
+            'participant_mode' => $validated['participant_mode'],
             'warmup_minutes' => $validated['warmup_minutes'],
         ]);
 
@@ -218,86 +241,34 @@ class CategoryController extends Controller
      */
     public function leaderboard(Event $event, Category $category): Response
     {
-        $category->load('event');
-        
-        // Get all groups with their participants and matches
-        $groups = $category->groups()
-            ->with(['participants'])
-            ->orderBy('order')
-            ->get();
+        $category->load(['event', 'phases']);
+
+        $groupPhase = $category->phases()->where('type', 'group')->orderBy('order')->first();
+
+        // Prefer phase-based groups; fallback to legacy category-level groups
+        $groupsQuery = $groupPhase
+            ? $groupPhase->groups()->with('participants')
+            : $category->groups()->with('participants');
+
+        $groups = $groupsQuery->orderBy('order')->get();
 
         $leaderboardData = [];
 
         foreach ($groups as $group) {
-            $standings = [];
+            $rows = StandingsCalculator::groupStandings($group, $category, $groupPhase);
 
-            foreach ($group->participants as $participant) {
-                // Get all completed matches for this participant in this group
-                $matches = \App\Models\GameMatch::where('group_id', $group->id)
-                    ->where('phase', 'group')
-                    ->where('status', 'completed')
-                    ->where(function($query) use ($participant) {
-                        $query->where('team1_id', $participant->id)
-                              ->orWhere('team2_id', $participant->id);
-                    })
-                    ->get();
-
-                $played = $matches->count();
-                $won = 0;
-                $lost = 0;
-                $draw = 0;
-                $gamesWon = 0;
-                $gamesLost = 0;
-
-                foreach ($matches as $match) {
-                    $isTeam1 = $match->team1_id === $participant->id;
-                    $teamScore = $isTeam1 ? $match->team1_score : $match->team2_score;
-                    $opponentScore = $isTeam1 ? $match->team2_score : $match->team1_score;
-
-                    $gamesWon += $teamScore ?? 0;
-                    $gamesLost += $opponentScore ?? 0;
-
-                    if ($match->winner_id === $participant->id) {
-                        $won++;
-                    } elseif ($match->winner_id === null) {
-                        // Draw
-                        $draw++;
-                    } else {
-                        $lost++;
-                    }
-                }
-
-                $gameDiff = $gamesWon - $gamesLost;
-
-                $standings[] = [
-                    'participant' => $participant,
-                    'played' => $played,
-                    'won' => $won,
-                    'draw' => $draw,
-                    'lost' => $lost,
-                    'games_won' => $gamesWon,
-                    'games_lost' => $gamesLost,
-                    'game_diff' => $gameDiff,
+            $standings = array_map(function ($row) {
+                return [
+                    'participant' => $row['participant'],
+                    'played' => $row['played'],
+                    'won' => $row['won'],
+                    'draw' => $row['draw'],
+                    'lost' => $row['lost'],
+                    'games_won' => $row['games_won'],
+                    'games_lost' => $row['games_lost'],
+                    'game_diff' => $row['game_diff'],
                 ];
-            }
-
-            // Sort standings: 1) by games won, 2) by sets won (same as games_won)
-            usort($standings, function($a, $b) {
-                // First by matches won
-                if ($b['won'] !== $a['won']) {
-                    return $b['won'] - $a['won'];
-                }
-                // Then by games won
-                if ($b['games_won'] !== $a['games_won']) {
-                    return $b['games_won'] - $a['games_won'];
-                }
-                // Then by game difference
-                if ($b['game_diff'] !== $a['game_diff']) {
-                    return $b['game_diff'] - $a['game_diff'];
-                }
-                // Finally by games lost (fewer is better)
-                return $a['games_lost'] - $b['games_lost'];
-            });
+            }, $rows);
 
             $leaderboardData[] = [
                 'group' => $group,

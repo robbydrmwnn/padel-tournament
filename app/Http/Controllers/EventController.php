@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use App\Services\StandingsCalculator;
 
 class EventController extends Controller
 {
@@ -126,6 +127,15 @@ class EventController extends Controller
                     'phases.groups.participants',
                     'phases.matches' => function ($q) {
                         $q->whereIn('status', ['scheduled', 'in_progress', 'completed'])
+                          ->with([
+                              'team1',
+                              'team2',
+                              'side1Player1',
+                              'side1Player2',
+                              'side2Player1',
+                              'side2Player2',
+                              'court',
+                          ])
                           ->orderBy('scheduled_time');
                     }
                 ]);
@@ -158,11 +168,21 @@ class EventController extends Controller
             // If no in_progress matches, find the earliest phase (by order) with scheduled matches that have teams assigned
             if (!$currentPhase) {
                 foreach ($category->phases as $phase) {
-                    $scheduledMatch = $phase->matches()
-                        ->where('status', 'scheduled')
-                        ->whereNotNull('team1_id')
-                        ->whereNotNull('team2_id')
-                        ->first();
+                    $scheduledMatchQuery = $phase->matches()->where('status', 'scheduled');
+
+                    if ($category->participant_mode === 'individual') {
+                        $scheduledMatchQuery
+                            ->whereNotNull('side1_player1_id')
+                            ->whereNotNull('side1_player2_id')
+                            ->whereNotNull('side2_player1_id')
+                            ->whereNotNull('side2_player2_id');
+                    } else {
+                        $scheduledMatchQuery
+                            ->whereNotNull('team1_id')
+                            ->whereNotNull('team2_id');
+                    }
+
+                    $scheduledMatch = $scheduledMatchQuery->first();
                     
                     if ($scheduledMatch) {
                         $currentPhase = $phase;
@@ -212,63 +232,20 @@ class EventController extends Controller
                     }
 
                     foreach ($groups as $group) {
-                        $standings = [];
+                        $rows = StandingsCalculator::groupStandings($group, $category, $currentPhase);
 
-                        foreach ($group->participants as $participant) {
-                            $matches = \App\Models\GameMatch::where('phase_id', $currentPhase->id)
-                                ->where('group_id', $group->id)
-                                ->where('status', 'completed')
-                                ->where(function($query) use ($participant) {
-                                    $query->where('team1_id', $participant->id)
-                                          ->orWhere('team2_id', $participant->id);
-                                })
-                                ->get();
-
-                            $played = $matches->count();
-                            $won = 0;
-                            $lost = 0;
-                            $draw = 0;
-                            $gamesWon = 0;
-                            $gamesLost = 0;
-
-                            foreach ($matches as $match) {
-                                $isTeam1 = $match->team1_id === $participant->id;
-                                $teamScore = $isTeam1 ? $match->team1_score : $match->team2_score;
-                                $opponentScore = $isTeam1 ? $match->team2_score : $match->team1_score;
-
-                                $gamesWon += $teamScore ?? 0;
-                                $gamesLost += $opponentScore ?? 0;
-
-                                if ($match->winner_id === $participant->id) {
-                                    $won++;
-                                } elseif ($match->winner_id === null) {
-                                    $draw++;
-                                } else {
-                                    $lost++;
-                                }
-                            }
-
-                            $gameDiff = $gamesWon - $gamesLost;
-
-                            $standings[] = [
-                                'participant' => $participant,
-                                'played' => $played,
-                                'won' => $won,
-                                'draw' => $draw,
-                                'lost' => $lost,
-                                'games_won' => $gamesWon,
-                                'games_lost' => $gamesLost,
-                                'game_diff' => $gameDiff,
+                        $standings = array_map(function ($row) {
+                            return [
+                                'participant' => $row['participant'],
+                                'played' => $row['played'],
+                                'won' => $row['won'],
+                                'draw' => $row['draw'],
+                                'lost' => $row['lost'],
+                                'games_won' => $row['games_won'],
+                                'games_lost' => $row['games_lost'],
+                                'game_diff' => $row['game_diff'],
                             ];
-                        }
-
-                        // Sort standings
-                        usort($standings, function($a, $b) {
-                            if ($b['won'] !== $a['won']) return $b['won'] - $a['won'];
-                            if ($b['game_diff'] !== $a['game_diff']) return $b['game_diff'] - $a['game_diff'];
-                            if ($b['games_won'] !== $a['games_won']) return $b['games_won'] - $a['games_won'];
-                            return $a['games_lost'] - $b['games_lost'];
-                        });
+                        }, $rows);
 
                         $leaderboardData[] = [
                             'group' => $group,
@@ -279,7 +256,15 @@ class EventController extends Controller
                     // Knockout phase - show bracket or standings differently
                     // For now, we'll show completed matches
                     $knockoutMatches = $currentPhase->matches()
-                        ->with(['team1', 'team2', 'court'])
+                        ->with([
+                            'team1',
+                            'team2',
+                            'side1Player1',
+                            'side1Player2',
+                            'side2Player1',
+                            'side2Player2',
+                            'court',
+                        ])
                         ->where('status', 'completed')
                         ->orderBy('scheduled_time')
                         ->get();
@@ -292,7 +277,15 @@ class EventController extends Controller
 
                 // Get schedule for this phase (both completed and upcoming)
                 $scheduleData = $currentPhase->matches()
-                    ->with(['team1', 'team2', 'court'])
+                    ->with([
+                        'team1',
+                        'team2',
+                        'side1Player1',
+                        'side1Player2',
+                        'side2Player1',
+                        'side2Player2',
+                        'court',
+                    ])
                     ->whereIn('status', ['scheduled', 'in_progress', 'completed'])
                     ->orderBy('scheduled_time', 'desc')
                     ->get();
@@ -316,7 +309,16 @@ class EventController extends Controller
         if ($court1) {
             $court1Match = \App\Models\GameMatch::where('court_id', $court1->id)
                 ->whereIn('status', ['scheduled', 'in_progress'])
-                ->with(['team1', 'team2', 'category', 'tournamentPhase'])
+                ->with([
+                    'team1',
+                    'team2',
+                    'side1Player1',
+                    'side1Player2',
+                    'side2Player1',
+                    'side2Player2',
+                    'category',
+                    'tournamentPhase',
+                ])
                 ->orderBy('scheduled_time')
                 ->first();
         }
@@ -324,7 +326,16 @@ class EventController extends Controller
         if ($court2) {
             $court2Match = \App\Models\GameMatch::where('court_id', $court2->id)
                 ->whereIn('status', ['scheduled', 'in_progress'])
-                ->with(['team1', 'team2', 'category', 'tournamentPhase'])
+                ->with([
+                    'team1',
+                    'team2',
+                    'side1Player1',
+                    'side1Player2',
+                    'side2Player1',
+                    'side2Player2',
+                    'category',
+                    'tournamentPhase',
+                ])
                 ->orderBy('scheduled_time')
                 ->first();
         }

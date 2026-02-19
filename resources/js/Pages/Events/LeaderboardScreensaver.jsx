@@ -140,6 +140,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
         }
 
         const { category, currentPhase, leaderboardData, scheduleData } = categoriesData[currentCategoryIndex];
+        const isIndividual = category.participant_mode === 'individual';
 
         if (!currentPhase) {
             return (
@@ -235,7 +236,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                             <thead>
                                                 <tr className="border-b-2 border-neutral-700">
                                                     <th className="text-left py-2 px-2 font-gotham font-bold text-neutral-300 text-base">Rank</th>
-                                                    <th className="text-left py-2 px-2 font-gotham font-bold text-neutral-300 text-base">Team</th>
+                                                    <th className="text-left py-2 px-2 font-gotham font-bold text-neutral-300 text-base">{isIndividual ? 'Player' : 'Team'}</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">W</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">L</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">GW</th>
@@ -259,7 +260,10 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                                             </td>
                                                             <td className="py-3 px-2">
                                                                 <div className="text-lg font-gotham font-bold text-white truncate leading-tight">
-                                                                    {standing.participant.player_1} / {standing.participant.player_2}
+                                                                    {isIndividual
+                                                                        ? standing.participant.player_1
+                                                                        : `${standing.participant.player_1} / ${standing.participant.player_2}`
+                                                                    }
                                                                 </div>
                                                             </td>
                                                             <td className="text-center py-3 px-2 text-xl font-gotham font-bold text-success">{standing.won}</td>
@@ -285,7 +289,11 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
     // Render monitors view (Court 1 and Court 2)
     const renderMonitorsView = () => {
         const renderCourtMonitor = (court, match) => {
-            if (!match || !match.team1 || !match.team2) {
+            const isIndividual = match?.category?.participant_mode === 'individual';
+            const hasTeams = !!(match && match.team1 && match.team2);
+            const hasSides = !!(match && match.side1_player1_id && match.side1_player2_id && match.side2_player1_id && match.side2_player2_id);
+
+            if (!match || (isIndividual ? !hasSides : !hasTeams)) {
                 return (
                     <div className="bg-neutral-900/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border-4 border-accent text-center">
                         <div className="text-6xl mb-4">🎾</div>
@@ -321,8 +329,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                         <div className="flex items-center gap-4">
                             <div className="flex-1 min-w-0">
                                 <div className="text-3xl font-bold font-raverist text-white leading-tight">
-                                    <div className="truncate">{match.team1.player_1}</div>
-                                    <div className="truncate">{match.team1.player_2}</div>
+                                    <div className="truncate">{isIndividual ? (match.side1Player1?.player_1 || '') : match.team1.player_1}</div>
+                                    <div className="truncate">{isIndividual ? (match.side1Player2?.player_1 || '') : match.team1.player_2}</div>
                                 </div>
                                 {winningTeam === 'team1' && (
                                     <span className="inline-block px-3 py-1 text-xl font-bold font-raverist bg-accent text-dark rounded-lg animate-pulse mt-1">
@@ -355,8 +363,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                         <div className="flex items-center gap-4">
                             <div className="flex-1 min-w-0">
                                 <div className="text-3xl font-bold font-raverist text-white leading-tight">
-                                    <div className="truncate">{match.team2.player_1}</div>
-                                    <div className="truncate">{match.team2.player_2}</div>
+                                    <div className="truncate">{isIndividual ? (match.side2Player1?.player_1 || '') : match.team2.player_1}</div>
+                                    <div className="truncate">{isIndividual ? (match.side2Player2?.player_1 || '') : match.team2.player_2}</div>
                                 </div>
                                 {winningTeam === 'team2' && (
                                     <span className="inline-block px-3 py-1 text-xl font-bold font-raverist bg-accent text-dark rounded-lg animate-pulse mt-1">

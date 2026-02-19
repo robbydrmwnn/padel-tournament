@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 
 export default function Referee({ category, match }) {
     const { flash } = usePage().props;
+    const isIndividual = category.participant_mode === 'individual';
+
+    const side1Label = isIndividual
+        ? `${match.side1Player1?.player_1 || ''} - ${match.side1Player2?.player_1 || ''}`.trim()
+        : `${match.team1.player_1} - ${match.team1.player_2}`;
+    const side2Label = isIndividual
+        ? `${match.side2Player1?.player_1 || ''} - ${match.side2Player2?.player_1 || ''}`.trim()
+        : `${match.team2.player_1} - ${match.team2.player_2}`;
     
     // Initialize warmup state based on match props - this ensures state resets when match changes
     const [warmupTime, setWarmupTime] = useState(() => {
@@ -170,8 +178,8 @@ export default function Referee({ category, match }) {
 
     const handleUndoPoint = (team) => {
         const teamName = team === 'team1' 
-            ? `${match.team1.player_1}-${match.team1.player_2}` 
-            : `${match.team2.player_1}-${match.team2.player_2}`;
+            ? side1Label.replace(/\s+/g, '')
+            : side2Label.replace(/\s+/g, '');
         
         // Check if we're at 0-0 in current game (would undo a game win)
         const isGameWinUndo = (match.current_game_team1_points === '0' || !match.current_game_team1_points) && 
@@ -238,9 +246,9 @@ export default function Referee({ category, match }) {
         
         let winnerText = '';
         if (team1Score > team2Score) {
-            winnerText = `Winner: Team 1 (${match.team1.player_1} - ${match.team1.player_2})`;
+            winnerText = `Winner: Team 1 (${side1Label})`;
         } else if (team2Score > team1Score) {
-            winnerText = `Winner: Team 2 (${match.team2.player_1} - ${match.team2.player_2})`;
+            winnerText = `Winner: Team 2 (${side2Label})`;
         } else {
             winnerText = 'Result: Draw';
         }
@@ -379,10 +387,10 @@ export default function Referee({ category, match }) {
                             <div className="flex-1">
                                 <div className="grid grid-cols-2 gap-3 mb-2">
                                     <div>
-                                        <p className="text-xl font-semibold text-primary">Team 1: {match.team1.player_1} - {match.team1.player_2}</p>
+                                        <p className="text-xl font-semibold text-primary">Team 1: {side1Label}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xl font-semibold text-primary">Team 2: {match.team2.player_1} - {match.team2.player_2}</p>
+                                        <p className="text-xl font-semibold text-primary">Team 2: {side2Label}</p>
                                     </div>
                                 </div>
                                 {(match.scheduled_time) && (
@@ -483,8 +491,8 @@ export default function Referee({ category, match }) {
                                                 </p>
                                                 <p className="text-xl font-bold text-dark">
                                                     {winningTeam === 'team1' 
-                                                        ? `${match.team1.player_1} - ${match.team1.player_2}`
-                                                        : `${match.team2.player_1} - ${match.team2.player_2}`
+                                                        ? side1Label
+                                                        : side2Label
                                                     }
                                                 </p>
                                                 <p className="text-2xl font-bold text-dark mt-2">
@@ -555,7 +563,7 @@ export default function Referee({ category, match }) {
                                             <div className="flex items-center gap-4 h-full">
                                                 <div className="flex-1">
                                                     <p className="text-sm text-neutral-600 mb-1">Team 1</p>
-                                                    <p className="text-lg font-bold">{match.team1.player_1} - {match.team1.player_2}</p>
+                                                    <p className="text-lg font-bold">{side1Label}</p>
                                                     {winningTeam === 'team1' && (
                                                         <div className="mt-1">
                                                             <span className="inline-block px-3 py-1 text-sm font-bold text-white bg-accent rounded-lg border-2 border-success animate-pulse">
@@ -653,7 +661,7 @@ export default function Referee({ category, match }) {
                                             <div className="flex items-center gap-4 h-full">
                                                 <div className="flex-1">
                                                     <p className="text-sm text-neutral-600 mb-1">Team 2</p>
-                                                    <p className="text-lg font-bold">{match.team2.player_1} - {match.team2.player_2}</p>
+                                                    <p className="text-lg font-bold">{side2Label}</p>
                                                     {winningTeam === 'team2' && (
                                                         <div className="mt-1">
                                                             <span className="inline-block px-3 py-1 text-sm font-bold text-white bg-accent rounded-lg border-2 border-primary animate-pulse">

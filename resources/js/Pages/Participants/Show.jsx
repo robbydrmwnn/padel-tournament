@@ -2,6 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Show({ category, participant }) {
+    const isIndividual = category.participant_mode === 'individual';
+
     return (
         <AuthenticatedLayout
             header={
@@ -19,7 +21,7 @@ export default function Show({ category, participant }) {
                             </Link>
                         </nav>
                         <h2 className="text-xl font-bold font-raverist leading-tight text-dark">
-                            {participant.player_1} - {participant.player_2}
+                            {isIndividual ? participant.player_1 : `${participant.player_1} - ${participant.player_2}`}
                         </h2>
                     </div>
                     <Link
@@ -41,21 +43,25 @@ export default function Show({ category, participant }) {
                             
                             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <dt className="text-sm font-medium text-neutral-600">Player 1</dt>
+                                    <dt className="text-sm font-medium text-neutral-600">{isIndividual ? 'Player' : 'Player 1'}</dt>
                                     <dd className="mt-1 text-sm text-dark">{participant.player_1}</dd>
                                 </div>
                                 
-                                <div>
-                                    <dt className="text-sm font-medium text-neutral-600">Player 2</dt>
-                                    <dd className="mt-1 text-sm text-dark">{participant.player_2}</dd>
-                                </div>
+                                {!isIndividual && (
+                                    <div>
+                                        <dt className="text-sm font-medium text-neutral-600">Player 2</dt>
+                                        <dd className="mt-1 text-sm text-dark">{participant.player_2}</dd>
+                                    </div>
+                                )}
                                 
-                                <div>
-                                    <dt className="text-sm font-medium text-neutral-600">Team Name</dt>
-                                    <dd className="mt-1 text-sm text-dark">
-                                        {participant.name || 'Not provided'}
-                                    </dd>
-                                </div>
+                                {!isIndividual && (
+                                    <div>
+                                        <dt className="text-sm font-medium text-neutral-600">Team Name</dt>
+                                        <dd className="mt-1 text-sm text-dark">
+                                            {participant.name || 'Not provided'}
+                                        </dd>
+                                    </div>
+                                )}
                                 
                                 <div>
                                     <dt className="text-sm font-medium text-neutral-600">Email</dt>

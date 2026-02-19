@@ -75,7 +75,18 @@ class CourtController extends Controller
             ->whereHas('category', function ($query) use ($event) {
                 $query->where('event_id', $event->id);
             })
-            ->with(['team1', 'team2', 'court', 'group', 'category', 'tournamentPhase'])
+            ->with([
+                'team1',
+                'team2',
+                'side1Player1',
+                'side1Player2',
+                'side2Player1',
+                'side2Player2',
+                'court',
+                'group',
+                'category',
+                'tournamentPhase',
+            ])
             ->orderBy('scheduled_time', 'asc')
             ->get();
         

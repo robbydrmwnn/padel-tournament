@@ -7,6 +7,7 @@ use App\Models\TournamentPhase;
 use App\Models\Group;
 use App\Models\GameMatch;
 use App\Models\Participant;
+use App\Services\StandingsCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -26,77 +27,25 @@ class PhaseController extends Controller
         $groups = $phase->groups()->with('participants')->get();
 
         foreach ($groups as $group) {
-            $groupStandings = [];
-            
-            foreach ($group->participants as $participant) {
-                // Get all completed matches for this participant in this group
-                $matches = GameMatch::where('group_id', $group->id)
-                    ->where('status', 'completed')
-                    ->where(function ($query) use ($participant) {
-                        $query->where('team1_id', $participant->id)
-                              ->orWhere('team2_id', $participant->id);
-                    })
-                    ->get();
+            $rows = StandingsCalculator::groupStandings($group, $phase->category, $phase);
 
-                $wins = 0;
-                $losses = 0;
-                $gamesWon = 0;
-                $gamesLost = 0;
-                $points = 0;
-
-                foreach ($matches as $match) {
-                    if ($match->team1_id == $participant->id) {
-                        $gamesWon += $match->team1_score ?? 0;
-                        $gamesLost += $match->team2_score ?? 0;
-                        
-                        if ($match->winner_id == $participant->id) {
-                            $wins++;
-                            $points += 2; // 2 points for a win
-                        } else {
-                            $losses++;
-                        }
-                    } else {
-                        $gamesWon += $match->team2_score ?? 0;
-                        $gamesLost += $match->team1_score ?? 0;
-                        
-                        if ($match->winner_id == $participant->id) {
-                            $wins++;
-                            $points += 2; // 2 points for a win
-                        } else {
-                            $losses++;
-                        }
-                    }
-                }
-
-                $gameDifference = $gamesWon - $gamesLost;
-
-                $groupStandings[] = [
-                    'participant' => $participant,
-                    'wins' => $wins,
-                    'losses' => $losses,
-                    'games_won' => $gamesWon,
-                    'games_lost' => $gamesLost,
-                    'game_difference' => $gameDifference,
-                    'points' => $points,
-                    'matches_played' => $matches->count(),
+            $groupStandings = array_map(function ($row) {
+                return [
+                    'participant' => $row['participant'],
+                    'wins' => $row['won'],
+                    'losses' => $row['lost'],
+                    'games_won' => $row['games_won'],
+                    'games_lost' => $row['games_lost'],
+                    'game_difference' => $row['game_diff'],
+                    'points' => $row['points'],
+                    'matches_played' => $row['played'],
                 ];
-            }
+            }, $rows);
 
-            // Sort by: 1) Points, 2) Game difference, 3) Games won
-            usort($groupStandings, function ($a, $b) {
-                if ($a['points'] !== $b['points']) {
-                    return $b['points'] - $a['points'];
-                }
-                if ($a['game_difference'] !== $b['game_difference']) {
-                    return $b['game_difference'] - $a['game_difference'];
-                }
-                return $b['games_won'] - $a['games_won'];
-            });
-
-            // Add ranking
             foreach ($groupStandings as $index => &$standing) {
                 $standing['rank'] = $index + 1;
             }
+            unset($standing);
 
             $standings[$group->name] = $groupStandings;
         }
@@ -140,85 +89,27 @@ class PhaseController extends Controller
      */
     private function calculateGroupStandings(Group $group): array
     {
-        $standings = [];
-        
-        // Ensure participants are loaded
-        $group->load('participants');
-        
-        \Log::info('calculateGroupStandings', [
-            'group_id' => $group->id,
-            'group_name' => $group->name,
-            'participants_count' => $group->participants->count(),
-        ]);
-        
-        foreach ($group->participants as $participant) {
-            $matches = GameMatch::where('group_id', $group->id)
-                ->where('status', 'completed')
-                ->where(function ($query) use ($participant) {
-                    $query->where('team1_id', $participant->id)
-                          ->orWhere('team2_id', $participant->id);
-                })
-                ->get();
+        $group->loadMissing(['category', 'phase', 'participants']);
 
-            $wins = 0;
-            $losses = 0;
-            $gamesWon = 0;
-            $gamesLost = 0;
-            $points = 0;
+        $rows = StandingsCalculator::groupStandings($group, $group->category, $group->phase);
 
-            foreach ($matches as $match) {
-                if ($match->team1_id == $participant->id) {
-                    $gamesWon += $match->team1_score ?? 0;
-                    $gamesLost += $match->team2_score ?? 0;
-                    
-                    if ($match->winner_id == $participant->id) {
-                        $wins++;
-                        $points += 2;
-                    } else {
-                        $losses++;
-                    }
-                } else {
-                    $gamesWon += $match->team2_score ?? 0;
-                    $gamesLost += $match->team1_score ?? 0;
-                    
-                    if ($match->winner_id == $participant->id) {
-                        $wins++;
-                        $points += 2;
-                    } else {
-                        $losses++;
-                    }
-                }
-            }
-
-            $gameDifference = $gamesWon - $gamesLost;
-
-            $standings[] = [
-                'participant' => $participant,
-                'wins' => $wins,
-                'losses' => $losses,
-                'games_won' => $gamesWon,
-                'games_lost' => $gamesLost,
-                'game_difference' => $gameDifference,
-                'points' => $points,
-                'matches_played' => $matches->count(),
+        $standings = array_map(function ($row) {
+            return [
+                'participant' => $row['participant'],
+                'wins' => $row['won'],
+                'losses' => $row['lost'],
+                'games_won' => $row['games_won'],
+                'games_lost' => $row['games_lost'],
+                'game_difference' => $row['game_diff'],
+                'points' => $row['points'],
+                'matches_played' => $row['played'],
             ];
-        }
+        }, $rows);
 
-        // Sort standings
-        usort($standings, function ($a, $b) {
-            if ($a['points'] !== $b['points']) {
-                return $b['points'] - $a['points'];
-            }
-            if ($a['game_difference'] !== $b['game_difference']) {
-                return $b['game_difference'] - $a['game_difference'];
-            }
-            return $b['games_won'] - $a['games_won'];
-        });
-
-        // Add ranking
         foreach ($standings as $index => &$standing) {
             $standing['rank'] = $index + 1;
         }
+        unset($standing);
 
         return $standings;
     }

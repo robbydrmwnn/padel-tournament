@@ -2,6 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Leaderboard({ event, category, leaderboardData }) {
+    const isIndividual = category.participant_mode === 'individual';
+
     return (
         <AuthenticatedLayout header={`${category.name} - Leaderboard`}>
             <Head title={`${category.name} - Leaderboard`} />
@@ -68,7 +70,7 @@ export default function Leaderboard({ event, category, leaderboardData }) {
                                                             Rank
                                                         </th>
                                                         <th scope="col" className="py-4 px-6 text-left text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
-                                                            Team
+                                                            {isIndividual ? 'Player' : 'Team'}
                                                         </th>
                                                         <th scope="col" className="py-4 px-6 text-center text-xs font-gotham font-bold text-neutral-700 uppercase tracking-wider">
                                                             Won
@@ -116,11 +118,16 @@ export default function Leaderboard({ event, category, leaderboardData }) {
                                                                 </td>
                                                                 <td className="py-4 px-6">
                                                                     <div className="text-sm font-gotham font-bold text-dark">
-                                                                        {standing.participant.player_1} / {standing.participant.player_2}
+                                                                        {isIndividual
+                                                                            ? standing.participant.player_1
+                                                                            : `${standing.participant.player_1} / ${standing.participant.player_2}`
+                                                                        }
                                                                     </div>
-                                                                    <div className="text-xs font-gotham text-neutral-500">
-                                                                        {standing.participant.name}
-                                                                    </div>
+                                                                    {!isIndividual && (
+                                                                        <div className="text-xs font-gotham text-neutral-500">
+                                                                            {standing.participant.name}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                                 <td className="py-4 px-6 text-center">
                                                                     <span className="text-sm font-gotham font-bold text-success">{standing.won}</span>
