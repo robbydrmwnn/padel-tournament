@@ -2,6 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Edit({ category, participant }) {
+    const isIndividual = category.participant_mode === 'individual';
+
     const { data, setData, patch, delete: destroy, processing, errors } = useForm({
         name: participant.name || '',
         player_1: participant.player_1,
@@ -55,7 +57,7 @@ export default function Edit({ category, participant }) {
                         <form onSubmit={submit} className="space-y-6">
                             <div>
                                 <label htmlFor="player_1" className="block text-base font-gotham font-bold text-dark mb-2">
-                                    🎾 Player 1 *
+                                    🎾 {isIndividual ? 'Player' : 'Player 1'} *
                                 </label>
                                 <input
                                     id="player_1"
@@ -63,42 +65,46 @@ export default function Edit({ category, participant }) {
                                     value={data.player_1}
                                     onChange={(e) => setData('player_1', e.target.value)}
                                     className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
-                                    placeholder="Enter first player name..."
+                                    placeholder={isIndividual ? 'Enter player name...' : 'Enter first player name...'}
                                     required
                                 />
                                 {errors.player_1 && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.player_1}</p>}
                             </div>
 
-                            <div>
-                                <label htmlFor="player_2" className="block text-base font-gotham font-bold text-dark mb-2">
-                                    🎾 Player 2 *
-                                </label>
-                                <input
-                                    id="player_2"
-                                    type="text"
-                                    value={data.player_2}
-                                    onChange={(e) => setData('player_2', e.target.value)}
-                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
-                                    placeholder="Enter second player name..."
-                                    required
-                                />
-                                {errors.player_2 && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.player_2}</p>}
-                            </div>
+                            {!isIndividual && (
+                                <div>
+                                    <label htmlFor="player_2" className="block text-base font-gotham font-bold text-dark mb-2">
+                                        🎾 Player 2 *
+                                    </label>
+                                    <input
+                                        id="player_2"
+                                        type="text"
+                                        value={data.player_2}
+                                        onChange={(e) => setData('player_2', e.target.value)}
+                                        className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                        placeholder="Enter second player name..."
+                                        required
+                                    />
+                                    {errors.player_2 && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.player_2}</p>}
+                                </div>
+                            )}
 
-                            <div>
-                                <label htmlFor="name" className="block text-base font-gotham font-bold text-dark mb-2">
-                                    🏆 Team Name (Optional)
-                                </label>
-                                <input
-                                    id="name"
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
-                                    placeholder="Enter team name (optional)..."
-                                />
-                                {errors.name && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.name}</p>}
-                            </div>
+                            {!isIndividual && (
+                                <div>
+                                    <label htmlFor="name" className="block text-base font-gotham font-bold text-dark mb-2">
+                                        🏆 Team Name (Optional)
+                                    </label>
+                                    <input
+                                        id="name"
+                                        type="text"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        className="block w-full font-gotham rounded-xl border-2 border-neutral-300 shadow-sm focus:border-primary focus:ring-primary text-base p-3"
+                                        placeholder="Enter team name (optional)..."
+                                    />
+                                    {errors.name && <p className="mt-2 text-sm font-gotham font-bold text-red-600">❌ {errors.name}</p>}
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>

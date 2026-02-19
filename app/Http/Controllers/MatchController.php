@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 
@@ -28,7 +29,17 @@ class MatchController extends Controller
             },
             'phases.groups.participants',
             'phases.matches' => function ($query) {
-                $query->with(['team1', 'team2', 'court', 'group', 'tournamentPhase'])
+                $query->with([
+                    'team1',
+                    'team2',
+                    'side1Player1',
+                    'side1Player2',
+                    'side2Player1',
+                    'side2Player2',
+                    'court',
+                    'group',
+                    'tournamentPhase',
+                ])
                       ->orderBy('match_order')
                       ->orderBy('scheduled_time');
             }
@@ -36,12 +47,16 @@ class MatchController extends Controller
         
         // Get current phase
         $currentPhase = $category->phases()->where('is_completed', false)->orderBy('order')->first();
+        $participants = Participant::where('category_id', $category->id)
+            ->orderBy('player_1')
+            ->get();
         
         return Inertia::render('Matches/Index', [
             'category' => $category,
             'phases' => $category->phases,
             'currentPhase' => $currentPhase,
             'courts' => $category->event->courts,
+            'participants' => $participants,
         ]);
     }
 
@@ -55,6 +70,10 @@ class MatchController extends Controller
         ]);
 
         $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
+
+        if ($category->participant_mode === 'individual') {
+            return back()->with('error', 'Individuals mode does not support auto-generating matches. Please use Import Schedule and then tweak players per match.');
+        }
 
         // Delete existing matches for this phase
         $phase->matches()->delete();
@@ -108,6 +127,10 @@ class MatchController extends Controller
      */
     public function createKnockoutMatches(Request $request, Category $category): RedirectResponse
     {
+        if ($category->participant_mode === 'individual') {
+            return back()->with('error', 'Individuals mode does not support knockout phases.');
+        }
+
         $validated = $request->validate([
             'phase_id' => 'required|exists:tournament_phases,id',
             'matches' => 'required|array|min:1',
@@ -160,6 +183,13 @@ class MatchController extends Controller
         ]);
 
         $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
+        $isIndividual = $category->participant_mode === 'individual';
+
+        if ($isIndividual && $phase->type === 'knockout') {
+            return response()->json([
+                'error' => 'Individuals mode does not support knockout phases.',
+            ], 422);
+        }
 
         try {
             $file = $request->file('schedule_file');
@@ -182,29 +212,50 @@ class MatchController extends Controller
             foreach ($headerRow as $index => $header) {
                 $normalized = strtolower(trim($header));
                 $headerMap[$normalized] = $index;
+                $headerMap[str_replace(' ', '', $normalized)] = $index;
             }
 
-            // Required columns
-            $requiredColumns = ['team 1', 'team 2', 'court', 'date', 'time'];
-            foreach ($requiredColumns as $col) {
-                if (!isset($headerMap[$col]) && !isset($headerMap[str_replace(' ', '', $col)])) {
+            $getCol = function (array $candidates) use ($headerMap) {
+                foreach ($candidates as $candidate) {
+                    $norm = strtolower(trim($candidate));
+                    $noSpace = str_replace(' ', '', $norm);
+                    if (isset($headerMap[$noSpace])) return $headerMap[$noSpace];
+                    if (isset($headerMap[$norm])) return $headerMap[$norm];
+                }
+                return null;
+            };
+
+            $courtCol = $getCol(['court']);
+            $dateCol = $getCol(['date']);
+            $timeCol = $getCol(['time']);
+
+            $team1Col = null;
+            $team2Col = null;
+            $side1Player1Col = null;
+            $side1Player2Col = null;
+            $side2Player1Col = null;
+            $side2Player2Col = null;
+
+            if ($isIndividual) {
+                $side1Player1Col = $getCol(['side 1 player 1', 'team 1 player 1', 'side1 player1', 'team1 player1']);
+                $side1Player2Col = $getCol(['side 1 player 2', 'team 1 player 2', 'side1 player2', 'team1 player2']);
+                $side2Player1Col = $getCol(['side 2 player 1', 'team 2 player 1', 'side2 player1', 'team2 player1']);
+                $side2Player2Col = $getCol(['side 2 player 2', 'team 2 player 2', 'side2 player2', 'team2 player2']);
+
+                if (is_null($side1Player1Col) || is_null($side1Player2Col) || is_null($side2Player1Col) || is_null($side2Player2Col) || is_null($courtCol) || is_null($dateCol) || is_null($timeCol)) {
                     return response()->json([
-                        'error' => "Missing required column: {$col}. Expected columns: Team 1, Team 2, Court, Date, Time"
+                        'error' => "Could not identify all required columns for Individuals mode. Expected columns: Side 1 Player 1, Side 1 Player 2, Side 2 Player 1, Side 2 Player 2, Court, Date, Time",
                     ], 422);
                 }
-            }
+            } else {
+                $team1Col = $getCol(['team 1', 'team1']);
+                $team2Col = $getCol(['team 2', 'team2']);
 
-            // Get column indices
-            $team1Col = $headerMap['team 1'] ?? $headerMap['team1'] ?? null;
-            $team2Col = $headerMap['team 2'] ?? $headerMap['team2'] ?? null;
-            $courtCol = $headerMap['court'] ?? null;
-            $dateCol = $headerMap['date'] ?? null;
-            $timeCol = $headerMap['time'] ?? null;
-
-            if (is_null($team1Col) || is_null($team2Col) || is_null($courtCol) || is_null($dateCol) || is_null($timeCol)) {
-                return response()->json([
-                    'error' => 'Could not identify all required columns. Please ensure columns are named: Team 1, Team 2, Court, Date, Time'
-                ], 422);
+                if (is_null($team1Col) || is_null($team2Col) || is_null($courtCol) || is_null($dateCol) || is_null($timeCol)) {
+                    return response()->json([
+                        'error' => 'Could not identify all required columns. Please ensure columns are named: Team 1, Team 2, Court, Date, Time'
+                    ], 422);
+                }
             }
 
             // Get all participants for this category
@@ -230,11 +281,147 @@ class MatchController extends Controller
                     continue;
                 }
 
-                $team1Name = trim($row[$team1Col] ?? '');
-                $team2Name = trim($row[$team2Col] ?? '');
                 $courtName = trim($row[$courtCol] ?? '');
                 $date = $row[$dateCol] ?? '';
                 $time = $row[$timeCol] ?? '';
+
+                if ($isIndividual) {
+                    $s1p1Name = trim($row[$side1Player1Col] ?? '');
+                    $s1p2Name = trim($row[$side1Player2Col] ?? '');
+                    $s2p1Name = trim($row[$side2Player1Col] ?? '');
+                    $s2p2Name = trim($row[$side2Player2Col] ?? '');
+
+                    if (empty($s1p1Name) || empty($s1p2Name) || empty($s2p1Name) || empty($s2p2Name)) {
+                        $errors[] = "Row {$rowNumber}: Missing player names";
+                        continue;
+                    }
+
+                    $findPlayer = function (string $name) use ($participants) {
+                        return $participants->first(function ($p) use ($name) {
+                            return strcasecmp(trim($p->player_1), $name) === 0;
+                        });
+                    };
+
+                    $p11 = $findPlayer($s1p1Name);
+                    $p12 = $findPlayer($s1p2Name);
+                    $p21 = $findPlayer($s2p1Name);
+                    $p22 = $findPlayer($s2p2Name);
+
+                    if (!$p11 || !$p12 || !$p21 || !$p22) {
+                        $examples = $participants->take(5)->map(fn ($p) => $p->player_1)->implode(', ');
+                        if (!$p11) $errors[] = "Row {$rowNumber}: Player not found: '{$s1p1Name}'. Examples: {$examples}";
+                        if (!$p12) $errors[] = "Row {$rowNumber}: Player not found: '{$s1p2Name}'. Examples: {$examples}";
+                        if (!$p21) $errors[] = "Row {$rowNumber}: Player not found: '{$s2p1Name}'. Examples: {$examples}";
+                        if (!$p22) $errors[] = "Row {$rowNumber}: Player not found: '{$s2p2Name}'. Examples: {$examples}";
+                        continue;
+                    }
+
+                    $uniqueIds = collect([$p11->id, $p12->id, $p21->id, $p22->id])->unique()->values();
+                    if ($uniqueIds->count() !== 4) {
+                        $errors[] = "Row {$rowNumber}: Duplicate player detected in match (all 4 players must be different)";
+                        continue;
+                    }
+
+                    // Find existing match by same 4 players (allow swapping order within a side, and swapping sides)
+                    $match = GameMatch::where('phase_id', $phase->id)
+                        ->where(function ($q) use ($p11, $p12, $p21, $p22) {
+                            $q->where(function ($qq) use ($p11, $p12, $p21, $p22) {
+                                $qq->where(function ($qSide1) use ($p11, $p12) {
+                                        $qSide1->where('side1_player1_id', $p11->id)->where('side1_player2_id', $p12->id);
+                                    })
+                                    ->orWhere(function ($qSide1) use ($p11, $p12) {
+                                        $qSide1->where('side1_player1_id', $p12->id)->where('side1_player2_id', $p11->id);
+                                    });
+                            })->where(function ($qq) use ($p21, $p22) {
+                                $qq->where(function ($qSide2) use ($p21, $p22) {
+                                        $qSide2->where('side2_player1_id', $p21->id)->where('side2_player2_id', $p22->id);
+                                    })
+                                    ->orWhere(function ($qSide2) use ($p21, $p22) {
+                                        $qSide2->where('side2_player1_id', $p22->id)->where('side2_player2_id', $p21->id);
+                                    });
+                            });
+                        })
+                        ->orWhere(function ($q) use ($p11, $p12, $p21, $p22) {
+                            $q->where(function ($qq) use ($p11, $p12, $p21, $p22) {
+                                $qq->where(function ($qSide1) use ($p21, $p22) {
+                                        $qSide1->where('side1_player1_id', $p21->id)->where('side1_player2_id', $p22->id);
+                                    })
+                                    ->orWhere(function ($qSide1) use ($p21, $p22) {
+                                        $qSide1->where('side1_player1_id', $p22->id)->where('side1_player2_id', $p21->id);
+                                    });
+                            })->where(function ($qq) use ($p11, $p12) {
+                                $qq->where(function ($qSide2) use ($p11, $p12) {
+                                        $qSide2->where('side2_player1_id', $p11->id)->where('side2_player2_id', $p12->id);
+                                    })
+                                    ->orWhere(function ($qSide2) use ($p11, $p12) {
+                                        $qSide2->where('side2_player1_id', $p12->id)->where('side2_player2_id', $p11->id);
+                                    });
+                            });
+                        })
+                        ->first();
+
+                    $wasCreated = false;
+                    if (!$match) {
+                        try {
+                            $maxMatchOrder++;
+
+                            $group = $phase->groups()
+                                ->whereHas('participants', function ($query) use ($p11) {
+                                    $query->where('participant_id', $p11->id);
+                                })
+                                ->first();
+
+                            $match = GameMatch::create([
+                                'category_id' => $category->id,
+                                'phase_id' => $phase->id,
+                                'group_id' => $group ? $group->id : null,
+                                'side1_player1_id' => $p11->id,
+                                'side1_player2_id' => $p12->id,
+                                'side2_player1_id' => $p21->id,
+                                'side2_player2_id' => $p22->id,
+                                // Keep team IDs set so existing scoring flows work (they represent Side 1 / Side 2)
+                                'team1_id' => $p11->id,
+                                'team2_id' => $p21->id,
+                                'winner_id' => null,
+                                'winner_side' => null,
+                                'phase' => 'group',
+                                'status' => 'scheduled',
+                                'match_order' => $maxMatchOrder,
+                            ]);
+
+                            $created++;
+                            $wasCreated = true;
+                        } catch (\Exception $e) {
+                            $errors[] = "Row {$rowNumber}: Failed to create match: " . $e->getMessage();
+                            continue;
+                        }
+                    }
+
+                    // Ensure player slots are stored according to the import orientation
+                    if (!$wasCreated) {
+                        $match->update([
+                            'side1_player1_id' => $p11->id,
+                            'side1_player2_id' => $p12->id,
+                            'side2_player1_id' => $p21->id,
+                            'side2_player2_id' => $p22->id,
+                            'team1_id' => $p11->id,
+                            'team2_id' => $p21->id,
+                        ]);
+                    }
+
+                    $updateData = $this->parseScheduleData($courtName, $courts, $date, $time, $rowNumber, $errors);
+                    if (!empty($updateData)) {
+                        $match->update($updateData);
+                        if (!$wasCreated) {
+                            $updated++;
+                        }
+                    }
+
+                    continue;
+                }
+
+                $team1Name = trim($row[$team1Col] ?? '');
+                $team2Name = trim($row[$team2Col] ?? '');
 
                 if (empty($team1Name) || empty($team2Name)) {
                     $errors[] = "Row {$rowNumber}: Missing team names";
@@ -531,11 +718,15 @@ class MatchController extends Controller
      */
     public function downloadScheduleTemplate(Request $request, Category $category)
     {
+        $isIndividual = $category->participant_mode === 'individual';
+
         // Get phase_id from request if provided
         $phaseId = $request->query('phase_id');
         
         $data = [
-            ['Team 1', 'Team 2', 'Court', 'Date', 'Time'],
+            $isIndividual
+                ? ['Side 1 Player 1', 'Side 1 Player 2', 'Side 2 Player 1', 'Side 2 Player 2', 'Court', 'Date', 'Time']
+                : ['Team 1', 'Team 2', 'Court', 'Date', 'Time'],
         ];
 
         if ($phaseId) {
@@ -543,14 +734,42 @@ class MatchController extends Controller
             $phase = \App\Models\TournamentPhase::findOrFail($phaseId);
             
             $matches = GameMatch::where('phase_id', $phaseId)
-                ->with(['team1', 'team2', 'court'])
+                ->with([
+                    'team1',
+                    'team2',
+                    'side1Player1',
+                    'side1Player2',
+                    'side2Player1',
+                    'side2Player2',
+                    'court',
+                ])
                 ->orderBy('scheduled_time')
                 ->orderBy('match_order')
                 ->get();
 
             if ($phase->type === 'group') {
                 foreach ($matches as $match) {
-                    if ($match->team1 && $match->team2) {
+                    $courtName = $match->court ? $match->court->name : '';
+                    
+                    $date = '';
+                    $time = '';
+                    if ($match->scheduled_time) {
+                        $scheduledTime = \Carbon\Carbon::parse($match->scheduled_time);
+                        $date = $scheduledTime->format('Y-m-d');
+                        $time = $scheduledTime->format('H:i');
+                    }
+
+                    if ($isIndividual) {
+                        $data[] = [
+                            $match->side1Player1?->player_1 ?? '',
+                            $match->side1Player2?->player_1 ?? '',
+                            $match->side2Player1?->player_1 ?? '',
+                            $match->side2Player2?->player_1 ?? '',
+                            $courtName,
+                            $date,
+                            $time,
+                        ];
+                    } else if ($match->team1 && $match->team2) {
                         // Use team name if available, otherwise use player names
                         $team1Name = !empty($match->team1->name) 
                             ? $match->team1->name 
@@ -559,16 +778,6 @@ class MatchController extends Controller
                         $team2Name = !empty($match->team2->name) 
                             ? $match->team2->name 
                             : $match->team2->player_1 . ' / ' . $match->team2->player_2;
-                        
-                        $courtName = $match->court ? $match->court->name : '';
-                        
-                        $date = '';
-                        $time = '';
-                        if ($match->scheduled_time) {
-                            $scheduledTime = \Carbon\Carbon::parse($match->scheduled_time);
-                            $date = $scheduledTime->format('Y-m-d');
-                            $time = $scheduledTime->format('H:i');
-                        }
                         
                         $data[] = [$team1Name, $team2Name, $courtName, $date, $time];
                     }
@@ -617,9 +826,13 @@ class MatchController extends Controller
             }
         } else {
             // Add example rows if no phase specified
-            $data[] = ['Team A', 'Team B', 'Court 1', '2026-01-30', '09:00'];
-            $data[] = ['1st Group A', '2nd Group B', 'Court 1', '2026-02-01', '09:00'];
-            $data[] = ['Winner Match 1', 'Winner Match 2', 'Court 1', '2026-02-02', '14:00'];
+            if ($isIndividual) {
+                $data[] = ['John Doe', 'Jane Smith', 'Max Mustermann', 'Erika Mustermann', 'Court 1', '2026-01-30', '09:00'];
+            } else {
+                $data[] = ['Team A', 'Team B', 'Court 1', '2026-01-30', '09:00'];
+                $data[] = ['1st Group A', '2nd Group B', 'Court 1', '2026-02-01', '09:00'];
+                $data[] = ['Winner Match 1', 'Winner Match 2', 'Court 1', '2026-02-02', '14:00'];
+            }
         }
 
         return Excel::download(new class($data) implements \Maatwebsite\Excel\Concerns\FromArray {
@@ -847,26 +1060,103 @@ class MatchController extends Controller
      */
     public function update(Request $request, Category $category, GameMatch $match): RedirectResponse
     {
-        $validated = $request->validate([
+        $isIndividual = $category->participant_mode === 'individual';
+
+        $playerExistsInCategory = Rule::exists('participants', 'id')->where('category_id', $category->id);
+
+        $rules = [
             'court_id' => 'nullable|exists:courts,id',
             'scheduled_time' => 'nullable|date',
             'team1_score' => 'nullable|integer|min:0',
             'team2_score' => 'nullable|integer|min:0',
             'status' => 'nullable|in:scheduled,upcoming,in_progress,completed,cancelled',
             'notes' => 'nullable|string',
-        ]);
+
+            // Individuals mode (dynamic pairing)
+            'side1_player1_id' => $isIndividual ? ['sometimes', 'nullable', 'integer', $playerExistsInCategory] : ['prohibited'],
+            'side1_player2_id' => $isIndividual ? ['sometimes', 'nullable', 'integer', $playerExistsInCategory] : ['prohibited'],
+            'side2_player1_id' => $isIndividual ? ['sometimes', 'nullable', 'integer', $playerExistsInCategory] : ['prohibited'],
+            'side2_player2_id' => $isIndividual ? ['sometimes', 'nullable', 'integer', $playerExistsInCategory] : ['prohibited'],
+        ];
+
+        $validator = \Validator::make($request->all(), $rules);
+
+        $validator->after(function ($v) use ($isIndividual, $request) {
+            if (!$isIndividual) {
+                return;
+            }
+
+            $keys = ['side1_player1_id', 'side1_player2_id', 'side2_player1_id', 'side2_player2_id'];
+            $anyPresent = false;
+            foreach ($keys as $k) {
+                if ($request->has($k)) {
+                    $anyPresent = true;
+                    break;
+                }
+            }
+
+            if (!$anyPresent) {
+                return;
+            }
+
+            $ids = [];
+            foreach ($keys as $k) {
+                $raw = $request->input($k);
+                $val = ($raw === '' || $raw === null) ? null : (int) $raw;
+                $ids[$k] = $val;
+            }
+
+            foreach ($keys as $k) {
+                if (empty($ids[$k])) {
+                    $v->errors()->add($k, 'All 4 players are required for an Individuals match.');
+                }
+            }
+
+            $nonNull = array_values(array_filter($ids, fn ($x) => !empty($x)));
+            if (count($nonNull) === 4 && count(array_unique($nonNull)) !== 4) {
+                $v->errors()->add('side1_player1_id', 'Duplicate player detected: all 4 players must be different.');
+            }
+        });
+
+        $validated = $validator->validate();
 
         // Determine winner if both scores are provided
         if (isset($validated['team1_score']) && isset($validated['team2_score'])) {
             if ($validated['team1_score'] > $validated['team2_score']) {
-                $validated['winner_id'] = $match->team1_id;
+                if ($isIndividual) {
+                    $validated['winner_side'] = 1;
+                    $validated['winner_id'] = null;
+                } else {
+                    $validated['winner_id'] = $match->team1_id;
+                }
             } elseif ($validated['team2_score'] > $validated['team1_score']) {
-                $validated['winner_id'] = $match->team2_id;
+                if ($isIndividual) {
+                    $validated['winner_side'] = 2;
+                    $validated['winner_id'] = null;
+                } else {
+                    $validated['winner_id'] = $match->team2_id;
+                }
+            } else if ($isIndividual) {
+                $validated['winner_side'] = null;
+                $validated['winner_id'] = null;
             }
             
             if ($validated['team1_score'] !== $validated['team2_score']) {
                 $validated['status'] = 'completed';
             }
+        }
+
+        // If updating players for an Individuals match, keep team IDs aligned to Side 1 / Side 2
+        if ($isIndividual && (
+            array_key_exists('side1_player1_id', $validated) ||
+            array_key_exists('side1_player2_id', $validated) ||
+            array_key_exists('side2_player1_id', $validated) ||
+            array_key_exists('side2_player2_id', $validated)
+        )) {
+            $validated['winner_id'] = null;
+            $validated['winner_side'] = null;
+            $validated['team1_id'] = $validated['side1_player1_id'] ?? $match->side1_player1_id;
+            $validated['team2_id'] = $validated['side2_player1_id'] ?? $match->side2_player1_id;
         }
 
         $match->update($validated);
@@ -892,7 +1182,17 @@ class MatchController extends Controller
     public function referee(Category $category, GameMatch $match): Response
     {
         $category->load('event');
-        $match->load(['team1', 'team2', 'court', 'group', 'tournamentPhase']);
+        $match->load([
+            'team1',
+            'team2',
+            'side1Player1',
+            'side1Player2',
+            'side2Player1',
+            'side2Player2',
+            'court',
+            'group',
+            'tournamentPhase',
+        ]);
 
         return Inertia::render('Matches/Referee', [
             'category' => $category,
@@ -909,7 +1209,18 @@ class MatchController extends Controller
         // Don't show scheduled matches - those show default view
         $match = \App\Models\GameMatch::where('court_id', $court->id)
             ->whereIn('status', ['upcoming', 'in_progress'])
-            ->with(['team1', 'team2', 'court', 'group', 'category.event', 'tournamentPhase'])
+            ->with([
+                'team1',
+                'team2',
+                'side1Player1',
+                'side1Player2',
+                'side2Player1',
+                'side2Player2',
+                'court',
+                'group',
+                'category.event',
+                'tournamentPhase',
+            ])
             ->orderBy('updated_at', 'desc')
             ->first();
 

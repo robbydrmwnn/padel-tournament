@@ -44,14 +44,21 @@ class ParticipantController extends Controller
      */
     public function store(Request $request, Category $category): RedirectResponse
     {
+        $isIndividual = $category->participant_mode === 'individual';
+
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'player_1' => 'required|string|max:255',
-            'player_2' => 'required|string|max:255',
+            'player_2' => $isIndividual ? 'nullable|string|max:255' : 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
+
+        if ($isIndividual) {
+            $validated['player_2'] = null;
+            $validated['name'] = null;
+        }
 
         $category->participants()->create($validated);
 
@@ -91,14 +98,21 @@ class ParticipantController extends Controller
      */
     public function update(Request $request, Category $category, Participant $participant): RedirectResponse
     {
+        $isIndividual = $category->participant_mode === 'individual';
+
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'player_1' => 'required|string|max:255',
-            'player_2' => 'required|string|max:255',
+            'player_2' => $isIndividual ? 'nullable|string|max:255' : 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
+
+        if ($isIndividual) {
+            $validated['player_2'] = null;
+            $validated['name'] = null;
+        }
 
         $participant->update($validated);
 
@@ -161,10 +175,24 @@ class ParticipantController extends Controller
     public function downloadTemplate(Category $category)
     {
         // Use CSV export which doesn't require ZipArchive
-        return Excel::download(new class implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+        $isIndividual = $category->participant_mode === 'individual';
+
+        return Excel::download(new class($isIndividual) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            private bool $isIndividual;
+
+            public function __construct(bool $isIndividual)
+            {
+                $this->isIndividual = $isIndividual;
+            }
             
             public function array(): array
             {
+                if ($this->isIndividual) {
+                    return [
+                        ['John Doe', 'john@example.com', '+1234567890', 'Group A', 'Sample player'],
+                    ];
+                }
+
                 return [
                     ['John Doe', 'Jane Smith', 'Team Alpha', 'john@example.com', '+1234567890', 'Group A', 'Sample team'],
                 ];
@@ -172,6 +200,16 @@ class ParticipantController extends Controller
             
             public function headings(): array
             {
+                if ($this->isIndividual) {
+                    return [
+                        'player_1',
+                        'email',
+                        'phone',
+                        'group',
+                        'notes',
+                    ];
+                }
+
                 return [
                     'player_1',
                     'player_2',

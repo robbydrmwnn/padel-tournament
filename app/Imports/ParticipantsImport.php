@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\Category;
 use App\Models\Participant;
 use App\Models\Group;
 use App\Models\TournamentPhase;
@@ -16,10 +17,12 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
     protected $categoryId;
     protected $failures = [];
     protected $firstPhase = null;
+    protected string $participantMode = 'team';
 
     public function __construct($categoryId)
     {
         $this->categoryId = $categoryId;
+        $this->participantMode = Category::whereKey($categoryId)->value('participant_mode') ?? 'team';
         // Get the first phase (group stage) for this category
         $this->firstPhase = TournamentPhase::where('category_id', $categoryId)
             ->orderBy('order')
@@ -33,16 +36,29 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
     */
     public function model(array $row)
     {
+        $player1 = $row['player_1'] ?? $row['player'] ?? null;
+        $player2 = $row['player_2'] ?? null;
+
         // Skip empty rows
-        if (empty($row['player_1']) || empty($row['player_2'])) {
+        if ($this->participantMode === 'individual') {
+            if (empty($player1)) {
+                return null;
+            }
+        } else {
+            if (empty($player1) || empty($player2)) {
+                return null;
+            }
+        }
+
+        if (empty($player1)) {
             return null;
         }
 
         $participant = new Participant([
             'category_id' => $this->categoryId,
-            'name' => $row['team_name'] ?? null,
-            'player_1' => $row['player_1'],
-            'player_2' => $row['player_2'],
+            'name' => $this->participantMode === 'individual' ? null : ($row['team_name'] ?? null),
+            'player_1' => $player1,
+            'player_2' => $this->participantMode === 'individual' ? null : $player2,
             'email' => $row['email'] ?? null,
             'phone' => isset($row['phone']) ? (string)$row['phone'] : null,
             'notes' => $row['notes'] ?? null,
@@ -81,6 +97,18 @@ class ParticipantsImport implements ToModel, WithHeadingRow, WithValidation, Ski
      */
     public function rules(): array
     {
+        if ($this->participantMode === 'individual') {
+            return [
+                'player_1' => 'required|max:255',
+                'player_2' => 'nullable|max:255',
+                'team_name' => 'nullable|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable', // Accept both string and numeric
+                'notes' => 'nullable',
+                'group' => 'nullable|max:255',
+            ];
+        }
+
         return [
             'player_1' => 'required|max:255',
             'player_2' => 'required|max:255',

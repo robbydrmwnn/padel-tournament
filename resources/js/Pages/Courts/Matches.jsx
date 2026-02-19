@@ -43,9 +43,18 @@ export default function Matches({ event, court, matches = [] }) {
             return;
         }
         
-        if (!match.team1_id || !match.team2_id) {
-            alert('❌ Both teams must be assigned before starting the match. Please resolve participants first.');
-            return;
+        const isIndividual = match?.category?.participant_mode === 'individual';
+        if (isIndividual) {
+            const missingPlayers = !match.side1_player1_id || !match.side1_player2_id || !match.side2_player1_id || !match.side2_player2_id;
+            if (missingPlayers) {
+                alert('❌ All 4 players must be assigned before starting the match.');
+                return;
+            }
+        } else {
+            if (!match.team1_id || !match.team2_id) {
+                alert('❌ Both teams must be assigned before starting the match. Please resolve participants first.');
+                return;
+            }
         }
         
         // If match is already started (in_progress or upcoming), just open it
@@ -153,7 +162,20 @@ export default function Matches({ event, court, matches = [] }) {
                         
                         {matches.length > 0 ? (
                             <div className="space-y-1.5">
-                                {matches.map((match) => (
+                                {matches.map((match) => {
+                                    const isIndividual = match?.category?.participant_mode === 'individual';
+                                    const side1Label = isIndividual
+                                        ? `${match.side1Player1?.player_1 || ''} / ${match.side1Player2?.player_1 || ''}`.trim()
+                                        : null;
+                                    const side2Label = isIndividual
+                                        ? `${match.side2Player1?.player_1 || ''} / ${match.side2Player2?.player_1 || ''}`.trim()
+                                        : null;
+
+                                    const hasSides = !!(match.side1_player1_id && match.side1_player2_id && match.side2_player1_id && match.side2_player2_id);
+                                    const hasTeams = !!(match.team1_id && match.team2_id);
+                                    const canStart = isIndividual ? hasSides : hasTeams;
+
+                                    return (
                                     <div key={match.id} className="bg-neutral-100 rounded-lg p-2.5 border border-neutral-300 hover:border-primary transition-all">
                                         <div className="flex items-center gap-2 mb-1.5">
                                             {/* Category & Phase Badges */}
@@ -177,7 +199,11 @@ export default function Matches({ event, court, matches = [] }) {
                                         <div className="flex items-center gap-2"> */}
                                             {/* Teams - Compact */}
                                             <div className="flex-1 flex items-center gap-2">
-                                                {match.team1_id ? (
+                                                {isIndividual ? (
+                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
+                                                        <span className="font-bold">{hasSides ? side1Label : 'TBD'}</span>
+                                                    </div>
+                                                ) : match.team1_id ? (
                                                     <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
                                                         <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
                                                     </div>
@@ -187,7 +213,11 @@ export default function Matches({ event, court, matches = [] }) {
                                                     </div>
                                                 )}
                                                 <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
-                                                {match.team2_id ? (
+                                                {isIndividual ? (
+                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
+                                                        <span className="font-bold">{hasSides ? side2Label : 'TBD'}</span>
+                                                    </div>
+                                                ) : match.team2_id ? (
                                                     <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
                                                         <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
                                                     </div>
@@ -216,12 +246,12 @@ export default function Matches({ event, court, matches = [] }) {
                                                 <button
                                                     onClick={() => handleStartMatch(match.category_id, match.id)}
                                                     className="px-2 py-1 text-sm font-gotham font-bold text-white bg-success rounded hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-dark"
-                                                    disabled={match.status === 'completed' || match.status === 'cancelled' || !match.court_id || !match.team1_id || !match.team2_id}
+                                                    disabled={match.status === 'completed' || match.status === 'cancelled' || !match.court_id || !canStart}
                                                     title={
                                                         !match.court_id 
                                                             ? 'Assign court first'
-                                                            : !match.team1_id || !match.team2_id
-                                                                ? 'Resolve participants first'
+                                                            : !canStart
+                                                                ? (isIndividual ? 'Assign all 4 players first' : 'Resolve participants first')
                                                                 : (match.status === 'in_progress' || match.status === 'upcoming' ? 'Open Match' : 'Start Match')
                                                     }
                                                 >
@@ -240,7 +270,8 @@ export default function Matches({ event, court, matches = [] }) {
                                             </div>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="text-center py-16 bg-neutral-100 rounded-xl">

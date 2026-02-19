@@ -5,6 +5,12 @@ import { formatDateTime } from '@/Utils/dateFormatter';
 export default function Monitor({ category, match, court, autoRefresh = true }) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [warmupTime, setWarmupTime] = useState(0);
+    const isIndividual = category?.participant_mode === 'individual';
+
+    const side1Name1 = isIndividual ? match?.side1Player1?.player_1 : match?.team1?.player_1;
+    const side1Name2 = isIndividual ? match?.side1Player2?.player_1 : match?.team1?.player_2;
+    const side2Name1 = isIndividual ? match?.side2Player1?.player_1 : match?.team2?.player_1;
+    const side2Name2 = isIndividual ? match?.side2Player2?.player_1 : match?.team2?.player_2;
 
     // Initialize warmup time
     useEffect(() => {
@@ -221,8 +227,8 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                             <div className="flex items-center gap-6">
                                 <div className="flex-1 min-w-0">
                                     <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
-                                        <div className="truncate">{match.team1.player_1}</div>
-                                        <div className="truncate">{match.team1.player_2}</div>
+                                        <div className="truncate">{side1Name1}</div>
+                                        <div className="truncate">{side1Name2}</div>
                                     </div>
                                     {winningTeam === 'team1' && (
                                         <div className="mt-2">
@@ -272,8 +278,8 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                             <div className="flex items-center gap-6">
                                 <div className="flex-1 min-w-0">
                                     <div className={`${isWarmup ? 'text-5xl' : 'text-7xl'} font-bold font-raverist text-white leading-tight`}>
-                                        <div className="truncate">{match.team2.player_1}</div>
-                                        <div className="truncate">{match.team2.player_2}</div>
+                                        <div className="truncate">{side2Name1}</div>
+                                        <div className="truncate">{side2Name2}</div>
                                     </div>
                                     {winningTeam === 'team2' && (
                                         <div className="mt-2">
@@ -366,8 +372,8 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                             {match.winner_id ? (
                                 <p className="text-5xl font-bold font-raverist text-white leading-tight mb-3">
                                     {match.winner_id === match.team1_id 
-                                        ? `${match.team1.player_1} / ${match.team1.player_2}`
-                                        : `${match.team2.player_1} / ${match.team2.player_2}`
+                                        ? `${side1Name1 || ''} / ${side1Name2 || ''}`
+                                        : `${side2Name1 || ''} / ${side2Name2 || ''}`
                                     }
                                 </p>
                             ) : null}

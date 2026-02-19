@@ -3,11 +3,14 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import axios from 'axios';
 
-export default function Index({ category, phases, currentPhase, courts }) {
+export default function Index({ category, phases, currentPhase, courts, participants }) {
     const { flash } = usePage().props;
     const [selectedPhaseId, setSelectedPhaseId] = useState(currentPhase?.id || phases[0]?.id);
     const [showKnockoutModal, setShowKnockoutModal] = useState(false);
     const [importingSchedule, setImportingSchedule] = useState(false);
+    
+    const isIndividual = category.participant_mode === 'individual';
+    const participantOptions = participants || [];
     
     const selectedPhase = phases.find(p => p.id === selectedPhaseId);
     const matches = selectedPhase?.matches || [];
@@ -42,6 +45,19 @@ export default function Index({ category, phases, currentPhase, courts }) {
         }
     };
 
+    const handleIndividualPlayersChange = (match, updates) => {
+        const payload = {
+            side1_player1_id: updates.side1_player1_id ?? match.side1_player1_id ?? '',
+            side1_player2_id: updates.side1_player2_id ?? match.side1_player2_id ?? '',
+            side2_player1_id: updates.side2_player1_id ?? match.side2_player1_id ?? '',
+            side2_player2_id: updates.side2_player2_id ?? match.side2_player2_id ?? '',
+        };
+
+        router.patch(route('categories.matches.update', [category.id, match.id]), payload, {
+            preserveScroll: true,
+        });
+    };
+
     const handleResetMatch = (matchId) => {
         if (confirm('Reset this match?\n\n• Clears all scores and progress\n• Returns match to scheduled state\n• Frees up the court for other matches\n\nContinue?')) {
             router.post(route('categories.matches.reset', [category.id, matchId]));
@@ -50,6 +66,10 @@ export default function Index({ category, phases, currentPhase, courts }) {
 
     const handleGenerateMatches = () => {
         if (selectedPhase.type === 'group') {
+            if (isIndividual) {
+                alert('Individuals mode does not support auto-generating matches.\n\nUse “Import Schedule” to create matches with 4 players per match, then tweak players in the match list.');
+                return;
+            }
             if (confirm(`Generate matches for all groups in ${selectedPhase.name}? This will delete existing matches for this phase.`)) {
                 router.post(route('categories.matches.generate', category.id), {
                     phase_id: selectedPhaseId,
@@ -97,9 +117,17 @@ export default function Index({ category, phases, currentPhase, courts }) {
             return;
         }
         
-        if (!match.team1_id || !match.team2_id) {
-            alert('❌ Both teams must be assigned before starting the match. Please resolve participants first.');
-            return;
+        if (isIndividual) {
+            const missingPlayers = !match.side1_player1_id || !match.side1_player2_id || !match.side2_player1_id || !match.side2_player2_id;
+            if (missingPlayers) {
+                alert('❌ All 4 players must be assigned before starting the match.');
+                return;
+            }
+        } else {
+            if (!match.team1_id || !match.team2_id) {
+                alert('❌ Both teams must be assigned before starting the match. Please resolve participants first.');
+                return;
+            }
         }
         
         // If match is already started (in_progress or upcoming), just open it
@@ -335,7 +363,9 @@ export default function Index({ category, phases, currentPhase, courts }) {
         return icons[status] || '📋';
     };
 
-    const hasUnresolvedMatches = matches.some(m => !m.team1_id || !m.team2_id);
+    const hasUnresolvedMatches = isIndividual
+        ? matches.some(m => !m.side1_player1_id || !m.side1_player2_id || !m.side2_player1_id || !m.side2_player2_id)
+        : matches.some(m => !m.team1_id || !m.team2_id);
 
     return (
         <AuthenticatedLayout header="Match Management">
@@ -776,13 +806,65 @@ export default function Index({ category, phases, currentPhase, courts }) {
                                             <div className="flex items-center gap-2">
                                                 {/* Teams - Compact */}
                                                 <div className="flex-1 flex items-center gap-2">
-                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
-                                                        <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
-                                                    </div>
-                                                    <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
-                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
-                                                        <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
-                                                    </div>
+                                                    {isIndividual ? (
+                                                        <>
+                                                            <div className="flex items-center gap-1">
+                                                                <select
+                                                                    value={match.side1_player1_id || ''}
+                                                                    onChange={(e) => handleIndividualPlayersChange(match, { side1_player1_id: e.target.value })}
+                                                                    className="font-gotham text-xs rounded border border-primary focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                >
+                                                                    <option value="">P1</option>
+                                                                    {participantOptions.map((p) => (
+                                                                        <option key={p.id} value={p.id}>{p.player_1}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <select
+                                                                    value={match.side1_player2_id || ''}
+                                                                    onChange={(e) => handleIndividualPlayersChange(match, { side1_player2_id: e.target.value })}
+                                                                    className="font-gotham text-xs rounded border border-primary focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                >
+                                                                    <option value="">P2</option>
+                                                                    {participantOptions.map((p) => (
+                                                                        <option key={p.id} value={p.id}>{p.player_1}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <select
+                                                                    value={match.side2_player1_id || ''}
+                                                                    onChange={(e) => handleIndividualPlayersChange(match, { side2_player1_id: e.target.value })}
+                                                                    className="font-gotham text-xs rounded border border-success focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                >
+                                                                    <option value="">P1</option>
+                                                                    {participantOptions.map((p) => (
+                                                                        <option key={p.id} value={p.id}>{p.player_1}</option>
+                                                                    ))}
+                                                                </select>
+                                                                <select
+                                                                    value={match.side2_player2_id || ''}
+                                                                    onChange={(e) => handleIndividualPlayersChange(match, { side2_player2_id: e.target.value })}
+                                                                    className="font-gotham text-xs rounded border border-success focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                >
+                                                                    <option value="">P2</option>
+                                                                    {participantOptions.map((p) => (
+                                                                        <option key={p.id} value={p.id}>{p.player_1}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
+                                                                <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
+                                                            </div>
+                                                            <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
+                                                            <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
+                                                                <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                                 
                                                 {/* Status Badge */}

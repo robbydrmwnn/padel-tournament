@@ -13,6 +13,7 @@ class Category extends Model
         'name',
         'description',
         'max_participants',
+        'participant_mode',
         'teams_advance_per_group',
         'group_phase_completed',
         'group_best_of_games',

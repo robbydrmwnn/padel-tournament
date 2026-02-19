@@ -17,6 +17,10 @@ class GameMatch extends Model
         'team2_id',
         'team1_template',
         'team2_template',
+        'side1_player1_id',
+        'side1_player2_id',
+        'side2_player1_id',
+        'side2_player2_id',
         'match_order',
         'court_id',
         'phase',
@@ -25,6 +29,7 @@ class GameMatch extends Model
         'team1_score',
         'team2_score',
         'winner_id',
+        'winner_side',
         'status',
         'notes',
         'warmup_started_at',
@@ -75,6 +80,26 @@ class GameMatch extends Model
     public function team2(): BelongsTo
     {
         return $this->belongsTo(Participant::class, 'team2_id');
+    }
+
+    public function side1Player1(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'side1_player1_id');
+    }
+
+    public function side1Player2(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'side1_player2_id');
+    }
+
+    public function side2Player1(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'side2_player1_id');
+    }
+
+    public function side2Player2(): BelongsTo
+    {
+        return $this->belongsTo(Participant::class, 'side2_player2_id');
     }
 
     public function court(): BelongsTo

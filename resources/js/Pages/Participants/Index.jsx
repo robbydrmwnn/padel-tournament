@@ -5,6 +5,7 @@ import { useState } from 'react';
 export default function Index({ category, participants }) {
     const { flash } = usePage().props;
     const [showImport, setShowImport] = useState(false);
+    const isIndividual = category.participant_mode === 'individual';
     const { data, setData, post, processing, errors, reset } = useForm({
         file: null,
     });
@@ -64,7 +65,7 @@ export default function Index({ category, participants }) {
                                     className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-gotham font-bold text-primary shadow-lg hover:bg-neutral-100 transition-all border-2 border-accent"
                                 >
                                     <span className="text-xl">➕</span>
-                                    Add Participant
+                                    {isIndividual ? 'Add Player' : 'Add Participant'}
                                 </Link>
                             </div>
                         </div>
@@ -101,7 +102,11 @@ export default function Index({ category, participants }) {
                                 </p>
                                 <ol className="text-base font-gotham text-dark list-decimal list-inside space-y-2 mb-4">
                                     <li>Download the Excel template below</li>
-                                    <li>Fill in participant details (player_1 and player_2 are required)</li>
+                                    <li>
+                                        Fill in participant details (
+                                        {isIndividual ? 'player_1 is required' : 'player_1 and player_2 are required'}
+                                        )
+                                    </li>
                                     <li>Optional: Specify a group name - groups will be created automatically if they don't exist</li>
                                     <li>Save and upload the file</li>
                                 </ol>
@@ -173,7 +178,7 @@ export default function Index({ category, participants }) {
                                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-4 border-dark"
                                 >
                                     <span className="text-2xl">➕</span>
-                                    Add First Participant
+                                    {isIndividual ? 'Add First Player' : 'Add First Participant'}
                                 </Link>
                             </div>
                         ) : (
@@ -194,9 +199,9 @@ export default function Index({ category, participants }) {
                                                         <div className="text-4xl">👤👤</div>
                                                         <div>
                                                             <h4 className="text-xl font-bold font-raverist text-primary mb-1">
-                                                                {participant.player_1} - {participant.player_2}
+                                                                {isIndividual ? participant.player_1 : `${participant.player_1} - ${participant.player_2}`}
                                                             </h4>
-                                                            {participant.name && (
+                                                            {!isIndividual && participant.name && (
                                                                 <p className="text-base font-gotham text-neutral-600">Team: {participant.name}</p>
                                                             )}
                                                         </div>
