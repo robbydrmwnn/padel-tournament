@@ -115,7 +115,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
         if (currentView === 'monitors') {
             return { main: '🎾 Live Matches', sub: '' };
         } else if (currentView === 'schedule') {
-            return { main: '📅 Upcoming Matches', sub: '' };
+            return { main: '📅 Schedule', sub: '' };
         } else if (currentView === 'leaderboard') {
             if (categoriesData.length === 0 || !categoriesData[currentCategoryIndex]) {
                 return { main: 'No Categories Available', sub: '' };
