@@ -7,10 +7,10 @@ export default function Referee({ category, match }) {
     const isIndividual = category.participant_mode === 'individual';
 
     const side1Label = isIndividual
-        ? `${match.side1Player1?.player_1 || ''} - ${match.side1Player2?.player_1 || ''}`.trim()
+        ? `${match.side1_player1?.player_1 || ''} - ${match.side1_player2?.player_1 || ''}`.trim()
         : `${match.team1.player_1} - ${match.team1.player_2}`;
     const side2Label = isIndividual
-        ? `${match.side2Player1?.player_1 || ''} - ${match.side2Player2?.player_1 || ''}`.trim()
+        ? `${match.side2_player1?.player_1 || ''} - ${match.side2_player2?.player_1 || ''}`.trim()
         : `${match.team2.player_1} - ${match.team2.player_2}`;
     
     // Initialize warmup state based on match props - this ensures state resets when match changes
@@ -202,15 +202,21 @@ export default function Referee({ category, match }) {
     const handleAdjustGameScore = (team, adjustment) => {
         const currentScore = team === 'team1' ? match.team1_score : match.team2_score;
         const newScore = Math.max(0, currentScore + adjustment);
-        
-        if (confirm(`${adjustment > 0 ? 'Add' : 'Remove'} 1 game ${adjustment > 0 ? 'to' : 'from'} ${team === 'team1' ? 'Team 1' : 'Team 2'}?\n\nNew score will be: ${newScore}`)) {
-            router.post(route('categories.matches.adjust-game-score', [category.id, match.id]), {
-                team: team,
-                score: newScore,
-            }, {
-                preserveScroll: true,
-            });
-        }
+        router.post(route('categories.matches.adjust-game-score', [category.id, match.id]), {
+            team: team,
+            score: newScore,
+        }, { preserveScroll: true });
+    };
+
+    const handleSetGameScore = (team, rawValue) => {
+        const currentScore = team === 'team1' ? match.team1_score : match.team2_score;
+        const parsed = parseInt(rawValue, 10);
+        const newScore = Number.isNaN(parsed) ? currentScore : Math.max(0, parsed);
+        if (newScore === currentScore) return;
+        router.post(route('categories.matches.adjust-game-score', [category.id, match.id]), {
+            team: team,
+            score: newScore,
+        }, { preserveScroll: true });
     };
 
     const handleSetCurrentPoints = (team) => {
@@ -590,6 +596,20 @@ export default function Referee({ category, match }) {
                                                             +
                                                         </button>
                                                     </div>
+                                                    <input
+                                                        key={`team1-games-${match.team1_score ?? 0}`}
+                                                        type="number"
+                                                        min={0}
+                                                        className="w-16 text-center text-lg font-bold border-2 border-neutral-300 rounded px-2 py-1 focus:border-primary focus:ring-1 focus:ring-primary"
+                                                        placeholder={String(match.team1_score ?? 0)}
+                                                        defaultValue={match.team1_score ?? 0}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.target.blur();
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => handleSetGameScore('team1', e.target.value)}
+                                                    />
                                                 </div>
                                                 <div className="text-center min-w-[140px]">
                                                     <div className="flex items-center justify-center gap-1 mb-1">
@@ -688,6 +708,20 @@ export default function Referee({ category, match }) {
                                                             +
                                                         </button>
                                                     </div>
+                                                    <input
+                                                        key={`team2-games-${match.team2_score ?? 0}`}
+                                                        type="number"
+                                                        min={0}
+                                                        className="w-16 text-center text-lg font-bold border-2 border-neutral-300 rounded px-2 py-1 focus:border-primary focus:ring-1 focus:ring-primary"
+                                                        placeholder={String(match.team2_score ?? 0)}
+                                                        defaultValue={match.team2_score ?? 0}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.target.blur();
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => handleSetGameScore('team2', e.target.value)}
+                                                    />
                                                 </div>
                                                 <div className="text-center min-w-[140px]">
                                                     <div className="flex items-center justify-center gap-1 mb-1">

@@ -350,6 +350,8 @@ export default function Create({ event }) {
                                                         <option value="8">First to 8</option>
                                                         <option value="10">First to 10</option>
                                                         <option value="12">First to 12</option>
+                                                        <option value="21">First to 21</option>
+                                                        <option value="25">First to 25</option>
                                                     </select>
                                                 </div>
                                                 <div></div>

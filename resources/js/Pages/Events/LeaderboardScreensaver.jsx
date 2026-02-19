@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import { formatDateTime } from '@/Utils/dateFormatter';
 
-export default function LeaderboardScreensaver({ event, categoriesData, court1, court2, court1Match, court2Match }) {
+export default function LeaderboardScreensaver({ event, categoriesData, courtsWithMatches = [] }) {
     const [currentView, setCurrentView] = useState('leaderboard'); // 'leaderboard', 'monitors', 'schedule'
     const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -12,7 +12,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
     // Auto-refresh data every 5 seconds to get latest match states
     useEffect(() => {
         const interval = setInterval(() => {
-            router.reload({ only: ['categoriesData', 'court1Match', 'court2Match'], preserveScroll: true, preserveState: true });        }, 5000);
+            router.reload({ only: ['categoriesData', 'courtsWithMatches'], preserveScroll: true, preserveState: true });        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -25,7 +25,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
     }, []);
 
     // Shared auto-scroll logic: scrolls container to bottom, pauses, then resets to top
-    const runAutoScroll = (scrollContainerRef, scrollSpeed = 0.5) => {
+    const runAutoScroll = (scrollContainerRef, scrollSpeed = 1) => {
         if (!scrollContainerRef?.current) return () => {};
 
         const scrollContainer = scrollContainerRef.current;
@@ -91,19 +91,19 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                     setCurrentView('monitors');
                     setCurrentCategoryIndex(0);
                 }
-            }, 4000);
+            }, 40000);
         } else if (currentView === 'monitors') {
             // Show monitors for 5 seconds
             timer = setTimeout(() => {
                 setCurrentView('schedule');
-            }, 4000);
+            }, 5000);
         } else if (currentView === 'schedule') {
             // Show schedule for 10 seconds
             timer = setTimeout(() => {
                 // Go back to leaderboard
                 setCurrentView('leaderboard');
                 setCurrentCategoryIndex(0);
-            }, 4000);
+            }, 60000);
         }
 
         return () => clearTimeout(timer);
@@ -259,6 +259,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">L</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">GW</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">GL</th>
+                                                    <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">DF</th>
                                                     <th className="text-center py-2 px-2 font-gotham font-bold text-neutral-300 text-base">Pts</th>
                                                 </tr>
                                             </thead>
@@ -289,6 +290,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                                             <td className="text-center py-3 px-2 text-xl font-gotham font-bold text-red-500">{standing.lost}</td>
                                                             <td className="text-center py-3 px-2 text-xl font-gotham font-bold text-white">{standing.games_won}</td>
                                                             <td className="text-center py-3 px-2 text-xl font-gotham font-bold text-neutral-400">{standing.games_lost}</td>
+                                                            <td className="text-center py-3 px-2 text-xl font-gotham font-bold text-neutral-400">{(standing.games_won - standing.games_lost)}</td>
                                                             <td className="text-center py-3 px-2 text-2xl font-gotham font-bold text-accent">{points}</td>
                                                         </tr>
                                                     );
@@ -338,20 +340,20 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             return (
                 <div className="bg-neutral-900/80 backdrop-blur-sm rounded-2xl p-4 shadow-2xl border-4 border-accent">
                     <div className="text-center mb-3">
-                        <p className="text-3xl font-bold font-raverist text-white">COURT {court?.name || 'N/A'}</p>
-                        <p className="text-2xl font-gotham text-accent">{match.category?.name}</p>
-                        {match.tournament_phase && (
+                        <p className="text-2xl font-bold font-raverist text-white">COURT {court?.name || 'N/A'}</p>
+                        {/* <p className="text-2xl font-gotham text-accent">{match.category?.name}</p> */}
+                        {/* {match.tournament_phase && (
                             <p className="text-xl font-gotham text-neutral-300">{match.tournament_phase.name}</p>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Team 1 */}
                     <div className="bg-success/85 backdrop-blur-sm rounded-xl p-3 mb-2 border-4 border-accent">
                         <div className="flex items-center gap-4">
                             <div className="flex-1 min-w-0">
-                                <div className="text-3xl font-bold font-raverist text-white leading-tight">
-                                    <div className="truncate">{isIndividual ? (match.side1Player1?.player_1 || '') : match.team1.player_1}</div>
-                                    <div className="truncate">{isIndividual ? (match.side1Player2?.player_1 || '') : match.team1.player_2}</div>
+                                <div className="text-2xl font-bold font-raverist text-white leading-tight">
+                                    <div className="truncate">{isIndividual ? (match.side1_player1?.player_1 || '') : match.team1.player_1}</div>
+                                    <div className="truncate">{isIndividual ? (match.side1_player2?.player_1 || '') : match.team1.player_2}</div>
                                 </div>
                                 {winningTeam === 'team1' && (
                                     <span className="inline-block px-3 py-1 text-xl font-bold font-raverist bg-accent text-dark rounded-lg animate-pulse mt-1">
@@ -383,9 +385,9 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                     <div className="bg-primary/85 backdrop-blur-sm rounded-xl p-3 border-4 border-accent">
                         <div className="flex items-center gap-4">
                             <div className="flex-1 min-w-0">
-                                <div className="text-3xl font-bold font-raverist text-white leading-tight">
-                                    <div className="truncate">{isIndividual ? (match.side2Player1?.player_1 || '') : match.team2.player_1}</div>
-                                    <div className="truncate">{isIndividual ? (match.side2Player2?.player_1 || '') : match.team2.player_2}</div>
+                                <div className="text-2xl font-bold font-raverist text-white leading-tight">
+                                    <div className="truncate">{isIndividual ? (match.side2_player1?.player_1 || '') : match.team2.player_1}</div>
+                                    <div className="truncate">{isIndividual ? (match.side2_player2?.player_1 || '') : match.team2.player_2}</div>
                                 </div>
                                 {winningTeam === 'team2' && (
                                     <span className="inline-block px-3 py-1 text-xl font-bold font-raverist bg-accent text-dark rounded-lg animate-pulse mt-1">
@@ -411,11 +413,18 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             );
         };
 
+        const gridCols = courtsWithMatches.length <= 2 ? 2 : courtsWithMatches.length <= 4 ? 2 : 3;
         return (
-            <div className="h-full flex items-center justify-center">
-                <div className="grid grid-cols-2 gap-8 w-full">
-                    {renderCourtMonitor(court1, court1Match)}
-                    {renderCourtMonitor(court2, court2Match)}
+            <div className="h-full flex items-center justify-center overflow-auto p-4">
+                <div
+                    className="grid gap-4 md:gap-6 w-full max-w-7xl"
+                    style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}
+                >
+                    {courtsWithMatches.map(({ court, match }, index) => (
+                        <div key={court?.id ?? `court-${index}`}>
+                            {renderCourtMonitor(court, match)}
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -585,7 +594,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                 <p className="text-xl text-accent font-gotham font-bold leading-tight truncate">{getCurrentTitle().sub}</p>
                             )}
                         </div>
-                        <img src="/logo/logo.jpeg" alt="Logo" className="h-12 object-contain flex-shrink-0" />
+                        {/* <img src="/logo/logo.jpeg" alt="Logo" className="h-12 object-contain flex-shrink-0" /> */}
                     </div>
                 </div>
 

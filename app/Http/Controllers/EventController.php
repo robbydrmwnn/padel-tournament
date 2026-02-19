@@ -299,54 +299,33 @@ class EventController extends Controller
             ];
         }
 
-        // Get current matches on courts 1 and 2
-        $court1 = $event->courts->where('name', '1')->first();
-        $court2 = $event->courts->where('name', '2')->first();
-
-        $court1Match = null;
-        $court2Match = null;
-
-        if ($court1) {
-            $court1Match = \App\Models\GameMatch::where('court_id', $court1->id)
-                ->whereIn('status', ['scheduled', 'in_progress'])
-                ->with([
-                    'team1',
-                    'team2',
-                    'side1Player1',
-                    'side1Player2',
-                    'side2Player1',
-                    'side2Player2',
-                    'category',
-                    'tournamentPhase',
-                ])
-                ->orderBy('scheduled_time')
-                ->first();
-        }
-
-        if ($court2) {
-            $court2Match = \App\Models\GameMatch::where('court_id', $court2->id)
-                ->whereIn('status', ['scheduled', 'in_progress'])
-                ->with([
-                    'team1',
-                    'team2',
-                    'side1Player1',
-                    'side1Player2',
-                    'side2Player1',
-                    'side2Player2',
-                    'category',
-                    'tournamentPhase',
-                ])
-                ->orderBy('scheduled_time')
-                ->first();
-        }
+        // Get current match for each court (all courts)
+        $courtsWithMatches = $event->courts
+            ->sortBy('name')
+            ->map(function ($court) {
+                $match = \App\Models\GameMatch::where('court_id', $court->id)
+                    ->whereIn('status', ['scheduled', 'in_progress'])
+                    ->with([
+                        'team1',
+                        'team2',
+                        'side1Player1',
+                        'side1Player2',
+                        'side2Player1',
+                        'side2Player2',
+                        'category',
+                        'tournamentPhase',
+                    ])
+                    ->orderBy('scheduled_time')
+                    ->first();
+                return ['court' => $court, 'match' => $match];
+            })
+            ->values()
+            ->all();
 
         return Inertia::render('Events/LeaderboardScreensaver', [
             'event' => $event,
             'categoriesData' => $categoriesData,
-            'court1' => $court1,
-            'court2' => $court2,
-            'court1Match' => $court1Match,
-            'court2Match' => $court2Match,
+            'courtsWithMatches' => $courtsWithMatches,
         ]);
     }
 }

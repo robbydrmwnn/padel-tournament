@@ -165,10 +165,10 @@ export default function Matches({ event, court, matches = [] }) {
                                 {matches.map((match) => {
                                     const isIndividual = match?.category?.participant_mode === 'individual';
                                     const side1Label = isIndividual
-                                        ? `${match.side1Player1?.player_1 || ''} / ${match.side1Player2?.player_1 || ''}`.trim()
+                                        ? `${match.side1_player1?.player_1 || ''} / ${match.side1_player2?.player_1 || ''}`.trim()
                                         : null;
                                     const side2Label = isIndividual
-                                        ? `${match.side2Player1?.player_1 || ''} / ${match.side2Player2?.player_1 || ''}`.trim()
+                                        ? `${match.side2_player1?.player_1 || ''} / ${match.side2_player2?.player_1 || ''}`.trim()
                                         : null;
 
                                     const hasSides = !!(match.side1_player1_id && match.side1_player2_id && match.side2_player1_id && match.side2_player2_id);
@@ -183,11 +183,11 @@ export default function Matches({ event, court, matches = [] }) {
                                                 <span className="font-gotham text-xs bg-primary text-white px-2 py-0.5 rounded border border-primary-700 font-bold">
                                                     {match.category?.name}
                                                 </span>
-                                                {match.tournament_phase && (
+                                                {/* {match.tournament_phase && (
                                                     <span className="font-gotham text-xs bg-success text-white px-2 py-0.5 rounded border border-success-700 font-bold">
                                                         {match.tournament_phase.name}
                                                     </span>
-                                                )}
+                                                )} */}
                                                 {match.group && (
                                                     <span className="font-gotham text-xs bg-neutral-600 text-white px-2 py-0.5 rounded border border-neutral-800 font-bold">
                                                         {match.group.name}
@@ -227,6 +227,13 @@ export default function Matches({ event, court, matches = [] }) {
                                                     </div>
                                                 )}
                                             </div>
+                                            
+                                            {/* Game score when completed */}
+                                            {match.status === 'completed' && (
+                                                <span className="px-2 py-1 text-sm font-gotham font-bold rounded border-2 border-dark bg-white text-dark whitespace-nowrap">
+                                                    {match.team1_score ?? 0} – {match.team2_score ?? 0}
+                                                </span>
+                                            )}
                                             
                                             {/* Status Badge */}
                                             <span className={`px-2 py-1 text-xs font-gotham font-bold rounded border ${getStatusColor(match.status)} whitespace-nowrap`}>
