@@ -1,0 +1,27 @@
+# Render Blueprint: deploy with "New > Blueprint" and connect this repo.
+# See DEPLOY.md for step-by-step instructions.
+
+databases:
+  - name: padel-tournament-db
+    plan: free
+
+services:
+  - type: web
+    name: padel-tournament
+    runtime: docker
+    plan: free
+
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: padel-tournament-db
+          property: connectionString
+      # Set these in Render Dashboard after first deploy:
+      # APP_KEY  = run: php artisan key:generate --show
+      # APP_URL  = https://your-service-name.onrender.com

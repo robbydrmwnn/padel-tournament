@@ -1,0 +1,33 @@
+# Dependencies (reinstalled in container)
+/node_modules
+/vendor
+
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+*.md
+!README.md
+
+# Env and secrets (set in Render dashboard)
+.env
+.env.*
+!.env.example
+
+# Build output (rebuilt in container)
+/public/build
+/public/hot
+
+# Tests and dev
+.phpunit.result.cache
+.phpunit.cache
+coverage
+.phpunit.cache
+
+# Misc
+*.log
+.DS_Store
+Dockerfile
+docker-compose*
+.docker
