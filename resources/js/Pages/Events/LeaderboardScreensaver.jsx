@@ -7,6 +7,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
     const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
     const scheduleScrollRef = useRef(null);
+    const leaderboardScrollRef = useRef(null);
 
     // Auto-refresh data every 5 seconds to get latest match states
     useEffect(() => {
@@ -23,28 +24,26 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
         return () => clearInterval(interval);
     }, []);
 
-    // Auto-scroll for schedule view
-    useEffect(() => {
-        if (currentView !== 'schedule' || !scheduleScrollRef.current) return;
+    // Shared auto-scroll logic: scrolls container to bottom, pauses, then resets to top
+    const runAutoScroll = (scrollContainerRef, scrollSpeed = 0.5) => {
+        if (!scrollContainerRef?.current) return () => {};
 
-        const scrollContainer = scheduleScrollRef.current;
+        const scrollContainer = scrollContainerRef.current;
         let scrollPosition = 0;
-        const scrollSpeed = 0.5; // pixels per frame (adjust for speed)
         let animationFrameId;
         let pauseTimeout;
 
         const autoScroll = () => {
-            if (!scrollContainer) return;
+            if (!scrollContainerRef?.current) return;
 
             const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-            
-            // Check if we've reached the bottom
+
+            if (maxScroll <= 0) return;
+
             if (scrollPosition >= maxScroll) {
-                // Pause at bottom for 2 seconds before resetting
                 pauseTimeout = setTimeout(() => {
                     scrollPosition = 0;
                     scrollContainer.scrollTop = 0;
-                    // Resume scrolling after reset
                     animationFrameId = requestAnimationFrame(autoScroll);
                 }, 2000);
                 return;
@@ -55,7 +54,6 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             animationFrameId = requestAnimationFrame(autoScroll);
         };
 
-        // Start scrolling after a brief delay
         const startTimeout = setTimeout(() => {
             animationFrameId = requestAnimationFrame(autoScroll);
         }, 1000);
@@ -65,7 +63,19 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
             clearTimeout(startTimeout);
             clearTimeout(pauseTimeout);
         };
+    };
+
+    // Auto-scroll for schedule view
+    useEffect(() => {
+        if (currentView !== 'schedule' || !scheduleScrollRef.current) return;
+        return runAutoScroll(scheduleScrollRef);
     }, [currentView]);
+
+    // Auto-scroll for leaderboard group view (when many participants)
+    useEffect(() => {
+        if (currentView !== 'leaderboard' || !leaderboardScrollRef.current) return;
+        return runAutoScroll(leaderboardScrollRef);
+    }, [currentView, currentCategoryIndex]);
 
     // Auto-rotation logic - only cycle through categories for group leaderboard
     useEffect(() => {
@@ -81,19 +91,19 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                     setCurrentView('monitors');
                     setCurrentCategoryIndex(0);
                 }
-            }, 30000);
+            }, 4000);
         } else if (currentView === 'monitors') {
             // Show monitors for 5 seconds
             timer = setTimeout(() => {
                 setCurrentView('schedule');
-            }, 2000);
+            }, 4000);
         } else if (currentView === 'schedule') {
             // Show schedule for 10 seconds
             timer = setTimeout(() => {
                 // Go back to leaderboard
                 setCurrentView('leaderboard');
                 setCurrentCategoryIndex(0);
-            }, 30000);
+            }, 4000);
         }
 
         return () => clearTimeout(timer);
@@ -216,18 +226,26 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
 
         // Group phase leaderboard (leaderboardData is an array)
         return (
-            <div>
+            <div className="flex justify-center items-start">
                 {!Array.isArray(leaderboardData) || leaderboardData.length === 0 ? (
                     <p className="text-4xl font-gotham text-neutral-300 text-center">No groups available</p>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3 h-full auto-rows-fr">
-                        {leaderboardData.map((groupData) => (
-                            <div key={groupData.group.id} className="bg-neutral-900/80 backdrop-blur-sm rounded-xl border-4 border-accent overflow-hidden flex flex-col h-full">
-                                <div className="bg-primary px-3 py-2 border-b-4 border-accent flex-shrink-0">
+                    <div className="max-h-[calc(100vh-200px)] rounded-xl overflow-hidden border-4 border-accent">
+                        <div
+                            ref={leaderboardScrollRef}
+                            className="h-full max-h-[calc(100vh-200px)] overflow-y-auto schedule-scroll"
+                            style={{
+                                scrollbarWidth: 'none',
+                            }}
+                        >
+                            <div className="grid grid-cols-2 gap-3 auto-rows-fr min-h-0">
+                            {leaderboardData.map((groupData) => (
+                                <div key={groupData.group.id} className="bg-neutral-900/80 backdrop-blur-sm rounded-xl overflow-hidden flex flex-col min-h-0 min-w-70">
+                                {/* <div className="bg-primary px-3 py-2 border-b-4 border-accent flex-shrink-0">
                                     <h3 className="text-2xl font-bold font-raverist text-white leading-tight">
                                         Group {groupData.group.name}
                                     </h3>
-                                </div>
+                                </div> */}
                                 <div className="p-2 flex-1 flex flex-col">
                                     {groupData.standings.length === 0 ? (
                                         <p className="text-neutral-400 font-gotham text-center py-4">No standings yet</p>
@@ -255,7 +273,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                                                 <span className={`text-2xl font-bold font-raverist ${
                                                                     index === 0 ? 'text-accent' : index === 1 ? 'text-success' : 'text-white'
                                                                 }`}>
-                                                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                                                    {/* {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`} */}
+                                                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : `#${index + 1}`}
                                                                 </span>
                                                             </td>
                                                             <td className="py-3 px-2">
@@ -280,6 +299,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                 </div>
                             </div>
                         ))}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -338,7 +359,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                     </span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
+                            {/* <div className="flex items-center gap-3 flex-shrink-0">
                                 <div className="text-center bg-dark/90 rounded-lg border-4 border-accent w-[100px] h-[80px] flex items-center justify-center">
                                     <div className="text-5xl font-bold text-white">{match.team1_score || 0}</div>
                                 </div>
@@ -349,7 +370,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                         </div>
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
@@ -372,7 +393,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                     </span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
+                            {/* <div className="flex items-center gap-3 flex-shrink-0">
                                 <div className="text-center bg-dark/90 rounded-lg border-4 border-accent w-[100px] h-[80px] flex items-center justify-center">
                                     <div className="text-5xl font-bold text-white">{match.team2_score || 0}</div>
                                 </div>
@@ -383,7 +404,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                         </div>
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
@@ -405,11 +426,13 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
         const allSchedules = [];
         categoriesData.forEach(({ category, currentPhase, scheduleData }) => {
             if (scheduleData && scheduleData.length > 0) {
+                const isIndividual = category.participant_mode === 'individual';
                 scheduleData.forEach((match) => {
                     allSchedules.push({
                         ...match,
                         categoryName: category.name,
                         phaseName: currentPhase?.name,
+                        isIndividual,
                     });
                 });
             }
@@ -427,8 +450,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                         ref={scheduleScrollRef}
                         className="max-h-[calc(100vh-200px)] overflow-y-auto space-y-1 schedule-scroll"
                         style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: 'rgba(255, 193, 7, 0.5) transparent'
+                            scrollbarWidth: 'none',
                         }}
                     >
                         {allSchedules.map((match) => (
@@ -448,16 +470,22 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                     </div>
 
                                     {/* Category */}
-                                    <div className="flex-shrink-0" style={{ width: '140px' }}>
+                                    {/* <div className="flex-shrink-0" style={{ width: '140px' }}>
                                         <p className="text-sm font-gotham font-bold text-white truncate leading-tight">
                                             {match.categoryName}
                                         </p>
-                                    </div>
+                                    </div> */}
 
-                                    {/* Teams & Score */}
+                                    {/* Teams & Score - support both camelCase and snake_case (Laravel serialization) */}
                                     <div className="flex-1 flex items-center gap-2 min-w-0">
                                         <p className="text-base font-gotham font-bold text-white text-right flex-1 min-w-0 truncate">
-                                            {match.team1?.player_1} / {match.team1?.player_2}
+                                            {match.isIndividual
+                                                ? `${(match.side1Player1 || match.side1_player1)?.player_1 || ''} / ${(match.side1Player2 || match.side1_player2)?.player_1 || ''}`
+                                                : (() => {
+                                                    const t1 = match.team1 || match.team_1;
+                                                    return `${t1?.player_1 || ''} / ${t1?.player_2 || ''}`;
+                                                })()
+                                            }
                                         </p>
                                         
                                         {match.status === 'completed' ? (
@@ -479,7 +507,13 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
                                         )}
                                         
                                         <p className="text-base font-gotham font-bold text-white flex-1 min-w-0 truncate">
-                                            {match.team2?.player_1} / {match.team2?.player_2}
+                                            {match.isIndividual
+                                                ? `${(match.side2Player1 || match.side2_player1)?.player_1 || ''} / ${(match.side2Player2 || match.side2_player2)?.player_1 || ''}`
+                                                : (() => {
+                                                    const t2 = match.team2 || match.team_2;
+                                                    return `${t2?.player_1 || ''} / ${t2?.player_2 || ''}`;
+                                                })()
+                                            }
                                         </p>
                                     </div>
 
@@ -511,7 +545,15 @@ export default function LeaderboardScreensaver({ event, categoriesData, court1, 
         <>
             <Head title={`${event.name} - Leaderboard`} />
             <style>{`
-                /* Custom scrollbar styling */
+                /* Hide scrollbar but keep scroll (leaderboard) */
+                .scrollbar-hidden {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                .scrollbar-hidden::-webkit-scrollbar {
+                    display: none;
+                }
+                /* Custom scrollbar styling (schedule) */
                 .schedule-scroll::-webkit-scrollbar {
                     width: 6px;
                 }

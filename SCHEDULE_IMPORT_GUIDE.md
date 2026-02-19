@@ -7,6 +7,8 @@ The Match Schedule Import feature allows you to:
 
 This gives you complete flexibility to manage your tournament schedule using Excel.
 
+**Individuals (Americano) mode** uses a different Excel format: each row has **four player names** (Side 1 Player 1, Side 1 Player 2, Side 2 Player 1, Side 2 Player 2) plus Court, Date, and Time. See [Individuals (Americano)](#individuals-americano) below.
+
 ## Two Ways to Use
 
 ### Method 1: Update Existing Matches (Recommended for Round-Robin)
@@ -144,6 +146,31 @@ Common errors:
 - Use HH:MM format in 24-hour time (e.g., 09:00, 14:30)
 - Don't include seconds or AM/PM
 - Check cell format is "Text" or "Time"
+
+## Individuals (Americano)
+
+For categories with **Individuals (dynamic pairs per match)** mode, each match has four players: two on Side 1 and two on Side 2. Partners can change every match (Americano style).
+
+### Excel format for Individuals
+
+- **Columns:** Side 1 Player 1, Side 1 Player 2, Side 2 Player 1, Side 2 Player 2, Court, Date, Time  
+- **Player names** must match **exactly** the participant names in the category (as shown in the Participants list; each participant has one player name in this mode).
+- **Court, Date, Time:** Same as team mode (court name or number, DD-MM-YYYY or YYYY-MM-DD, HH:MM 24-hour).
+
+### How to use
+
+1. On the Matches page, select the **group phase** and click **Template** (or **Export Schedule** if you already have matches).
+2. Fill in the Excel: each row = one match with 4 different players (no duplicate players in the same row).
+3. Click **Import Schedule** and select your file. New matches are created or existing ones updated with court/time.
+
+### Example (Individuals)
+
+```
+Side 1 Player 1 | Side 1 Player 2 | Side 2 Player 1 | Side 2 Player 2 | Court   | Date       | Time
+John Doe        | Jane Smith     | Max Mustermann   | Erika Muster    | Court 1 | 31-01-2026 | 09:00
+```
+
+- **Generate Matches** is not available in Individuals mode; use **Import Schedule** to create matches from your Excel.
 
 ## Technical Details
 - Supported file formats: .xlsx, .xls

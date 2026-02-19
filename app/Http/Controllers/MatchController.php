@@ -769,7 +769,7 @@ class MatchController extends Controller
                             $date,
                             $time,
                         ];
-                    } else if ($match->team1 && $match->team2) {
+                    } elseif ($match->team1 && $match->team2) {
                         // Use team name if available, otherwise use player names
                         $team1Name = !empty($match->team1->name) 
                             ? $match->team1->name 
@@ -781,6 +781,10 @@ class MatchController extends Controller
                         
                         $data[] = [$team1Name, $team2Name, $courtName, $date, $time];
                     }
+                }
+                // For individuals with no matches yet, add one example row so the template is usable
+                if ($isIndividual && count($data) === 1) {
+                    $data[] = ['Player One', 'Player Two', 'Partner A', 'Partner B', 'Court 1', date('Y-m-d', strtotime('+1 day')), '09:00'];
                 }
             } else {
                 // Knockout phase - export with templates or actual teams

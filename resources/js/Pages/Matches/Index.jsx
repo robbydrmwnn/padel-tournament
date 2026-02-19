@@ -553,7 +553,32 @@ export default function Index({ category, phases, currentPhase, courts, particip
                         <div className="bg-primary-50 rounded-2xl p-6 shadow-lg border-2 border-primary">
                             <h3 className="text-lg font-bold font-raverist text-primary mb-3">📊 Schedule Import Guide</h3>
                             <div className="font-gotham text-sm text-dark space-y-2">
-                                {selectedPhase.type === 'group' ? (
+                                {isIndividual && selectedPhase.type === 'group' ? (
+                                    <>
+                                        <div>
+                                            <p className="font-bold mb-1">Individuals (Americano) – 4 players per match</p>
+                                            <div className="ml-2 space-y-2">
+                                                <p className="text-xs">Each row in the Excel is one match: <strong>Side 1</strong> (two players) vs <strong>Side 2</strong> (two players). Player names must match exactly the names in Participants (one name per participant).</p>
+                                                <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
+                                                    <li>Click &quot;Template&quot; or &quot;Export Schedule&quot; to download the Excel</li>
+                                                    <li>Fill in columns: <strong>Side 1 Player 1</strong>, <strong>Side 1 Player 2</strong>, <strong>Side 2 Player 1</strong>, <strong>Side 2 Player 2</strong>, Court, Date, Time</li>
+                                                    <li>Use exact player names as in the Participants list (one name per participant)</li>
+                                                    <li>Click &quot;Import Schedule&quot; – matches will be created or updated</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-neutral-600 bg-white rounded p-2 border border-neutral-300">
+                                            <p className="font-bold mb-1">Required columns (order can vary):</p>
+                                            <ul className="space-y-0.5">
+                                                <li>• <strong>Side 1 Player 1</strong>, <strong>Side 1 Player 2</strong> – first pair</li>
+                                                <li>• <strong>Side 2 Player 1</strong>, <strong>Side 2 Player 2</strong> – second pair</li>
+                                                <li>• <strong>Court:</strong> Court name or number (e.g., &quot;Court 1&quot; or &quot;1&quot;)</li>
+                                                <li>• <strong>Date:</strong> DD-MM-YYYY or YYYY-MM-DD (e.g., &quot;31-01-2026&quot;)</li>
+                                                <li>• <strong>Time:</strong> HH:MM 24-hour (e.g., &quot;09:00&quot;, &quot;14:30&quot;)</li>
+                                            </ul>
+                                        </div>
+                                    </>
+                                ) : selectedPhase.type === 'group' ? (
                                     <>
                                         <div>
                                             <p className="font-bold mb-1">Two Ways to Use Import:</p>
