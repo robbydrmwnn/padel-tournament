@@ -14,10 +14,10 @@ RUN npm run build
 FROM php:8.2-cli
 WORKDIR /var/www/html
 
-# Install system deps + PHP extensions Laravel needs
+# Install system deps + PHP extensions Laravel needs (PostgreSQL only for Render)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git unzip libzip-dev libpng-dev libonig-dev libpq-dev \
-    && docker-php-ext-install pdo pdo_sqlite pdo_pgsql zip mbstring exif pcntl bcmath \
+    && docker-php-ext-install pdo pdo_pgsql zip mbstring exif pcntl bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer
@@ -32,9 +32,6 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy built frontend assets from stage 1
 COPY --from=frontend /app/public/build ./public/build
-
-# Create SQLite file if using SQLite (harmless if using PostgreSQL)
-RUN touch database/database.sqlite 2>/dev/null || true
 
 # Writable dirs for Laravel
 RUN chmod -R 775 storage bootstrap/cache
