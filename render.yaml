@@ -3,7 +3,7 @@
 
 databases:
   - name: padel-tournament-db
-    plan: free
+    plan: basic
 
 services:
   - type: web
