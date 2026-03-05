@@ -1,16 +1,12 @@
-export default function ApplicationLogo({ className = '', ...props }) {
-    // return (
-    //     <img
-    //         src="/logo/logo.jpeg"
-    //         alt="Logo"
-    //         className={className}
-    //         {...props}
-    //     />
-    // );
+export default function ApplicationLogo({ className = '', variant = 'black', ...props }) {
+    const src = variant === 'white' ? '/logo/logo-white.jpg' : '/logo/logo-black.jpg';
 
     return (
-        <div className={className} {...props}>
-            <span className="text-2xl font-bold">Padel Tournament</span>
-        </div>
+        <img
+            src={src}
+            alt="Gonuts Cup"
+            className={className}
+            {...props}
+        />
     );
 }

@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import axios from 'axios';
+import { ChevronRight, RefreshCw, ArrowUpDown, FileDown, Upload, Settings, Trophy, Swords, Play, RotateCcw, Trash2, Plus, Calendar, CheckCircle, XCircle, Clock, Timer, Hash, AlertCircle, Info } from 'lucide-react';
 
 export default function Index({ category, phases, currentPhase, courts, participants }) {
     const { flash } = usePage().props;
@@ -343,24 +344,24 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: 'bg-neutral-400 text-white border-neutral-600',
-            upcoming: 'bg-primary text-white border-primary-700',
-            in_progress: 'bg-accent text-dark border-accent-700',
-            completed: 'bg-success text-white border-success-700',
+            scheduled: 'bg-zinc-200 text-zinc-700 border-zinc-300',
+            upcoming: 'bg-black text-white border-zinc-700',
+            in_progress: 'bg-accent text-black border-accent-600',
+            completed: 'bg-zinc-600 text-white border-zinc-700',
             cancelled: 'bg-red-600 text-white border-red-800',
         };
-        return colors[status] || 'bg-neutral-400 text-white border-neutral-600';
+        return colors[status] || 'bg-zinc-200 text-zinc-700 border-zinc-300';
     };
 
-    const getStatusIcon = (status) => {
+    const StatusIcon = ({ status, className = 'h-3 w-3' }) => {
         const icons = {
-            scheduled: '📅',
-            upcoming: '⏰',
-            in_progress: '🎾',
-            completed: '✅',
-            cancelled: '❌',
+            scheduled: <Calendar className={className} />,
+            upcoming: <Clock className={className} />,
+            in_progress: <Timer className={className} />,
+            completed: <CheckCircle className={className} />,
+            cancelled: <XCircle className={className} />,
         };
-        return icons[status] || '📋';
+        return icons[status] || <Clock className={className} />;
     };
 
     const hasUnresolvedMatches = isIndividual
@@ -371,47 +372,47 @@ export default function Index({ category, phases, currentPhase, courts, particip
         <AuthenticatedLayout header="Match Management">
             <Head title={`Matches - ${category.name}`} />
 
-            <div className="py-12 bg-dark min-h-screen">
+            <div className="py-12 bg-neutral-100 min-h-screen">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8 space-y-6">
                     {/* Breadcrumb */}
-                    <nav className="text-sm font-gotham text-neutral-400">
-                        <Link href={route('events.index')} className="hover:text-white transition-colors">Events</Link>
-                        {' / '}
-                        <Link href={route('events.show', category.event.id)} className="hover:text-white transition-colors">
+                    <nav className="flex items-center gap-1 text-sm font-ffdin text-zinc-500">
+                        <Link href={route('events.index')} className="hover:text-black transition-colors">Events</Link>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                        <Link href={route('events.show', category.event.id)} className="hover:text-black transition-colors">
                             {category.event.name}
                         </Link>
-                        {' / '}
-                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-white transition-colors">
+                        <ChevronRight className="h-3.5 w-3.5" />
+                        <Link href={route('events.categories.show', [category.event.id, category.id])} className="hover:text-black transition-colors">
                             {category.name}
                         </Link>
-                        {' / '}
-                        <span className="text-white font-bold">Matches</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                        <span className="text-black font-bold">Matches</span>
                     </nav>
 
                     {/* Header Banner */}
-                    <div className="bg-success rounded-2xl p-8 shadow-lg border-4 border-accent">
-                        <div className="flex justify-between items-center">
+                    <div className="bg-black rounded-2xl p-8 shadow-lg border border-zinc-700">
+                        <div className="flex justify-between items-center flex-wrap gap-4">
                             <div>
-                                <h1 className="text-4xl font-bold font-raverist text-white mb-2">Match Management</h1>
-                                <p className="text-xl font-gotham text-white">{category.name}</p>
+                                <h1 className="text-4xl font-bold font-ffdin text-white mb-2 tracking-wide">Match Management</h1>
+                                <p className="text-xl font-ffdin text-zinc-400">{category.name}</p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 flex-wrap">
                                 {selectedPhase && hasUnresolvedMatches && previousPhase && (
                                     <button
                                         onClick={() => handleResolveMatches(false)}
-                                        className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-2 border-accent hover:scale-105"
+                                        className="inline-flex items-center gap-2 rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-ffdin font-bold text-white shadow-lg hover:bg-zinc-600 transition-all border border-zinc-600"
                                     >
-                                        <span className="text-2xl">🔄</span>
+                                        <RefreshCw className="h-4 w-4" />
                                         Resolve Participants
                                     </button>
                                 )}
                                 {selectedPhase && previousPhase && matches.some(m => m.team1_id || m.team2_id) && matches.some(m => m.team1_template || m.team2_template) && (
                                     <button
                                         onClick={() => handleResolveMatches(true)}
-                                        className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-lg font-gotham font-bold text-white shadow-lg hover:bg-orange-600 transition-all border-2 border-orange-700 hover:scale-105"
+                                        className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-ffdin font-bold text-white shadow-lg hover:bg-orange-700 transition-all"
                                         title="Re-resolve and override existing team assignments"
                                     >
-                                        <span className="text-2xl">🔃</span>
+                                        <ArrowUpDown className="h-4 w-4" />
                                         Re-resolve
                                     </button>
                                 )}
@@ -422,18 +423,18 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                 category: category.id,
                                                 phase_id: selectedPhaseId
                                             })}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-neutral-200 px-6 py-3 text-lg font-gotham font-bold text-dark shadow-lg hover:bg-neutral-300 transition-all border-2 border-neutral-400 hover:scale-105"
+                                            className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-5 py-2.5 text-sm font-ffdin font-bold text-white shadow-lg hover:bg-zinc-700 transition-all border border-zinc-600"
                                             title="Download Excel template with current matches"
                                         >
-                                            <span className="text-2xl">📄</span>
+                                            <FileDown className="h-4 w-4" />
                                             {matches.length > 0 ? 'Export Schedule' : 'Template'}
                                         </a>
-                                        <label className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-lg font-gotham font-bold shadow-lg transition-all border-2 ${
+                                        <label className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-ffdin font-bold shadow-lg transition-all border ${
                                             importingSchedule
-                                                ? 'bg-neutral-300 text-neutral-500 border-neutral-400 cursor-not-allowed'
-                                                : 'bg-accent text-dark border-dark hover:bg-accent-600 hover:scale-105 cursor-pointer'
+                                                ? 'bg-zinc-700 text-zinc-400 border-zinc-600 cursor-not-allowed'
+                                                : 'bg-accent text-black border-accent-600 hover:bg-accent-400 cursor-pointer'
                                         }`}>
-                                            <span className="text-2xl">📁</span>
+                                            <Upload className="h-4 w-4" />
                                             {importingSchedule ? 'Importing...' : 'Import Schedule'}
                                             <input
                                                 type="file"
@@ -449,18 +450,18 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                     <>
                                         <button
                                             onClick={handleGenerateMatches}
-                                            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-gotham font-bold text-success shadow-lg hover:bg-white-600 transition-all border-2 border-accent hover:scale-105"
+                                            className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-ffdin font-bold text-black shadow-lg hover:bg-zinc-100 transition-all"
                                         >
-                                            <span className="text-2xl">⚙️</span>
+                                            <Settings className="h-4 w-4" />
                                             {selectedPhase.type === 'group' ? 'Generate Matches' : 'Setup Matches'}
                                         </button>
                                         {selectedPhase.type === 'knockout' && matches.length > 0 && (
                                             <button
                                                 onClick={handleRenumberMatches}
-                                                className="inline-flex items-center gap-2 rounded-xl bg-neutral-100 px-4 py-3 text-sm font-gotham font-bold text-neutral-700 shadow hover:bg-neutral-200 transition-all border border-neutral-400 hover:scale-105"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-ffdin font-bold text-white shadow hover:bg-zinc-700 transition-all border border-zinc-600"
                                                 title="Fix match numbering if 'Winner Match X' templates aren't working correctly"
                                             >
-                                                <span className="text-lg">#️⃣</span>
+                                                <Hash className="h-4 w-4" />
                                                 Renumber
                                             </button>
                                         )}
@@ -472,24 +473,24 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
                     {/* Flash Messages */}
                     {flash?.success && (
-                        <div className="bg-success rounded-xl border-4 border-success-700 text-white px-6 py-4 font-gotham font-bold shadow-lg">
-                            ✅ {flash.success}
+                        <div className="flex items-center gap-2 bg-zinc-900 rounded-xl border border-zinc-700 text-white px-6 py-4 font-ffdin font-bold shadow-lg">
+                            <CheckCircle className="h-5 w-5 text-accent flex-shrink-0" /> {flash.success}
                         </div>
                     )}
                     {flash?.error && (
-                        <div className="bg-red-600 rounded-xl border-4 border-red-800 text-white px-6 py-4 font-gotham font-bold shadow-lg">
-                            ❌ {flash.error}
+                        <div className="flex items-center gap-2 bg-red-600 rounded-xl border border-red-800 text-white px-6 py-4 font-ffdin font-bold shadow-lg">
+                            <XCircle className="h-5 w-5 flex-shrink-0" /> {flash.error}
                         </div>
                     )}
                     {flash?.info && (
-                        <div className="bg-primary rounded-xl border-4 border-primary-700 text-white px-6 py-4 font-gotham font-bold shadow-lg">
-                            ℹ️ {flash.info}
+                        <div className="flex items-center gap-2 bg-zinc-800 rounded-xl border border-zinc-600 text-white px-6 py-4 font-ffdin font-bold shadow-lg">
+                            <Info className="h-5 w-5 flex-shrink-0" /> {flash.info}
                         </div>
                     )}
 
                     {/* Phase Resolution Debug Info */}
                     {selectedPhase && selectedPhase.type === 'knockout' && (
-                        <div className="bg-yellow-50 rounded-xl border-2 border-yellow-400 px-6 py-4 font-gotham text-sm">
+                        <div className="bg-yellow-50 rounded-xl border-2 border-yellow-400 px-6 py-4 font-ffdin text-sm">
                             <div className="font-bold text-yellow-800 mb-2">🔍 Resolution Debug Info:</div>
                             <div className="text-yellow-900 space-y-1">
                                 <p><strong>Current Phase:</strong> {selectedPhase.name} (order: {selectedPhase.order})</p>
@@ -550,9 +551,11 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
                     {/* Import Schedule Info */}
                     {selectedPhase && (
-                        <div className="bg-primary-50 rounded-2xl p-6 shadow-lg border-2 border-primary">
-                            <h3 className="text-lg font-bold font-raverist text-primary mb-3">📊 Schedule Import Guide</h3>
-                            <div className="font-gotham text-sm text-dark space-y-2">
+                        <div className="bg-white rounded-2xl p-6 shadow-lg border border-zinc-200">
+                            <h3 className="flex items-center gap-2 text-lg font-bold font-ffdin text-black mb-3">
+                                <Info className="h-5 w-5 text-zinc-400" /> Schedule Import Guide
+                            </h3>
+                            <div className="font-ffdin text-sm text-black space-y-2">
                                 {isIndividual && selectedPhase.type === 'group' ? (
                                     <>
                                         <div>
@@ -584,7 +587,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                             <p className="font-bold mb-1">Two Ways to Use Import:</p>
                                             <div className="ml-2 space-y-2">
                                                 <div>
-                                                    <p className="font-semibold text-success">Option 1: Update Existing Matches</p>
+                                                    <p className="font-semibold text-black">Option 1: Update Existing Matches</p>
                                                     <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
                                                         <li>Click "Generate Matches" to create round-robin matches</li>
                                                         <li>Click "Export Schedule" to download</li>
@@ -593,7 +596,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                     </ol>
                                                 </div>
                                                 <div>
-                                                    <p className="font-semibold text-primary">Option 2: Create Custom Matches</p>
+                                                    <p className="font-semibold text-zinc-700">Option 2: Create Custom Matches</p>
                                                     <ol className="list-decimal list-inside space-y-1 ml-2 text-xs">
                                                         <li>Download the template (or create your own Excel)</li>
                                                         <li>Add rows with team pairs, court, date, and time</li>
@@ -618,13 +621,13 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                             <p className="font-bold mb-1">Knockout Stage Import:</p>
                                             <div className="ml-2 space-y-1 text-xs">
                                                 <p>Create matches using templates that auto-resolve based on previous results:</p>
-                                                <div className="bg-success-50 rounded p-2 mt-2 border border-success-200">
-                                                    <p className="font-semibold text-success-800 mb-1">Quarter Finals (from Group Stage):</p>
+                                                <div className="bg-zinc-100 rounded p-2 mt-2 border border-zinc-300">
+                                                    <p className="font-semibold text-zinc-800 mb-1">Quarter Finals (from Group Stage):</p>
                                                     <p className="font-mono text-xs">1st Group A, 2nd Group B, Court 1, 31-01-2026, 09:00</p>
                                                     <p className="font-mono text-xs">2nd Group A, 1st Group B, Court 2, 31-01-2026, 10:00</p>
                                                 </div>
-                                                <div className="bg-primary-50 rounded p-2 mt-2 border border-primary-200">
-                                                    <p className="font-semibold text-primary-800 mb-1">Semi Finals (from Quarter Finals):</p>
+                                                <div className="bg-zinc-100 rounded p-2 mt-2 border border-zinc-300">
+                                                    <p className="font-semibold text-zinc-800 mb-1">Semi Finals (from Quarter Finals):</p>
                                                     <p className="font-mono text-xs">Winner Match 1, Winner Match 2, Court 1, 01-02-2026, 14:00</p>
                                                 </div>
                                             </div>
@@ -646,28 +649,31 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
                     {/* Phase Selector */}
                     {phases.length > 0 && (
-                        <div className="bg-white rounded-2xl p-6 shadow-lg border-4 border-primary">
-                            <h3 className="text-xl font-bold font-raverist text-dark mb-4">Tournament Phases</h3>
+                        <div className="bg-white rounded-2xl p-6 shadow-lg border border-zinc-200">
+                            <h3 className="text-xl font-bold font-ffdin text-black mb-4">Tournament Phases</h3>
                             <div className="flex gap-3 flex-wrap">
                                 {phases.map((phase, index) => (
                                     <button
                                         key={phase.id}
                                         onClick={() => setSelectedPhaseId(phase.id)}
-                                        className={`px-6 py-3 rounded-xl font-gotham font-bold transition-all border-2 ${
+                                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-ffdin font-bold transition-all border ${
                                             phase.id === selectedPhaseId
-                                                ? 'bg-primary text-white border-primary-700 scale-105'
-                                                : 'bg-neutral-100 text-dark border-neutral-300 hover:bg-neutral-200'
+                                                ? 'bg-black text-white border-zinc-700 scale-105'
+                                                : 'bg-zinc-100 text-black border-zinc-300 hover:bg-zinc-200'
                                         }`}
                                     >
-                                        <span className="text-lg mr-2">{phase.type === 'group' ? '🏆' : '⚔️'}</span>
+                                        {phase.type === 'group'
+                                            ? <Trophy className="h-4 w-4" />
+                                            : <Swords className="h-4 w-4" />
+                                        }
                                         {index + 1}. {phase.name}
                                         {phase.matches && phase.matches.length > 0 && (
-                                            <span className="ml-2 text-xs bg-success text-white px-2 py-1 rounded-full">
-                                                {phase.matches.length} matches
+                                            <span className="ml-1 text-xs bg-zinc-600 text-white px-2 py-0.5 rounded-full">
+                                                {phase.matches.length}
                                             </span>
                                         )}
                                         {phase.id === currentPhase?.id && (
-                                            <span className="ml-2 text-xs bg-accent text-dark px-2 py-1 rounded-full">Current</span>
+                                            <span className="ml-1 text-xs bg-accent text-black px-2 py-0.5 rounded-full">Current</span>
                                         )}
                                     </button>
                                 ))}
@@ -677,26 +683,30 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
                     {/* Knockout Match Builder Modal */}
                     {showKnockoutModal && selectedPhase?.type === 'knockout' && (
-                        <div className="fixed inset-0 bg-dark bg-opacity-90 flex items-center justify-center z-50 overflow-y-auto">
-                            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full my-8 shadow-2xl border-4 border-success">
-                                <h3 className="text-2xl font-bold font-raverist text-success mb-4">
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-y-auto">
+                            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full my-8 shadow-2xl border border-zinc-200">
+                                <h3 className="text-2xl font-bold font-ffdin text-black mb-4">
                                     Setup Matches for {selectedPhase.name}
                                 </h3>
-                                
+
                                 {previousPhase && previousPhase.type === 'group' ? (
-                                    <div className="bg-primary-100 rounded-xl p-4 mb-6 border-2 border-primary">
-                                        <p className="text-base font-gotham text-dark mb-2">
-                                            ℹ️ Define match pairings using rankings from <strong>{previousPhase.name}</strong>. 
-                                        </p>
-                                        <p className="text-sm font-gotham text-dark">
-                                            Example: <strong>1st Group A vs 2nd Group B</strong> means the 1st place team from Group A 
-                                            plays against the 2nd place team from Group B.
-                                        </p>
+                                    <div className="flex items-start gap-2 bg-zinc-50 rounded-xl p-4 mb-6 border border-zinc-200">
+                                        <Info className="h-5 w-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-base font-ffdin text-black mb-2">
+                                                Define match pairings using rankings from <strong>{previousPhase.name}</strong>.
+                                            </p>
+                                            <p className="text-sm font-ffdin text-zinc-600">
+                                                Example: <strong>1st Group A vs 2nd Group B</strong> means the 1st place team from Group A
+                                                plays against the 2nd place team from Group B.
+                                            </p>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="bg-accent-100 rounded-xl p-4 mb-6 border-2 border-accent">
-                                        <p className="text-base font-gotham text-dark">
-                                            ⚠️ No group phase found before this phase. You can create matches, but you'll need to manually assign participants later.
+                                    <div className="flex items-start gap-2 bg-zinc-50 rounded-xl p-4 mb-6 border border-zinc-300">
+                                        <AlertCircle className="h-5 w-5 text-zinc-500 flex-shrink-0 mt-0.5" />
+                                        <p className="text-base font-ffdin text-black">
+                                            No group phase found before this phase. You can create matches, but you'll need to manually assign participants later.
                                         </p>
                                     </div>
                                 )}
@@ -704,49 +714,41 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                 <form onSubmit={handleSubmitKnockoutMatches}>
                                     <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                                         {knockoutData.matches.map((match, index) => (
-                                            <div key={index} className="bg-neutral-50 rounded-xl p-4 border-2 border-neutral-200">
+                                            <div key={index} className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
                                                 <div className="flex items-center gap-3 mb-3">
-                                                    <h4 className="font-gotham font-bold text-dark">Match {index + 1}</h4>
+                                                    <h4 className="font-ffdin font-bold text-black">Match {index + 1}</h4>
                                                     <button
                                                         type="button"
                                                         onClick={() => removeKnockoutMatch(index)}
-                                                        className="ml-auto px-3 py-1 text-xs font-gotham font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                                        className="ml-auto px-3 py-1 text-xs font-ffdin font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
                                                     >
                                                         Remove
                                                     </button>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div>
-                                                        <label className="block text-sm font-gotham font-bold text-dark mb-1">
-                                                            Team 1
-                                                        </label>
+                                                        <label className="block text-sm font-ffdin font-bold text-black mb-1">Team 1</label>
                                                         <select
                                                             value={match.team1_template}
                                                             onChange={(e) => updateKnockoutMatch(index, 'team1_template', e.target.value)}
-                                                            className="block w-full font-gotham rounded-lg border-2 border-neutral-300 focus:border-primary focus:ring-primary"
+                                                            className="block w-full font-ffdin rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
                                                             required
                                                         >
                                                             {templateOptions.map((opt) => (
-                                                                <option key={opt.value} value={opt.value}>
-                                                                    {opt.label}
-                                                                </option>
+                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                             ))}
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-gotham font-bold text-dark mb-1">
-                                                            Team 2
-                                                        </label>
+                                                        <label className="block text-sm font-ffdin font-bold text-black mb-1">Team 2</label>
                                                         <select
                                                             value={match.team2_template}
                                                             onChange={(e) => updateKnockoutMatch(index, 'team2_template', e.target.value)}
-                                                            className="block w-full font-gotham rounded-lg border-2 border-neutral-300 focus:border-primary focus:ring-primary"
+                                                            className="block w-full font-ffdin rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
                                                             required
                                                         >
                                                             {templateOptions.map((opt) => (
-                                                                <option key={opt.value} value={opt.value}>
-                                                                    {opt.label}
-                                                                </option>
+                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                             ))}
                                                         </select>
                                                     </div>
@@ -758,9 +760,9 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                     <button
                                         type="button"
                                         onClick={addKnockoutMatch}
-                                        className="w-full mb-6 px-6 py-3 text-sm font-gotham font-bold text-primary bg-primary-100 border-2 border-primary rounded-xl hover:bg-primary-200 transition-all"
+                                        className="inline-flex items-center gap-2 w-full justify-center mb-6 px-6 py-3 text-sm font-ffdin font-bold text-black bg-zinc-100 border border-zinc-300 rounded-xl hover:bg-zinc-200 transition-all"
                                     >
-                                        ➕ Add Match
+                                        <Plus className="h-4 w-4" /> Add Match
                                     </button>
 
                                     <div className="flex gap-3">
@@ -770,14 +772,14 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                 setShowKnockoutModal(false);
                                                 setKnockoutData('matches', []);
                                             }}
-                                            className="flex-1 px-6 py-3 text-sm font-gotham font-bold text-dark bg-white border-2 border-neutral-400 rounded-xl hover:bg-neutral-100 transition-all"
+                                            className="flex-1 px-6 py-3 text-sm font-ffdin font-bold text-black bg-white border border-zinc-300 rounded-xl hover:bg-zinc-50 transition-all"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={knockoutProcessing || knockoutData.matches.length === 0}
-                                            className="flex-1 px-6 py-3 text-sm font-gotham font-bold text-white bg-success rounded-xl hover:bg-success-600 disabled:opacity-50 transition-all border-2 border-dark"
+                                            className="flex-1 px-6 py-3 text-sm font-ffdin font-bold text-white bg-black rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-all"
                                         >
                                             {knockoutProcessing ? 'Creating...' : `Create ${knockoutData.matches.length} Match${knockoutData.matches.length !== 1 ? 'es' : ''}`}
                                         </button>
@@ -789,45 +791,44 @@ export default function Index({ category, phases, currentPhase, courts, particip
 
                     {/* Matches Content */}
                     {!selectedPhase ? (
-                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border-4 border-accent">
-                            <div className="text-8xl mb-6">🎾</div>
-                            <h3 className="text-3xl font-bold font-raverist text-dark mb-4">No Phases Configured</h3>
-                            <p className="text-xl font-gotham text-neutral-600">
+                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border border-zinc-200">
+                            <Swords className="h-16 w-16 mx-auto mb-6 text-zinc-300" />
+                            <h3 className="text-3xl font-bold font-ffdin text-black mb-4">No Phases Configured</h3>
+                            <p className="text-xl font-ffdin text-zinc-500">
                                 Please configure tournament phases in category settings.
                             </p>
                         </div>
                     ) : matches.length === 0 ? (
-                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border-4 border-accent">
-                            <div className="text-8xl mb-6">🎾</div>
-                            <h3 className="text-3xl font-bold font-raverist text-dark mb-4">No Matches for {selectedPhase.name}</h3>
-                            <p className="text-xl font-gotham text-neutral-600 mb-4">
-                                {selectedPhase.type === 'group' 
+                        <div className="bg-white rounded-2xl p-16 text-center shadow-lg border border-zinc-200">
+                            <Swords className="h-16 w-16 mx-auto mb-6 text-zinc-300" />
+                            <h3 className="text-3xl font-bold font-ffdin text-black mb-4">No Matches for {selectedPhase.name}</h3>
+                            <p className="text-xl font-ffdin text-zinc-500 mb-4">
+                                {selectedPhase.type === 'group'
                                     ? 'Make sure you have set up groups and assigned participants before generating matches.'
                                     : 'Set up knockout matches using the button above.'}
                             </p>
                             <button
                                 onClick={handleGenerateMatches}
-                                className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-gotham font-bold text-white shadow-lg hover:bg-primary-600 transition-all border-4 border-dark"
+                                className="inline-flex items-center gap-2 rounded-xl bg-black px-8 py-4 text-lg font-ffdin font-bold text-white shadow-lg hover:bg-zinc-800 transition-all"
                             >
-                                <span className="text-2xl">⚙️</span>
+                                <Settings className="h-5 w-5" />
                                 {selectedPhase.type === 'group' ? 'Generate Matches Now' : 'Setup Matches Now'}
                             </button>
                         </div>
                     ) : selectedPhase.type === 'group' ? (
                         // Group phase matches - organized by group
                         Object.entries(matchesByGroup).sort((a, b) => {
-                            // Sort by group name (handles both letter and number formats)
                             return a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
                         }).map(([groupName, groupMatches]) => (
-                            <div key={groupName} className="bg-white rounded-2xl p-8 shadow-lg border-4 border-success">
-                                <h3 className="text-2xl font-bold font-raverist text-success mb-6 flex items-center gap-3">
-                                    <span className="text-3xl">🏆</span>
+                            <div key={groupName} className="bg-white rounded-2xl p-8 shadow-lg border border-zinc-200">
+                                <h3 className="text-2xl font-bold font-ffdin text-black mb-6 flex items-center gap-3">
+                                    <Trophy className="h-6 w-6 text-zinc-400" />
                                     Group {groupName}
                                 </h3>
                                 
                                 <div className="space-y-1.5">
                                     {groupMatches.map((match) => (
-                                        <div key={match.id} className="bg-neutral-100 rounded-lg p-2.5 border border-neutral-300 hover:border-primary transition-all">
+                                        <div key={match.id} className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-200 hover:border-black transition-all">
                                             <div className="flex items-center gap-2">
                                                 {/* Teams - Compact */}
                                                 <div className="flex-1 flex items-center gap-2">
@@ -837,7 +838,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                                 <select
                                                                     value={match.side1_player1_id || ''}
                                                                     onChange={(e) => handleIndividualPlayersChange(match, { side1_player1_id: e.target.value })}
-                                                                    className="font-gotham text-xs rounded border border-primary focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-32 bg-white"
                                                                 >
                                                                     <option value="">P1</option>
                                                                     {participantOptions.map((p) => (
@@ -847,7 +848,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                                 <select
                                                                     value={match.side1_player2_id || ''}
                                                                     onChange={(e) => handleIndividualPlayersChange(match, { side1_player2_id: e.target.value })}
-                                                                    className="font-gotham text-xs rounded border border-primary focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-32 bg-white"
                                                                 >
                                                                     <option value="">P2</option>
                                                                     {participantOptions.map((p) => (
@@ -855,12 +856,12 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                                     ))}
                                                                 </select>
                                                             </div>
-                                                            <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
+                                                            <span className="text-sm font-bold font-ffdin text-zinc-500">vs</span>
                                                             <div className="flex items-center gap-1">
                                                                 <select
                                                                     value={match.side2_player1_id || ''}
                                                                     onChange={(e) => handleIndividualPlayersChange(match, { side2_player1_id: e.target.value })}
-                                                                    className="font-gotham text-xs rounded border border-success focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-32 bg-white"
                                                                 >
                                                                     <option value="">P1</option>
                                                                     {participantOptions.map((p) => (
@@ -870,7 +871,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                                 <select
                                                                     value={match.side2_player2_id || ''}
                                                                     onChange={(e) => handleIndividualPlayersChange(match, { side2_player2_id: e.target.value })}
-                                                                    className="font-gotham text-xs rounded border border-success focus:border-primary focus:ring-primary py-1 px-1.5 w-32 bg-white"
+                                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-32 bg-white"
                                                                 >
                                                                     <option value="">P2</option>
                                                                     {participantOptions.map((p) => (
@@ -881,11 +882,11 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
+                                                            <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                                 <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
                                                             </div>
-                                                            <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
-                                                            <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
+                                                            <span className="text-sm font-bold font-ffdin text-zinc-500">vs</span>
+                                                            <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                                 <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
                                                             </div>
                                                         </>
@@ -893,15 +894,16 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                 </div>
                                                 
                                                 {/* Status Badge */}
-                                                <span className={`px-2 py-1 text-xs font-gotham font-bold rounded border ${getStatusColor(match.status)} whitespace-nowrap`}>
-                                                    {getStatusIcon(match.status)} {match.status.replace('_', ' ').toUpperCase()}
+                                                <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-ffdin font-bold rounded border ${getStatusColor(match.status)} whitespace-nowrap`}>
+                                                    <StatusIcon status={match.status} />
+                                                    {match.status.replace('_', ' ').toUpperCase()}
                                                 </span>
-                                                
+
                                                 {/* Court Select */}
                                                 <select
                                                     value={match.court_id || ''}
                                                     onChange={(e) => handleCourtChange(match.id, e.target.value)}
-                                                    className="font-gotham text-xs rounded border border-neutral-300 focus:border-primary focus:ring-primary py-1 px-1.5 w-24"
+                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-24"
                                                 >
                                                     <option value="">Court</option>
                                                     {courts.map((court) => (
@@ -910,46 +912,46 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                         </option>
                                                     ))}
                                                 </select>
-                                                
+
                                                 {/* Time Input */}
                                                 <input
                                                     type="datetime-local"
                                                     defaultValue={match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : ''}
                                                     onBlur={(e) => handleScheduledTimeChange(match.id, e.target.value)}
-                                                    className="font-gotham text-xs rounded border border-neutral-300 focus:border-primary focus:ring-primary py-1 px-1.5 w-36"
+                                                    className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-36"
                                                 />
-                                                
+
                                                 {/* Actions */}
                                                 <div className="flex gap-1">
                                                     <button
                                                         onClick={() => handleStartMatch(match.id)}
-                                                        className="px-2 py-1 text-sm font-gotham font-bold text-white bg-success rounded hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-dark"
+                                                        className="p-1.5 text-white bg-black rounded hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                                         disabled={match.status === 'completed' || match.status === 'cancelled' || !match.court_id}
                                                         title={
-                                                            !match.court_id 
-                                                                ? 'Assign court first' 
+                                                            !match.court_id
+                                                                ? 'Assign court first'
                                                                 : (match.status === 'in_progress' || match.status === 'upcoming' ? 'Open Match' : 'Start Match')
                                                         }
                                                     >
-                                                        🎾
+                                                        <Play className="h-4 w-4" />
                                                     </button>
-                                                    
+
                                                     {(match.status === 'upcoming' || match.status === 'in_progress') && (
                                                         <button
                                                             onClick={() => handleResetMatch(match.id)}
-                                                            className="px-2 py-1 text-sm font-gotham font-bold text-white bg-orange-600 rounded hover:bg-orange-700 transition-all border border-dark"
+                                                            className="p-1.5 text-white bg-orange-600 rounded hover:bg-orange-700 transition-all"
                                                             title="Reset match"
                                                         >
-                                                            🔄
+                                                            <RotateCcw className="h-4 w-4" />
                                                         </button>
                                                     )}
-                                                    
+
                                                     <button
                                                         onClick={() => handleDeleteMatch(match.id)}
-                                                        className="px-2 py-1 text-sm font-gotham font-bold text-white bg-red-600 rounded hover:bg-red-700 transition-all border border-dark"
+                                                        className="p-1.5 text-white bg-red-600 rounded hover:bg-red-700 transition-all"
                                                         title="Delete match"
                                                     >
-                                                        🗑️
+                                                        <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -960,54 +962,55 @@ export default function Index({ category, phases, currentPhase, courts, particip
                         ))
                     ) : (
                         // Knockout phase matches - flat list
-                        <div className="bg-white rounded-2xl p-8 shadow-lg border-4 border-primary">
-                            <h3 className="text-2xl font-bold font-raverist text-primary mb-6 flex items-center gap-3">
-                                <span className="text-3xl">⚔️</span>
+                        <div className="bg-white rounded-2xl p-8 shadow-lg border border-zinc-200">
+                            <h3 className="text-2xl font-bold font-ffdin text-black mb-6 flex items-center gap-3">
+                                <Swords className="h-6 w-6 text-zinc-400" />
                                 {selectedPhase.name}
                             </h3>
                             
                             <div className="space-y-1.5">
                                 {matches.map((match, index) => (
-                                    <div key={match.id} className="bg-neutral-100 rounded-lg p-2.5 border border-neutral-300 hover:border-primary transition-all">
-                                        <div className="flex items-center gap-2">
-                                            {/* Match Number - Use match_order for template reference */}
-                                            <span className="font-gotham font-bold text-sm text-dark bg-primary-100 px-3 py-1.5 rounded border border-primary" title={`Use "Winner Match ${match.match_order}" in next phase`}>
+                                        <div key={match.id} className="bg-zinc-50 rounded-lg p-2.5 border border-zinc-200 hover:border-black transition-all">
+                                            <div className="flex items-center gap-2">
+                                                {/* Match Number - Use match_order for template reference */}
+                                            <span className="font-ffdin font-bold text-sm text-black bg-zinc-100 px-3 py-1.5 rounded border border-zinc-300" title={`Use "Winner Match ${match.match_order}" in next phase`}>
                                                 #{match.match_order || index + 1}
                                             </span>
                                             
                                             {/* Teams */}
                                             <div className="flex-1 flex items-center gap-2">
                                                 {match.team1_id ? (
-                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-primary min-w-[150px]">
+                                                    <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
                                                     </div>
                                                 ) : (
-                                                    <div className="font-gotham text-xs text-neutral-500 bg-neutral-200 px-2 py-1.5 rounded border border-neutral-400 min-w-[150px]">
+                                                    <div className="font-ffdin text-xs text-zinc-500 bg-zinc-100 px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         {match.team1_template?.replace(/_/g, ' ')}
                                                     </div>
                                                 )}
-                                                <span className="text-sm font-bold font-raverist text-neutral-600">vs</span>
+                                                <span className="text-sm font-bold font-ffdin text-zinc-500">vs</span>
                                                 {match.team2_id ? (
-                                                    <div className="font-gotham text-xs text-dark bg-white px-2 py-1.5 rounded border border-success min-w-[150px]">
+                                                    <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
                                                     </div>
                                                 ) : (
-                                                    <div className="font-gotham text-xs text-neutral-500 bg-neutral-200 px-2 py-1.5 rounded border border-neutral-400 min-w-[150px]">
+                                                    <div className="font-ffdin text-xs text-zinc-500 bg-zinc-100 px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         {match.team2_template?.replace(/_/g, ' ')}
                                                     </div>
                                                 )}
                                             </div>
                                             
                                             {/* Status Badge */}
-                                            <span className={`px-2 py-1 text-xs font-gotham font-bold rounded border ${getStatusColor(match.status)} whitespace-nowrap`}>
-                                                {getStatusIcon(match.status)} {match.status.replace('_', ' ').toUpperCase()}
+                                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-ffdin font-bold rounded border ${getStatusColor(match.status)} whitespace-nowrap`}>
+                                                <StatusIcon status={match.status} />
+                                                {match.status.replace('_', ' ').toUpperCase()}
                                             </span>
-                                            
+
                                             {/* Court Select */}
                                             <select
                                                 value={match.court_id || ''}
                                                 onChange={(e) => handleCourtChange(match.id, e.target.value)}
-                                                className="font-gotham text-xs rounded border border-neutral-300 focus:border-primary focus:ring-primary py-1 px-1.5 w-24"
+                                                className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-24"
                                             >
                                                 <option value="">Court</option>
                                                 {courts.map((court) => (
@@ -1016,48 +1019,48 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                     </option>
                                                 ))}
                                             </select>
-                                            
+
                                             {/* Time Input */}
                                             <input
                                                 type="datetime-local"
                                                 defaultValue={match.scheduled_time ? new Date(match.scheduled_time).toISOString().slice(0, 16) : ''}
                                                 onBlur={(e) => handleScheduledTimeChange(match.id, e.target.value)}
-                                                className="font-gotham text-xs rounded border border-neutral-300 focus:border-primary focus:ring-primary py-1 px-1.5 w-36"
+                                                className="font-ffdin text-xs rounded border border-zinc-300 focus:border-black focus:ring-black py-1 px-1.5 w-36"
                                             />
-                                            
+
                                             {/* Actions */}
                                             <div className="flex gap-1">
                                                 <button
                                                     onClick={() => handleStartMatch(match.id)}
-                                                    className="px-2 py-1 text-sm font-gotham font-bold text-white bg-success rounded hover:bg-success-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-dark"
+                                                    className="p-1.5 text-white bg-black rounded hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                                     disabled={match.status === 'completed' || match.status === 'cancelled' || !match.court_id || !match.team1_id || !match.team2_id}
                                                     title={
-                                                        !match.court_id 
+                                                        !match.court_id
                                                             ? 'Assign court first'
                                                             : !match.team1_id || !match.team2_id
                                                                 ? 'Resolve participants first'
                                                                 : (match.status === 'in_progress' || match.status === 'upcoming' ? 'Open Match' : 'Start Match')
                                                     }
                                                 >
-                                                    🎾
+                                                    <Play className="h-4 w-4" />
                                                 </button>
-                                                
+
                                                 {(match.status === 'upcoming' || match.status === 'in_progress') && (
                                                     <button
                                                         onClick={() => handleResetMatch(match.id)}
-                                                        className="px-2 py-1 text-sm font-gotham font-bold text-white bg-orange-600 rounded hover:bg-orange-700 transition-all border border-dark"
+                                                        className="p-1.5 text-white bg-orange-600 rounded hover:bg-orange-700 transition-all"
                                                         title="Reset match"
                                                     >
-                                                        🔄
+                                                        <RotateCcw className="h-4 w-4" />
                                                     </button>
                                                 )}
-                                                
+
                                                 <button
                                                     onClick={() => handleDeleteMatch(match.id)}
-                                                    className="px-2 py-1 text-sm font-gotham font-bold text-white bg-red-600 rounded hover:bg-red-700 transition-all border border-dark"
+                                                    className="p-1.5 text-white bg-red-600 rounded hover:bg-red-700 transition-all"
                                                     title="Delete match"
                                                 >
-                                                    🗑️
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </div>

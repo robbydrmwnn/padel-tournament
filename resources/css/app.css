@@ -4,55 +4,40 @@
 
 /* CSS Custom Properties for Colors */
 :root {
-    --color-primary: #3E4290;
-    --color-success: #4BA661;
-    --color-neutral: #F7F7F7;
-    --color-accent: #D8E802;
-    --color-dark: #222222;
+    --color-primary: #111111;
+    --color-success: #444444;
+    --color-neutral: #F5F5F5;
+    --color-accent: #D4AF37;
+    --color-dark: #0a0a0a;
 }
 
-/* Raverist Font - Letters Only (Numbers use fallback) */
+/* FF DIN Condensed Black Font */
 @font-face {
-    font-family: 'Raverist';
-    src: url('/fonts/Raverist.woff2') format('woff2'),
-         url('/fonts/Raverist.ttf') format('truetype');
-    font-weight: 100 900;
+    font-family: 'FFDin';
+    src: url('/fonts/FF_DIN_Condensed_Black.otf') format('opentype');
+    font-weight: 900;
     font-style: normal;
     font-display: block;
-    /* Only apply to letters, not numbers - this ensures numbers always display */
-    unicode-range: U+0041-005A, U+0061-007A, U+00C0-00FF, U+0100-017F, U+0180-024F;
-}
-
-/* Gotham Font - Letters Only (Numbers use fallback) */
-@font-face {
-    font-family: 'Gotham';
-    src: url('/fonts/Gotham-Book.woff2') format('woff2'),
-         url('/fonts/Gotham-Book.otf') format('opentype');
-    font-weight: 400;
-    font-style: normal;
-    font-display: block;
-    /* Only apply to letters, not numbers - this ensures numbers always display */
-    unicode-range: U+0041-005A, U+0061-007A, U+00C0-00FF, U+0100-017F, U+0180-024F;
 }
 
 /* Base Typography */
 @layer base {
     body {
-        @apply font-gotham text-dark;
+        @apply font-ffdin text-dark;
         background-color: var(--color-neutral);
     }
-    
+
     h1, h2, h3, h4, h5, h6 {
-        @apply font-raverist font-bold;
+        @apply font-ffdin font-bold;
         color: var(--color-primary);
     }
-    
+
     button {
-        @apply font-gotham;
+        @apply font-ffdin;
     }
 }
 
-/* Accent Button Color Override - Always use dark text for readability */
+/* Accent elements always use dark text for readability */
 @layer components {
     .bg-accent,
     .bg-accent-500,
@@ -64,17 +49,16 @@
     }
 }
 
-/* Prevent font flickering and layout shifts */
+/* Font rendering & numeric stability */
 @layer utilities {
-    /* Ensure smooth font rendering */
+    .font-ffdin,
     .font-raverist,
     .font-gotham {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
     }
-    
-    /* Prevent layout shift on score displays */
+
     .text-8xl,
     .text-9xl {
         font-variant-numeric: tabular-nums;
