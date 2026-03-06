@@ -370,8 +370,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
                         style={{ minWidth: '180px' }}
                     >
                         {isFinal && (
-                            <div className="absolute bottom-[-120px] right-[-100px] flex justify-center pointer-events-none z-10">
-                                <img src="/logo/logo-black.png" alt="Logo" className="h-96 object-contain" />
+                            <div className="absolute bottom-[-80px] right-[-60px] flex justify-center pointer-events-none z-10">
+                                <img src="/logo/logo-black.png" alt="Logo" className="h-72 object-contain" />
                             </div>
                         )}
                         {phase.matches.length > 0 ? phase.matches.map(match => (
