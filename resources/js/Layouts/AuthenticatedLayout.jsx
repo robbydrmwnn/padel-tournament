@@ -4,6 +4,7 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { User } from 'lucide-react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -12,14 +13,14 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     return (
-        <div className="min-h-screen bg-dark">
-            <nav className="bg-primary shadow-2xl border-b-2 border-success">
+        <div className="min-h-screen bg-neutral-100">
+            <nav className="bg-black shadow-2xl border-b border-zinc-800">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
                                 <Link href="/" className="flex items-center gap-3">
-                                    <ApplicationLogo className="block h-12 w-auto object-contain" />
+                                    <ApplicationLogo variant="black" className="block h-16 w-auto object-contain pt-2" />
                                 </Link>
                             </div>
 
@@ -29,7 +30,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('events.*')}
                                     className="px-4 py-2"
                                 >
-                                    <span className="font-gotham font-semibold">Events</span>
+                                    <span className="font-ffdin font-semibold">Events</span>
                                 </NavLink>
                             </div>
                         </div>
@@ -41,9 +42,9 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-gotham font-semibold text-white transition duration-150 ease-in-out hover:bg-primary-700 border-2 border-primary-400"
+                                                className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-4 py-2 text-sm font-ffdin font-semibold text-white transition duration-150 ease-in-out hover:bg-zinc-700 border border-zinc-600"
                                             >
-                                                <span>👤</span>
+                                                <User className="h-4 w-4" />
                                                 {user.name}
 
                                                 <svg
@@ -87,7 +88,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         (previousState) => !previousState,
                                     )
                                 }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-neutral-600 transition duration-150 ease-in-out hover:bg-neutral-100 hover:text-primary focus:bg-neutral-100 focus:text-primary focus:outline-none"
+                                className="inline-flex items-center justify-center rounded-md p-2 text-zinc-400 transition duration-150 ease-in-out hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white focus:outline-none"
                             >
                                 <svg
                                     className="h-6 w-6"
@@ -138,12 +139,12 @@ export default function AuthenticatedLayout({ header, children }) {
                         </ResponsiveNavLink>
                     </div>
 
-                    <div className="border-t border-neutral-200 pb-1 pt-4">
+                    <div className="border-t border-zinc-800 pb-1 pt-4">
                         <div className="px-4">
-                            <div className="text-base font-medium text-primary">
+                            <div className="text-base font-medium text-white">
                                 {user.name}
                             </div>
-                            <div className="text-sm font-medium text-neutral-600">
+                            <div className="text-sm font-medium text-zinc-400">
                                 {user.email}
                             </div>
                         </div>
@@ -165,9 +166,9 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
 
             {header && (
-                <header className="bg-neutral-900 shadow-2xl border-b-2 border-primary">
+                <header className="bg-zinc-900 shadow-2xl border-b border-zinc-700">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        <h2 className="text-3xl font-bold text-white font-raverist">
+                        <h2 className="text-3xl font-bold text-white font-ffdin tracking-wide">
                             {header}
                         </h2>
                     </div>

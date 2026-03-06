@@ -56,8 +56,9 @@ class CategoryController extends Controller
             'phases.*.games_target' => 'required|integer|in:4,6,8,10,12,21,25',
             'phases.*.scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
             'phases.*.advantage_limit' => 'nullable|integer|min:1|max:10',
-            'phases.*.tiebreaker_points' => 'required|integer|min:5|max:15',
-            'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
+            'phases.*.use_tiebreaker' => 'required|boolean',
+            'phases.*.tiebreaker_points' => 'nullable|integer|min:5|max:15|required_if:phases.*.use_tiebreaker,true',
+            'phases.*.tiebreaker_two_point_difference' => 'nullable|boolean|required_if:phases.*.use_tiebreaker,true',
         ]);
 
         if ($validated['participant_mode'] === 'individual') {
@@ -91,8 +92,9 @@ class CategoryController extends Controller
                 'games_target' => $phaseData['games_target'],
                 'scoring_type' => $phaseData['scoring_type'],
                 'advantage_limit' => $phaseData['advantage_limit'] ?? null,
-                'tiebreaker_points' => $phaseData['tiebreaker_points'],
-                'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                'use_tiebreaker' => $phaseData['use_tiebreaker'],
+                'tiebreaker_points' => $phaseData['tiebreaker_points'] ?? null,
+                'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'] ?? null,
                 'is_final_phase' => $isFinalPhase,
             ]);
         }
@@ -154,8 +156,9 @@ class CategoryController extends Controller
             'phases.*.games_target' => 'required|integer|in:4,6,8,10,12,21,25',
             'phases.*.scoring_type' => 'required|in:traditional,no_ad,advantage_limit',
             'phases.*.advantage_limit' => 'nullable|integer|min:1|max:10',
-            'phases.*.tiebreaker_points' => 'required|integer|min:5|max:15',
-            'phases.*.tiebreaker_two_point_difference' => 'required|boolean',
+            'phases.*.use_tiebreaker' => 'required|boolean',
+            'phases.*.tiebreaker_points' => 'nullable|integer|min:5|max:15|required_if:phases.*.use_tiebreaker,true',
+            'phases.*.tiebreaker_two_point_difference' => 'nullable|boolean|required_if:phases.*.use_tiebreaker,true',
         ]);
 
         if ($validated['participant_mode'] === 'individual') {
@@ -198,8 +201,9 @@ class CategoryController extends Controller
                     'games_target' => $phaseData['games_target'],
                     'scoring_type' => $phaseData['scoring_type'],
                     'advantage_limit' => $phaseData['advantage_limit'] ?? null,
-                    'tiebreaker_points' => $phaseData['tiebreaker_points'],
-                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                    'use_tiebreaker' => $phaseData['use_tiebreaker'],
+                    'tiebreaker_points' => $phaseData['tiebreaker_points'] ?? null,
+                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'] ?? null,
                     'is_final_phase' => $isFinalPhase,
                 ]);
             } else {
@@ -214,8 +218,9 @@ class CategoryController extends Controller
                     'games_target' => $phaseData['games_target'],
                     'scoring_type' => $phaseData['scoring_type'],
                     'advantage_limit' => $phaseData['advantage_limit'] ?? null,
-                    'tiebreaker_points' => $phaseData['tiebreaker_points'],
-                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'],
+                    'use_tiebreaker' => $phaseData['use_tiebreaker'],
+                    'tiebreaker_points' => $phaseData['tiebreaker_points'] ?? null,
+                    'tiebreaker_two_point_difference' => $phaseData['tiebreaker_two_point_difference'] ?? null,
                     'is_final_phase' => $isFinalPhase,
                 ]);
             }

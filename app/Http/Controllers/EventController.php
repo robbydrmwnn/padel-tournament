@@ -286,16 +286,29 @@ class EventController extends Controller
                         'side2Player2',
                         'court',
                     ])
-                    ->whereIn('status', ['scheduled', 'in_progress', 'completed'])
+                    ->whereIn('status', ['scheduled', 'upcoming', 'in_progress', 'completed'])
                     ->orderBy('scheduled_time', 'desc')
                     ->get();
             }
+
+            // Load all knockout phases with their matches for bracket view
+            $knockoutPhases = $category->phases()
+                ->where('type', 'knockout')
+                ->orderBy('order')
+                ->with([
+                    'matches' => function ($q) {
+                        $q->with(['team1', 'team2', 'court'])
+                          ->orderBy('match_order');
+                    },
+                ])
+                ->get();
 
             $categoriesData[] = [
                 'category' => $category,
                 'currentPhase' => $currentPhase,
                 'leaderboardData' => $leaderboardData,
                 'scheduleData' => $scheduleData,
+                'knockoutPhases' => $knockoutPhases,
             ];
         }
 

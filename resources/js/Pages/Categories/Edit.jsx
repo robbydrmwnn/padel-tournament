@@ -17,6 +17,7 @@ export default function Edit({ event, category }) {
             games_target: phase.games_target,
             scoring_type: phase.scoring_type,
             advantage_limit: phase.advantage_limit || '',
+            use_tiebreaker: phase.use_tiebreaker ?? true,
             tiebreaker_points: phase.tiebreaker_points,
             tiebreaker_two_point_difference: phase.tiebreaker_two_point_difference,
         })) || [],
@@ -31,6 +32,7 @@ export default function Edit({ event, category }) {
             games_target: 4,
             scoring_type: 'no_ad',
             advantage_limit: '',
+            use_tiebreaker: true,
             tiebreaker_points: 7,
             tiebreaker_two_point_difference: true,
         }]);
@@ -384,33 +386,54 @@ export default function Edit({ event, category }) {
 
                                                 <div>
                                                     <label className="block text-sm font-gotham font-bold text-dark mb-2">
-                                                        Tie-breaker Points *
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        min="5"
-                                                        max="15"
-                                                        value={phase.tiebreaker_points}
-                                                        onChange={(e) => updatePhase(index, 'tiebreaker_points', parseInt(e.target.value))}
-                                                        className="block w-full font-gotham rounded-lg border-2 border-neutral-300 text-sm p-2"
-                                                        required
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-gotham font-bold text-dark mb-2">
-                                                        Require 2-Point Difference *
+                                                        Use Tie-breaker *
                                                     </label>
                                                     <select
-                                                        value={phase.tiebreaker_two_point_difference}
-                                                        onChange={(e) => updatePhase(index, 'tiebreaker_two_point_difference', e.target.value === 'true')}
+                                                        value={phase.use_tiebreaker}
+                                                        onChange={(e) => updatePhase(index, 'use_tiebreaker', e.target.value === 'true')}
                                                         className="block w-full font-gotham rounded-lg border-2 border-neutral-300 text-sm p-2"
                                                         required
                                                     >
                                                         <option value="true">Yes</option>
-                                                        <option value="false">No</option>
+                                                        <option value="false">No (first to {phase.games_target} wins)</option>
                                                     </select>
                                                 </div>
+
+                                                {phase.use_tiebreaker ? (
+                                                    <>
+                                                        <div>
+                                                            <label className="block text-sm font-gotham font-bold text-dark mb-2">
+                                                                Tie-breaker Points *
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                min="5"
+                                                                max="15"
+                                                                value={phase.tiebreaker_points}
+                                                                onChange={(e) => updatePhase(index, 'tiebreaker_points', parseInt(e.target.value))}
+                                                                className="block w-full font-gotham rounded-lg border-2 border-neutral-300 text-sm p-2"
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-sm font-gotham font-bold text-dark mb-2">
+                                                                Require 2-Point Difference *
+                                                            </label>
+                                                            <select
+                                                                value={phase.tiebreaker_two_point_difference}
+                                                                onChange={(e) => updatePhase(index, 'tiebreaker_two_point_difference', e.target.value === 'true')}
+                                                                className="block w-full font-gotham rounded-lg border-2 border-neutral-300 text-sm p-2"
+                                                                required
+                                                            >
+                                                                <option value="true">Yes</option>
+                                                                <option value="false">No</option>
+                                                            </select>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="col-span-2"></div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
