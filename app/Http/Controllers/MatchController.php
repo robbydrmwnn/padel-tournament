@@ -7,6 +7,7 @@ use App\Models\GameMatch;
 use App\Models\Group;
 use App\Models\Participant;
 use App\Models\Court;
+use App\Models\TournamentPhase;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -2192,6 +2193,8 @@ class MatchController extends Controller
             'score_details' => $scoreDetails,
         ]);
 
+        $this->autoResolveNextKnockoutPhase($match);
+
         \Log::info('Match manually completed', [
             'match_id' => $match->id,
             'team1_score' => $team1Score,
@@ -2233,5 +2236,51 @@ class MatchController extends Controller
         }
 
         return back()->with('success', 'Match completed successfully.');
+    }
+
+    private function autoResolveNextKnockoutPhase(GameMatch $match): void
+    {
+        if (!$match->phase_id || !$match->winner_id || !$match->match_order) return;
+
+        $currentPhase = $match->tournamentPhase;
+        if (!$currentPhase || $currentPhase->type !== 'knockout') return;
+
+        $nextPhase = TournamentPhase::where('category_id', $match->category_id)
+            ->where('order', '>', $currentPhase->order)
+            ->orderBy('order')
+            ->first();
+
+        if (!$nextPhase || $nextPhase->type !== 'knockout') return;
+
+        $template = 'winner_match_' . $match->match_order;
+
+        $nextPhase->matches()
+            ->where(function ($q) use ($template) {
+                $q->where('team1_template', $template)
+                  ->orWhere('team2_template', $template);
+            })
+            ->get()
+            ->each(function (GameMatch $nextMatch) use ($match, $template) {
+                $changed = false;
+                if ($nextMatch->team1_template === $template && !$nextMatch->team1_id) {
+                    $nextMatch->team1_id = $match->winner_id;
+                    $changed = true;
+                }
+                if ($nextMatch->team2_template === $template && !$nextMatch->team2_id) {
+                    $nextMatch->team2_id = $match->winner_id;
+                    $changed = true;
+                }
+                if ($changed) {
+                    $nextMatch->save();
+                    \Log::info('Auto-resolved knockout winner into next phase', [
+                        'completed_match_id' => $match->id,
+                        'completed_match_order' => $match->match_order,
+                        'winner_id' => $match->winner_id,
+                        'next_phase_id' => $nextMatch->phase_id,
+                        'next_match_id' => $nextMatch->id,
+                        'template' => $template,
+                    ]);
+                }
+            });
     }
 }

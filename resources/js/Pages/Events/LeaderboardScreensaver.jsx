@@ -247,13 +247,13 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
                                 )}
                             </div>
                             {isLive && (
-                                <span className="flex items-center gap-1 text-xs font-ffdin font-bold text-black px-2 py-0.5 rounded-full flex-shrink-0 bg-white">
+                                <span className="flex items-center gap-1 text-md font-ffdin font-bold text-black px-2 py-0.5 rounded-full flex-shrink-0 bg-white">
                                     <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse inline-block" />
                                     LIVE
                                 </span>
                             )}
                             {isDone && (
-                                <span className="text-xs font-ffdin text-white/30 flex-shrink-0">FT</span>
+                                <span className="text-xl font-ffdin text-white/30 flex-shrink-0">FT</span>
                             )}
                         </div>
 
@@ -370,8 +370,8 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
                         style={{ minWidth: '180px' }}
                     >
                         {isFinal && (
-                            <div className="absolute top-[-150px] left-0 right-0 flex justify-center pointer-events-none z-10">
-                                <img src="/logo/logo-color.png" alt="Logo" className="h-128 object-contain" />
+                            <div className="absolute bottom-[-120px] right-[-100px] flex justify-center pointer-events-none z-10">
+                                <img src="/logo/logo-black.png" alt="Logo" className="h-96 object-contain" />
                             </div>
                         )}
                         {phase.matches.length > 0 ? phase.matches.map(match => (
