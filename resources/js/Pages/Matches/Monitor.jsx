@@ -157,7 +157,7 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                 )}
                                 <div className="flex items-center gap-6">
                                     <p className="text-6xl text-accent font-ffdin font-bold leading-tight">{category?.name}</p>
-                                    {/* <img src="/logo/logo-black.jpg" alt="Gonuts Cup" className="h-20 object-contain" /> */}
+                                    {/* <img src="/logo/logo-black.png" alt="Gonuts Cup" className="h-20 object-contain" /> */}
                                 </div>
                             </>
                         ) : (
@@ -390,7 +390,12 @@ export default function Monitor({ category, match, court, autoRefresh = true }) 
                                     {match.is_tiebreaker ? (
                                         <>🔥 TIE-BREAKER</>
                                     ) : match.tournament_phase ? (
-                                        <>First to {match.tournament_phase.games_target} Games • {match.tournament_phase.scoring_type === 'no_ad' ? 'No-Ad' : match.tournament_phase.scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}</>
+                                        <>
+                                            First to {match.tournament_phase.games_target} Games
+                                            {' • '}
+                                            {match.tournament_phase.scoring_type === 'no_ad' ? 'No-Ad' : match.tournament_phase.scoring_type === 'traditional' ? 'Traditional' : 'Advantage Limit'}
+                                            {(match.tournament_phase.use_tiebreaker === false) && ' • No Tiebreaker'}
+                                        </>
                                     ) : (
                                         <>Match in Progress</>
                                     )}

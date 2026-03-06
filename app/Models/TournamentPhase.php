@@ -20,6 +20,7 @@ class TournamentPhase extends Model
         'advantage_limit',
         'tiebreaker_points',
         'tiebreaker_two_point_difference',
+        'use_tiebreaker',
         'is_completed',
         'is_final_phase',
     ];
@@ -28,6 +29,7 @@ class TournamentPhase extends Model
         'is_completed' => 'boolean',
         'is_final_phase' => 'boolean',
         'tiebreaker_two_point_difference' => 'boolean',
+        'use_tiebreaker' => 'boolean',
     ];
 
     public function category(): BelongsTo

@@ -23,7 +23,8 @@ export default function Index({ category, phases, currentPhase, courts, particip
         : null;
 
     // Knockout match setup form
-    const { data: knockoutData, setData: setKnockoutData, post: postKnockout, processing: knockoutProcessing } = useForm({
+    const [knockoutProcessing, setKnockoutProcessing] = useState(false);
+    const { data: knockoutData, setData: setKnockoutData } = useForm({
         phase_id: selectedPhaseId,
         matches: [],
     });
@@ -55,6 +56,14 @@ export default function Index({ category, phases, currentPhase, courts, particip
         };
 
         router.patch(route('categories.matches.update', [category.id, match.id]), payload, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleTeamChange = (matchId, field, participantId) => {
+        router.patch(route('categories.matches.update', [category.id, matchId]), {
+            [field]: participantId || null,
+        }, {
             preserveScroll: true,
         });
     };
@@ -241,14 +250,27 @@ export default function Index({ category, phases, currentPhase, courts, particip
         }
     };
 
+    // Determine default slot type based on available options
+    const getDefaultSlotType = () => {
+        if (groupRankOptions.length > 0) return 'group_rank';
+        if (winnerMatchOptions.length > 0) return 'winner_match';
+        return 'tbd';
+    };
+
+    const getDefaultTemplate = (type, optionIndex = 0) => {
+        if (type === 'group_rank') return groupRankOptions[optionIndex]?.value || null;
+        if (type === 'winner_match') return winnerMatchOptions[optionIndex]?.value || null;
+        return null;
+    };
+
     // Knockout match builder
     const addKnockoutMatch = () => {
-        const defaultTemplate = templateOptions.length > 0 ? templateOptions[0].value : '1st_group_A';
-        const defaultTemplate2 = templateOptions.length > 1 ? templateOptions[1].value : '2nd_group_A';
-        
+        const defaultType = getDefaultSlotType();
         setKnockoutData('matches', [...knockoutData.matches, {
-            team1_template: defaultTemplate,
-            team2_template: defaultTemplate2,
+            team1_type: defaultType,
+            team1_template: getDefaultTemplate(defaultType, 0),
+            team2_type: defaultType,
+            team2_template: getDefaultTemplate(defaultType, 1) ?? getDefaultTemplate(defaultType, 0),
         }]);
     };
 
@@ -260,6 +282,13 @@ export default function Index({ category, phases, currentPhase, courts, particip
     const updateKnockoutMatch = (index, field, value) => {
         const newMatches = [...knockoutData.matches];
         newMatches[index][field] = value;
+        // When the type changes, reset the template to the first option of the new type
+        if (field === 'team1_type') {
+            newMatches[index].team1_template = getDefaultTemplate(value, 0);
+        }
+        if (field === 'team2_type') {
+            newMatches[index].team2_template = getDefaultTemplate(value, 0);
+        }
         setKnockoutData('matches', newMatches);
     };
 
@@ -271,7 +300,17 @@ export default function Index({ category, phases, currentPhase, courts, particip
             return;
         }
         
-        postKnockout(route('categories.matches.create-knockout', category.id), {
+        // Build payload: strip type fields, send null template for TBD slots
+        const payload = {
+            phase_id: knockoutData.phase_id,
+            matches: knockoutData.matches.map(m => ({
+                team1_template: m.team1_type === 'tbd' ? null : (m.team1_template || null),
+                team2_template: m.team2_type === 'tbd' ? null : (m.team2_template || null),
+            })),
+        };
+
+        setKnockoutProcessing(true);
+        router.post(route('categories.matches.create-knockout', category.id), payload, {
             onSuccess: () => {
                 setShowKnockoutModal(false);
                 setKnockoutData({
@@ -283,32 +322,48 @@ export default function Index({ category, phases, currentPhase, courts, particip
                 console.error('Knockout match creation errors:', errors);
                 alert('Error creating matches. Please check the form and try again.');
             },
+            onFinish: () => setKnockoutProcessing(false),
         });
     };
 
     // Generate template options based on previous phase
     const getTemplateOptions = () => {
-        if (!previousPhase || previousPhase.type !== 'group') return [];
+        if (!previousPhase) return { groupRankOptions: [], winnerMatchOptions: [] };
         
-        const options = [];
-        const groups = previousPhase.groups || [];
-        const teamsPerGroup = previousPhase.teams_advance_per_group || 2;
-        
-        for (let rank = 1; rank <= teamsPerGroup; rank++) {
-            const rankSuffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th';
-            for (const group of groups) {
-                const groupLetter = group.name.replace('Group ', '');
-                options.push({
-                    value: `${rank}${rankSuffix}_group_${groupLetter}`,
-                    label: `${rank}${rankSuffix} ${group.name}`
+        const groupRankOptions = [];
+        const winnerMatchOptions = [];
+
+        if (previousPhase.type === 'group') {
+            const groups = previousPhase.groups || [];
+            const teamsPerGroup = previousPhase.teams_advance_per_group || 2;
+            for (let rank = 1; rank <= teamsPerGroup; rank++) {
+                const rankSuffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th';
+                for (const group of groups) {
+                    const groupLetter = group.name.replace('Group ', '');
+                    groupRankOptions.push({
+                        value: `${rank}${rankSuffix}_group_${groupLetter}`,
+                        label: `${rank}${rankSuffix} ${group.name}`
+                    });
+                }
+            }
+        }
+
+        if (previousPhase.type === 'knockout') {
+            const matchCount = (previousPhase.matches || []).length;
+            for (let i = 1; i <= matchCount; i++) {
+                winnerMatchOptions.push({
+                    value: `winner_match_${i}`,
+                    label: `Winner Match ${i}`
                 });
             }
         }
-        
-        return options;
+
+        return { groupRankOptions, winnerMatchOptions };
     };
 
-    const templateOptions = getTemplateOptions();
+    const { groupRankOptions, winnerMatchOptions } = getTemplateOptions();
+    // Flat list kept for backwards compat with any remaining references
+    const templateOptions = [...groupRankOptions, ...winnerMatchOptions];
 
     // Group matches by group (for group phases)
     const matchesByGroup = matches.reduce((acc, match) => {
@@ -362,6 +417,71 @@ export default function Index({ category, phases, currentPhase, courts, particip
             cancelled: <XCircle className={className} />,
         };
         return icons[status] || <Clock className={className} />;
+    };
+
+    // Slot type options available for the current phase setup
+    const availableSlotTypes = [
+        ...(groupRankOptions.length > 0 ? [{ id: 'group_rank', label: 'Group Rank' }] : []),
+        ...(winnerMatchOptions.length > 0 ? [{ id: 'winner_match', label: 'Winner Match' }] : []),
+        { id: 'tbd', label: 'TBD' },
+    ];
+
+    const renderTeamSlot = (match, index, teamNum) => {
+        const typeField = `team${teamNum}_type`;
+        const templateField = `team${teamNum}_template`;
+        const slotType = match[typeField] || 'tbd';
+        const slotTemplate = match[templateField];
+
+        return (
+            <div>
+                <label className="block text-sm font-ffdin font-bold text-black mb-1">Team {teamNum}</label>
+                {availableSlotTypes.length > 1 && (
+                    <div className="flex gap-1 mb-2">
+                        {availableSlotTypes.map(t => (
+                            <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => updateKnockoutMatch(index, typeField, t.id)}
+                                className={`px-2.5 py-1 text-xs font-ffdin font-bold rounded-lg border transition-all ${
+                                    slotType === t.id
+                                        ? 'bg-black text-white border-zinc-700'
+                                        : 'bg-white text-zinc-600 border-zinc-300 hover:bg-zinc-100'
+                                }`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {slotType === 'group_rank' && (
+                    <select
+                        value={slotTemplate || ''}
+                        onChange={(e) => updateKnockoutMatch(index, templateField, e.target.value)}
+                        className="block w-full font-ffdin text-sm rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
+                    >
+                        {groupRankOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                )}
+                {slotType === 'winner_match' && (
+                    <select
+                        value={slotTemplate || ''}
+                        onChange={(e) => updateKnockoutMatch(index, templateField, e.target.value)}
+                        className="block w-full font-ffdin text-sm rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
+                    >
+                        {winnerMatchOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                )}
+                {slotType === 'tbd' && (
+                    <div className="font-ffdin text-sm text-zinc-500 bg-zinc-100 border border-dashed border-zinc-400 rounded-lg px-3 py-2">
+                        TBD — assign on the day
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const hasUnresolvedMatches = isIndividual
@@ -488,66 +608,6 @@ export default function Index({ category, phases, currentPhase, courts, particip
                         </div>
                     )}
 
-                    {/* Phase Resolution Debug Info */}
-                    {selectedPhase && selectedPhase.type === 'knockout' && (
-                        <div className="bg-yellow-50 rounded-xl border-2 border-yellow-400 px-6 py-4 font-ffdin text-sm">
-                            <div className="font-bold text-yellow-800 mb-2">🔍 Resolution Debug Info:</div>
-                            <div className="text-yellow-900 space-y-1">
-                                <p><strong>Current Phase:</strong> {selectedPhase.name} (order: {selectedPhase.order})</p>
-                                <p><strong>Previous Phase (for Winner Match X):</strong> {previousPhase ? `${previousPhase.name} (order: ${previousPhase.order}, type: ${previousPhase.type})` : 'None'}</p>
-                                
-                                {/* Phase Order Editor */}
-                                <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-400">
-                                    <p className="font-bold text-red-800 mb-2">🚨 FIX PHASE ORDER:</p>
-                                    <p className="text-xs text-red-700 mb-2">
-                                        Current: {phases.sort((a,b) => a.order - b.order).map(p => `${p.name}=#${p.order}`).join(' → ')}
-                                    </p>
-                                    <p className="text-xs text-green-700 mb-3 font-bold">
-                                        Should be: Group Phase=#1 → Quarter Finals=#2 → Semi Finals=#3 → Finals=#4
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {phases.map(p => (
-                                            <div key={p.id} className={`flex items-center gap-1 px-2 py-1 rounded border ${p.id === selectedPhase.id ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-gray-300'}`}>
-                                                <span className="text-xs font-bold">{p.name}:</span>
-                                                <select
-                                                    value={p.order}
-                                                    onChange={(e) => {
-                                                        router.post(route('phases.update-order', { category: category.id, phase: p.id }), { order: parseInt(e.target.value) }, { preserveScroll: true });
-                                                    }}
-                                                    className="text-xs border-2 border-red-400 rounded px-1 py-0.5 font-bold"
-                                                >
-                                                    {[1, 2, 3, 4, 5, 6].map(n => (
-                                                        <option key={n} value={n}>#{n}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {previousPhase && previousPhase.type === 'group' && (
-                                    <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-800">
-                                        <strong>⚠️ WARNING:</strong> Previous phase is a Group phase! For "Winner Match X" templates, 
-                                        the previous phase should be a knockout phase (like Quarter Finals).
-                                        <br/>Fix the phase order above!
-                                    </div>
-                                )}
-
-                                {matches.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-yellow-300">
-                                        <p className="font-bold text-yellow-800">Stored Templates in {selectedPhase.name}:</p>
-                                        <ul className="text-xs mt-1 space-y-0.5">
-                                            {matches.slice(0, 4).map((m, i) => (
-                                                <li key={m.id}>
-                                                    Match #{m.match_order}: <code className="bg-yellow-100 px-1">{m.team1_template || '(no template)'}</code> vs <code className="bg-yellow-100 px-1">{m.team2_template || '(no template)'}</code>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Import Schedule Info */}
                     {selectedPhase && (
@@ -694,7 +754,7 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                         <Info className="h-5 w-5 text-zinc-400 flex-shrink-0 mt-0.5" />
                                         <div>
                                             <p className="text-base font-ffdin text-black mb-2">
-                                                Define match pairings using rankings from <strong>{previousPhase.name}</strong>.
+                                                Define match pairings using rankings from <strong>{previousPhase.name}</strong>, or set a slot to <strong>TBD</strong> to assign the team on the day.
                                             </p>
                                             <p className="text-sm font-ffdin text-zinc-600">
                                                 Example: <strong>1st Group A vs 2nd Group B</strong> means the 1st place team from Group A
@@ -702,11 +762,23 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                             </p>
                                         </div>
                                     </div>
+                                ) : previousPhase && previousPhase.type === 'knockout' ? (
+                                    <div className="flex items-start gap-2 bg-zinc-50 rounded-xl p-4 mb-6 border border-zinc-200">
+                                        <Info className="h-5 w-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-base font-ffdin text-black mb-2">
+                                                Use <strong>Winner Match</strong> to auto-resolve teams from <strong>{previousPhase.name}</strong> results, or set a slot to <strong>TBD</strong> to assign on the day.
+                                            </p>
+                                            <p className="text-sm font-ffdin text-zinc-600">
+                                                Example: <strong>Winner Match 1 vs Winner Match 2</strong> will be resolved once those matches complete.
+                                            </p>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex items-start gap-2 bg-zinc-50 rounded-xl p-4 mb-6 border border-zinc-300">
                                         <AlertCircle className="h-5 w-5 text-zinc-500 flex-shrink-0 mt-0.5" />
                                         <p className="text-base font-ffdin text-black">
-                                            No group phase found before this phase. You can create matches, but you'll need to manually assign participants later.
+                                            No previous phase found. Matches will be created with TBD slots — assign teams on the day from the match list.
                                         </p>
                                     </div>
                                 )}
@@ -726,32 +798,8 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                     </button>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className="block text-sm font-ffdin font-bold text-black mb-1">Team 1</label>
-                                                        <select
-                                                            value={match.team1_template}
-                                                            onChange={(e) => updateKnockoutMatch(index, 'team1_template', e.target.value)}
-                                                            className="block w-full font-ffdin rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
-                                                            required
-                                                        >
-                                                            {templateOptions.map((opt) => (
-                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-ffdin font-bold text-black mb-1">Team 2</label>
-                                                        <select
-                                                            value={match.team2_template}
-                                                            onChange={(e) => updateKnockoutMatch(index, 'team2_template', e.target.value)}
-                                                            className="block w-full font-ffdin rounded-lg border border-zinc-300 focus:border-black focus:ring-black"
-                                                            required
-                                                        >
-                                                            {templateOptions.map((opt) => (
-                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                    {renderTeamSlot(match, index, 1)}
+                                                    {renderTeamSlot(match, index, 2)}
                                                 </div>
                                             </div>
                                         ))}
@@ -983,20 +1031,46 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                     <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         <span className="font-bold">{match.team1?.player_1}</span> / {match.team1?.player_2}
                                                     </div>
-                                                ) : (
+                                                ) : match.team1_template ? (
                                                     <div className="font-ffdin text-xs text-zinc-500 bg-zinc-100 px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
-                                                        {match.team1_template?.replace(/_/g, ' ')}
+                                                        {match.team1_template.replace(/_/g, ' ')}
                                                     </div>
+                                                ) : (
+                                                    <select
+                                                        value=""
+                                                        onChange={(e) => handleTeamChange(match.id, 'team1_id', e.target.value)}
+                                                        className="font-ffdin text-xs rounded border border-dashed border-zinc-400 focus:border-black focus:ring-black py-1 px-1.5 min-w-[150px] bg-white text-zinc-500"
+                                                    >
+                                                        <option value="">Assign Team 1</option>
+                                                        {participantOptions.map((p) => (
+                                                            <option key={p.id} value={p.id}>
+                                                                {p.player_1} / {p.player_2}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 )}
                                                 <span className="text-sm font-bold font-ffdin text-zinc-500">vs</span>
                                                 {match.team2_id ? (
                                                     <div className="font-ffdin text-xs text-black bg-white px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
                                                         <span className="font-bold">{match.team2?.player_1}</span> / {match.team2?.player_2}
                                                     </div>
-                                                ) : (
+                                                ) : match.team2_template ? (
                                                     <div className="font-ffdin text-xs text-zinc-500 bg-zinc-100 px-2 py-1.5 rounded border border-zinc-300 min-w-[150px]">
-                                                        {match.team2_template?.replace(/_/g, ' ')}
+                                                        {match.team2_template.replace(/_/g, ' ')}
                                                     </div>
+                                                ) : (
+                                                    <select
+                                                        value=""
+                                                        onChange={(e) => handleTeamChange(match.id, 'team2_id', e.target.value)}
+                                                        className="font-ffdin text-xs rounded border border-dashed border-zinc-400 focus:border-black focus:ring-black py-1 px-1.5 min-w-[150px] bg-white text-zinc-500"
+                                                    >
+                                                        <option value="">Assign Team 2</option>
+                                                        {participantOptions.map((p) => (
+                                                            <option key={p.id} value={p.id}>
+                                                                {p.player_1} / {p.player_2}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 )}
                                             </div>
                                             
@@ -1038,7 +1112,9 @@ export default function Index({ category, phases, currentPhase, courts, particip
                                                         !match.court_id
                                                             ? 'Assign court first'
                                                             : !match.team1_id || !match.team2_id
-                                                                ? 'Resolve participants first'
+                                                                ? (!match.team1_template && !match.team1_id) || (!match.team2_template && !match.team2_id)
+                                                                    ? 'Assign TBD team(s) first'
+                                                                    : 'Resolve participants first'
                                                                 : (match.status === 'in_progress' || match.status === 'upcoming' ? 'Open Match' : 'Start Match')
                                                     }
                                                 >

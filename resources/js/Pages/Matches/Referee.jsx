@@ -35,12 +35,14 @@ export default function Referee({ category, match }) {
         gamesTarget: phase.games_target,
         scoringType: phase.scoring_type,
         advantageLimit: phase.advantage_limit,
+        useTiebreaker: phase.use_tiebreaker ?? true,
         tiebreakerPoints: phase.tiebreaker_points,
         tiebreakerTwoPointDiff: phase.tiebreaker_two_point_difference,
     } : {
         gamesTarget: 4,
         scoringType: 'no_ad',
         advantageLimit: null,
+        useTiebreaker: true,
         tiebreakerPoints: 7,
         tiebreakerTwoPointDiff: true,
     };
@@ -481,7 +483,10 @@ export default function Referee({ category, match }) {
                                                     {scoringConfig.scoringType === 'traditional' && ' Traditional'}
                                                     {scoringConfig.scoringType === 'advantage_limit' && ` Max ${scoringConfig.advantageLimit} Adv`}
                                                     <div className="mt-1">
-                                                        Tie-breaker at {scoringConfig.gamesTarget - 1}-{scoringConfig.gamesTarget - 1}
+                                                        {scoringConfig.useTiebreaker
+                                                            ? `Tie-breaker at ${scoringConfig.gamesTarget - 1}-${scoringConfig.gamesTarget - 1}`
+                                                            : `No tie-breaker (first to ${scoringConfig.gamesTarget} wins)`
+                                                        }
                                                     </div>
                                                 </div>
                                             )}

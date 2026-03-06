@@ -90,7 +90,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
             timer = setTimeout(() => {
                 setCurrentView('leaderboard');
                 setCurrentCategoryIndex(0);
-            }, 4000);
+            }, 20000);
         }
         return () => clearTimeout(timer);
     }, [currentView, currentCategoryIndex, categoriesData.length]);
@@ -151,7 +151,7 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
             );
         }
 
-        const { category, currentPhase, leaderboardData, scheduleData } = categoriesData[currentCategoryIndex];
+        const { category, currentPhase, leaderboardData, scheduleData, knockoutPhases } = categoriesData[currentCategoryIndex];
         const isIndividual = category.participant_mode === 'individual';
 
         if (!currentPhase) {
@@ -163,60 +163,270 @@ export default function LeaderboardScreensaver({ event, categoriesData, courtsWi
         }
 
         if (leaderboardData && leaderboardData.type === 'knockout') {
-            const knockoutMatches = scheduleData || [];
-            return (
-                <div className="h-full flex items-center justify-center">
-                    <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto w-full">
-                        {knockoutMatches.length > 0 ? (
-                            knockoutMatches.map((match) => (
-                                <div key={match.id} className={`backdrop-blur-sm rounded-xl p-6 border-4 ${
-                                    match.status === 'completed'
-                                        ? 'bg-zinc-800/60 border-zinc-600'
-                                        : match.status === 'in_progress'
-                                        ? 'bg-zinc-700/30 border-zinc-500'
-                                        : 'bg-black/80 border-accent'
-                                }`}>
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex-1">
-                                            <p className={`text-3xl font-bold font-ffdin ${
-                                                match.status === 'completed' && match.winner_id === match.team1_id
-                                                    ? 'text-accent'
-                                                    : 'text-white'
-                                            }`}>
-                                                {match.team1?.player_1 || match.team1_template || 'TBD'} / {match.team1?.player_2 || ''}
-                                            </p>
-                                        </div>
-                                        <div className={`text-5xl font-bold mx-8 ${
-                                            match.status === 'completed' && match.winner_id === match.team1_id
-                                                ? 'text-accent'
-                                                : 'text-white'
-                                        }`}>
-                                            {match.status === 'scheduled' ? '-' : match.team1_score || 0}
-                                        </div>
-                                        <div className="text-3xl font-bold text-accent mx-4">
-                                            {match.status === 'in_progress' ? '🔴 LIVE' : 'VS'}
-                                        </div>
-                                        <div className={`text-5xl font-bold mx-8 ${
-                                            match.status === 'completed' && match.winner_id === match.team2_id
-                                                ? 'text-accent'
-                                                : 'text-white'
-                                        }`}>
-                                            {match.status === 'scheduled' ? '-' : match.team2_score || 0}
-                                        </div>
-                                        <div className="flex-1 text-right">
-                                            <p className={`text-3xl font-bold font-ffdin ${
-                                                match.status === 'completed' && match.winner_id === match.team2_id
-                                                    ? 'text-accent'
-                                                    : 'text-white'
-                                            }`}>
-                                                {match.team2?.player_1 || match.team2_template || 'TBD'} / {match.team2?.player_2 || ''}
-                                            </p>
-                                        </div>
-                                    </div>
+            const color = getCategoryColor(category.name);
+            const phases = knockoutPhases || [];
+
+            if (phases.length === 0) {
+                return (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-3xl font-ffdin text-zinc-400">No knockout matches yet</p>
+                    </div>
+                );
+            }
+
+            // ── Match Card ──────────────────────────────────────────────────────────
+            const MatchCard = ({ match, reversed = false }) => {
+                if (!match) {
+                    return <div className="flex-1 rounded-xl border-2 border-zinc-800 bg-black/40 min-h-[60px]" />;
+                }
+                const isLive      = match.status === 'in_progress';
+                const isDone      = match.status === 'completed';
+                const isScheduled = match.status === 'scheduled' || match.status === 'upcoming';
+
+                const team1Name = match.team1 ? `${limitWords(match.team1.player_1)} / ${limitWords(match.team1.player_2)}` : '';
+                const team2Name = match.team2 ? `${limitWords(match.team2.player_1)} / ${limitWords(match.team2.player_2)}` : '';
+
+                const team1Won = isDone && match.winner_id === match.team1_id;
+                const team2Won = isDone && match.winner_id === match.team2_id;
+
+                const borderColor = isLive ? color : isDone ? '#52525b' : color + '80';
+                const borderWidth = isLive ? '3px' : '2px';
+
+                const TeamRow = ({ name, score, isWinner, align = 'left' }) => (
+                    <div className={`flex items-center gap-2 py-1 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+                        <span className={`flex-1 font-ffdin font-bold truncate text-sm leading-tight ${
+                            isWinner ? 'text-white' : isDone ? 'text-zinc-500' : 'text-zinc-200'
+                        }`} style={isWinner ? { color } : {}}>
+                            {name}
+                        </span>
+                        {!isScheduled && (
+                            <span className={`font-ffdin font-bold text-lg flex-shrink-0 w-6 text-center ${
+                                isWinner ? 'text-white' : 'text-zinc-500'
+                            }`} style={isWinner ? { color } : {}}>
+                                {score ?? 0}
+                            </span>
+                        )}
+                    </div>
+                );
+
+                return (
+                    <div
+                        className="rounded-xl px-3 py-2 bg-black/80 backdrop-blur-sm relative"
+                        style={{ border: `${borderWidth} solid ${borderColor}` }}
+                    >
+                        {isLive && (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-ffdin font-bold text-black"
+                                style={{ backgroundColor: color }}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse inline-block" />
+                                LIVE
+                            </span>
+                        )}
+                        <TeamRow
+                            name={team1Name}
+                            score={match.team1_score}
+                            isWinner={team1Won}
+                            align={reversed ? 'right' : 'left'}
+                        />
+                        <div className="border-t border-zinc-800 my-0.5" />
+                        <TeamRow
+                            name={team2Name}
+                            score={match.team2_score}
+                            isWinner={team2Won}
+                            align={reversed ? 'right' : 'left'}
+                        />
+                    </div>
+                );
+            };
+
+            // ── SVG Connector ────────────────────────────────────────────────────────
+            // fromCount: matches in the outer round (e.g. 2 QF matches)
+            // toCount:   matches in the inner round (e.g. 1 SF match)
+            // dir: 'ltr' = outer is on the left, lines run rightward
+            //      'rtl' = outer is on the right, lines run leftward
+            const BracketConnector = ({ fromCount, toCount, dir = 'ltr' }) => {
+                const H = 100;
+                const W = 100;
+                const startX = dir === 'ltr' ? 0 : W;   // outer match side
+                const endX   = dir === 'ltr' ? W : 0;   // inner / next side
+                const midX   = W * 0.5;
+
+                const paths = [];
+
+                if (fromCount === toCount) {
+                    // 1:1 case — just straight horizontal lines
+                    for (let j = 0; j < toCount; j++) {
+                        const y = ((2 * j + 1) / (2 * toCount)) * H;
+                        paths.push(
+                            <line key={`h-${j}`} x1={startX} y1={y} x2={endX} y2={y}
+                                stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+                        );
+                    }
+                } else {
+                    // N:M case — group fromCount matches into toCount buckets
+                    const ratio = fromCount / toCount; // typically 2
+                    for (let j = 0; j < toCount; j++) {
+                        const yMid = ((2 * j + 1) / (2 * toCount)) * H;
+                        const firstIdx = j * ratio;
+                        const lastIdx  = j * ratio + ratio - 1;
+                        const yFirst = ((2 * firstIdx + 1) / (2 * fromCount)) * H;
+                        const yLast  = ((2 * lastIdx  + 1) / (2 * fromCount)) * H;
+
+                        // horizontal stubs from each outer match to midX
+                        for (let i = 0; i < ratio; i++) {
+                            const matchIdx = j * ratio + i;
+                            const yMatch = ((2 * matchIdx + 1) / (2 * fromCount)) * H;
+                            paths.push(
+                                <line key={`h-in-${j}-${i}`}
+                                    x1={startX} y1={yMatch} x2={midX} y2={yMatch}
+                                    stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+                            );
+                        }
+                        // vertical join at midX
+                        paths.push(
+                            <line key={`v-${j}`}
+                                x1={midX} y1={yFirst} x2={midX} y2={yLast}
+                                stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+                        );
+                        // horizontal from midX to inner side
+                        paths.push(
+                            <line key={`h-out-${j}`}
+                                x1={midX} y1={yMid} x2={endX} y2={yMid}
+                                stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+                        );
+                    }
+                }
+
+                return (
+                    <svg
+                        viewBox={`0 0 ${W} ${H}`}
+                        preserveAspectRatio="none"
+                        className="w-10 flex-shrink-0 h-full"
+                        style={{ minWidth: '2.5rem' }}
+                    >
+                        {paths}
+                    </svg>
+                );
+            };
+
+            // ── Half bracket renderer ─────────────────────────────────────────────
+            // For LTR: rounds = [QF_left, SF_left] — outermost first, visual left→right
+            // For RTL: rounds = [SF_right, QF_right] — innermost first, visual left→right (center→edge)
+            const renderHalf = (rounds, dir) => {
+                const isRtl = dir === 'rtl';
+                const cols = [];
+
+                rounds.forEach((round, ri) => {
+                    const nextRound = rounds[ri + 1];
+
+                    // Match column
+                    cols.push(
+                        <div
+                            key={`round-${round.phase.id}`}
+                            className="flex flex-col justify-around flex-1 gap-2"
+                            style={{ minWidth: '150px', maxWidth: '230px' }}
+                        >
+                            <div className="text-center mb-1">
+                                <span className="text-xs font-ffdin font-bold uppercase tracking-widest text-zinc-500">
+                                    {round.phase.name}
+                                </span>
+                            </div>
+                            {round.matches.map((match) => (
+                                <div key={match.id} className="flex-1 flex flex-col justify-center">
+                                    <MatchCard match={match} reversed={isRtl} />
                                 </div>
-                            ))
-                        ) : (
-                            <p className="text-3xl font-ffdin text-zinc-400 text-center">No matches scheduled</p>
+                            ))}
+                        </div>
+                    );
+
+                    if (nextRound) {
+                        // LTR: current round is outer (fromCount), nextRound is inner (toCount)
+                        // RTL: current round is inner (toCount), nextRound is outer (fromCount)
+                        const fromCount = isRtl ? nextRound.matches.length : round.matches.length;
+                        const toCount   = isRtl ? round.matches.length    : nextRound.matches.length;
+                        cols.push(
+                            <BracketConnector
+                                key={`conn-${round.phase.id}`}
+                                fromCount={fromCount}
+                                toCount={toCount}
+                                dir={dir}
+                            />
+                        );
+                    }
+                });
+
+                return cols;
+            };
+
+            // ── Split phases into halves ─────────────────────────────────────────
+            const finalPhase  = phases[phases.length - 1];
+            const outerPhases = phases.slice(0, -1); // everything before Final: QF, SF, ...
+
+            // Split each outer phase's matches: first half → left, second half → right
+            const leftRounds  = outerPhases.map(p => {
+                const half = Math.ceil(p.matches.length / 2);
+                return { phase: p, matches: p.matches.slice(0, half) };
+            });
+            const rightRounds = outerPhases.map(p => {
+                const half = Math.ceil(p.matches.length / 2);
+                return { phase: p, matches: p.matches.slice(half) };
+            });
+
+            const finalMatches    = finalPhase.matches;
+            // The innermost half-round (closest to Final, e.g. SF half)
+            const leftInnerCount  = leftRounds.length  > 0 ? leftRounds[leftRounds.length - 1].matches.length  : 0;
+            const rightInnerCount = rightRounds.length > 0 ? rightRounds[rightRounds.length - 1].matches.length : 0;
+
+            return (
+                <div className="h-full flex items-center justify-center overflow-hidden px-2">
+                    <div className="flex items-stretch w-full h-full gap-0">
+
+                        {/* Left half: QF_left → connector → SF_left → connector → Final */}
+                        {leftRounds.length > 0 && (
+                            <>
+                                {/* LTR: outermost first [QF_left, SF_left, ...] */}
+                                {renderHalf(leftRounds, 'ltr')}
+                                {/* Final connector from left inner to Final */}
+                                <BracketConnector
+                                    fromCount={leftInnerCount}
+                                    toCount={Math.max(finalMatches.length, 1)}
+                                    dir="ltr"
+                                />
+                            </>
+                        )}
+
+                        {/* Final column — center */}
+                        <div
+                            className="flex flex-col justify-around flex-shrink-0 gap-2"
+                            style={{ minWidth: '190px', maxWidth: '260px' }}
+                        >
+                            <div className="text-center mb-1">
+                                <span className="text-sm font-ffdin font-bold uppercase tracking-widest" style={{ color }}>
+                                    {finalPhase.name}
+                                </span>
+                            </div>
+                            {finalMatches.length > 0 ? finalMatches.map(match => (
+                                <div key={match.id} className="flex-1 flex flex-col justify-center">
+                                    <MatchCard match={match} />
+                                </div>
+                            )) : (
+                                <div className="flex-1 flex flex-col justify-center">
+                                    <MatchCard match={null} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right half: Final → connector → SF_right → connector → QF_right */}
+                        {rightRounds.length > 0 && (
+                            <>
+                                {/* Final connector from Final to right inner */}
+                                <BracketConnector
+                                    fromCount={rightInnerCount}
+                                    toCount={Math.max(finalMatches.length, 1)}
+                                    dir="rtl"
+                                />
+                                {/* RTL: innermost first [SF_right, QF_right, ...] */}
+                                {renderHalf([...rightRounds].reverse(), 'rtl')}
+                            </>
                         )}
                     </div>
                 </div>

@@ -134,8 +134,8 @@ class MatchController extends Controller
         $validated = $request->validate([
             'phase_id' => 'required|exists:tournament_phases,id',
             'matches' => 'required|array|min:1',
-            'matches.*.team1_template' => 'required|string',
-            'matches.*.team2_template' => 'required|string',
+            'matches.*.team1_template' => 'nullable|string',
+            'matches.*.team2_template' => 'nullable|string',
         ]);
 
         $phase = \App\Models\TournamentPhase::findOrFail($validated['phase_id']);
@@ -1068,6 +1068,8 @@ class MatchController extends Controller
 
         $playerExistsInCategory = Rule::exists('participants', 'id')->where('category_id', $category->id);
 
+        $teamExistsInCategory = Rule::exists('participants', 'id')->where('category_id', $category->id);
+
         $rules = [
             'court_id' => 'nullable|exists:courts,id',
             'scheduled_time' => 'nullable|date',
@@ -1075,6 +1077,10 @@ class MatchController extends Controller
             'team2_score' => 'nullable|integer|min:0',
             'status' => 'nullable|in:scheduled,upcoming,in_progress,completed,cancelled',
             'notes' => 'nullable|string',
+
+            // Direct team assignment for knockout TBD slots (non-individual mode only)
+            'team1_id' => !$isIndividual ? ['sometimes', 'nullable', 'integer', $teamExistsInCategory] : ['prohibited'],
+            'team2_id' => !$isIndividual ? ['sometimes', 'nullable', 'integer', $teamExistsInCategory] : ['prohibited'],
 
             // Individuals mode (dynamic pairing)
             'side1_player1_id' => $isIndividual ? ['sometimes', 'nullable', 'integer', $playerExistsInCategory] : ['prohibited'],
@@ -1474,15 +1480,17 @@ class MatchController extends Controller
             'games_target' => $phase->games_target,
             'scoring_type' => $phase->scoring_type,
             'advantage_limit' => $phase->advantage_limit,
+            'use_tiebreaker' => $phase->use_tiebreaker ?? true,
             'tiebreaker_points' => $phase->tiebreaker_points,
             'tiebreaker_two_point_difference' => $phase->tiebreaker_two_point_difference,
         ];
 
         // Determine if we should enter tie-breaker mode
         $tieScore = $config['games_target'] - 1; // For first to 4: 3-3, for first to 6: 5-5
-        $shouldEnterTiebreaker = !$match->is_tiebreaker && 
-                                 $match->team1_score == $tieScore && 
-                                 $match->team2_score == $tieScore;
+        $shouldEnterTiebreaker = !$match->is_tiebreaker &&
+                                 $match->team1_score == $tieScore &&
+                                 $match->team2_score == $tieScore &&
+                                 ($config['use_tiebreaker'] ?? true);
 
         if ($shouldEnterTiebreaker) {
             // Enter tie-breaker mode
@@ -2205,7 +2213,10 @@ class MatchController extends Controller
                 // If the next match is in a different phase, redirect to list page
                 // (e.g., moving from group stage to quarter-finals requires generating matches first)
                 if ($nextMatch->phase_id !== $match->phase_id) {
-                    return redirect()->route('categories.matches.index', $category)
+                    return redirect()->route('events.courts.matches', [
+                        'event' => $match->category->event_id,
+                        'court' => $match->court_id,
+                    ])
                         ->with('success', 'Match completed. Next match is in a different phase - please generate matches for that phase first.');
                 }
                 
